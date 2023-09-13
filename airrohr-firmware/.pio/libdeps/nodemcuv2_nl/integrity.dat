@@ -1,0 +1,21 @@
+paulstoffregen/OneWire@2.3.5
+sparkfun/SparkFun SCD30 Arduino Library @ ^1.0.13
+mikalhart/TinyGPSPlus@1.0.2
+milesburton/DallasTemperature@3.9.1
+adafruit/Adafruit HTU21DF Library@1.0.5
+adafruit/Adafruit BMP085 Library@1.0.1
+Hash
+DNSServer
+ESP8266HTTPClient
+ESP8266WiFi
+bblanchon/ArduinoJson@^6.21.2
+Wire
+EspSoftwareSerial
+adafruit/Adafruit SHT31 Library@1.2.0
+https://github.com/knolleary/pubsubclient/
+ESP8266mDNS
+sensirion/Sensirion Core@^0.6.0
+marcoschwartz/LiquidCrystal_I2C@1.1.4
+ThingPulse/ESP8266 and ESP32 OLED driver for SSD1306 displays @ ^4.2.1
+sensirion/Sensirion I2C SEN5X@^0.2.0
+ESP8266WebServer

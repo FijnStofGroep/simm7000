@@ -1,0 +1,11 @@
+{
+	"folders": [],
+	"settings": {
+		"files.associations": {
+			"functional": "cpp"
+		},
+		"platformio-ide.forceUploadAndMonitor": true,
+		"platformio-ide.activateOnlyOnPlatformIOProject": false,
+		"platformio-ide.customPATH": "c:\\Development\\ESPEasy\\ESPEasy version\\development ESPEasy\\"
+	}
+}
