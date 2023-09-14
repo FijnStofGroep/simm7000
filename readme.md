@@ -6,6 +6,9 @@
 
 The maintained main firmware for the Luftdaten.Info Sensor. 
 
+## SIMM7000
+* Not working (is on development)
+
 ## New Sensors
 * SEN5X
 * CO2 on SCD30
