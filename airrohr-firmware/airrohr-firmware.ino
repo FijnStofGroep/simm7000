@@ -1810,6 +1810,24 @@ static String form_select_lang()
 }
 */
 
+static String form_select_mode()		// mode SIMM7000
+{
+	String s_select = F(" selected='selected'");
+	String s = F("<tr>"
+				 "<td>" INTL_MODE ":&nbsp;</td>"
+				 "<td>"
+				 "<select id='current_lang' name='current_lang'>"
+				 "<option value='1'>Mode 1</option>"
+				 "<option value='2'>Mode 2</option>"
+				 "<option value='3'>Mode 3</option>"
+				 "<option value='4'>Mode 4</option>"
+				 "</select>"
+				 "</td>"
+				 "</tr>");
+
+	s.replace("'" + String(cfg::current_lang) + "'>", "'" + String(cfg::current_lang) + "'" + s_select + ">");
+	return s;
+}
 static void add_warning_first_cycle(String &page_content)
 {
 	String s = FPSTR(INTL_TIME_TO_FIRST_MEASUREMENT);
@@ -1910,6 +1928,8 @@ static void webserver_root()
 		page_content.replace(F("{s7000}"), FPSTR(INTL_SIM7000));
 		page_content.replace(F("{restart}"), FPSTR(INTL_RESTART_SENSOR));
 		page_content.replace(F("{debug}"), FPSTR(INTL_DEBUG_LEVEL));
+
+		
 		end_html_page(page_content);
 	}
 }
@@ -3042,6 +3062,27 @@ static void webserver_s7000()
 	RESERVE_STRING(page_content, LARGE_STR);
 	start_html_page(page_content, FPSTR(INTL_SIM7000));
 
+	server.sendContent(page_content);
+	// Voor test gebruik eerdere variabele
+
+
+//	page_content = emptyString;
+	page_content = FPSTR(BR_TAG);
+	page_content += form_checkbox(Config_send2dusti, FPSTR(INTL_SIM_GPS), false);
+	page_content += FPSTR(WEB_BR_BR);
+	page_content += FPSTR(TABLE_TAG_OPEN);
+	add_form_input(page_content, Config_www_username, FPSTR(INTL_SIM_MODE), LEN_SIMM7000 - 1);
+	add_form_input(page_content, Config_www_username, FPSTR(INTL_SIM_APN), LEN_SIMM7000 - 1);
+	add_form_input(page_content, Config_www_username, FPSTR(INTL_SIM_TYPE), LEN_SIMM7000 - 1);
+	// regel 1820 select mode
+	page_content += form_select_mode();
+	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+	page_content += FPSTR(WEB_BR_BR);
+	page_content += form_submit(FPSTR(INTL_SAVE_AND_RESTART));
+	
+
+	// Paginate page after ~ 1500 Bytes
+	//server.sendContent(page_content);
 
 	end_html_page(page_content);                                                                                            
 

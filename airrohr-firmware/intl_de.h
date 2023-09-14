@@ -147,3 +147,9 @@ const char INTL_SIGNAL_QUALITY[] PROGMEM = "Qualität";
 #define INTL_VALUE "Wert"
 
 #include "./airrohr-logo-common.h"
+const char INTL_SIM_APN[] PROGMEM = "APN";
+const char INTL_SIM_ID[] PROGMEM = "ID";
+const char INTL_SIM_GPS[] PROGMEM = "GPS";
+const char INTL_SIM_TYPE[] PROGMEM = "Type";
+const char INTL_SIM_MODE[] PROGMEM = "Mode";
+#define INTL_MODE "Mode"
