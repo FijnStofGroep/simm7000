@@ -56,7 +56,9 @@
  * 
  * 													*
  * 2023-08-12
- * Add MQTT	RD/FvD																*
+ * Add MQTT	RD/FvD	
+ * 2023-09-17
+ * Add Simm7000 Webservice															*
  ************************************************************************
  *
  * latest build using lib 3.1.0
@@ -76,13 +78,12 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2023-08-B1"
+#define SOFTWARE_VERSION_STR "FWL-2023-09-B1"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
  * Includes                                                      *
  *****************************************************************/
-
 #if defined(ESP8266)
 #include <FS.h> // must be first
 
@@ -180,6 +181,14 @@ namespace cfg
 	char static_subnet[LEN_STATIC_ADRESS];
 	char static_gateway[LEN_STATIC_ADRESS];
 	char static_dns[LEN_STATIC_ADRESS];
+
+	// Simm7000
+	bool s7000_has_gps = HAS_GPS;
+	char simm700_mode[3];
+	char s7000_type[LEN_SIMM7000];
+	char s7000_mode[LEN_SIMM7000];
+	char s7000_apn[LEN_SIMM7000];
+
 
 	// credentials of the sensor in access point mode
 	char fs_ssid[LEN_FS_SSID] = FS_SSID;
@@ -342,6 +351,7 @@ const uint8_t default_ip_third_octet = 4;
 const uint8_t default_ip_fourth_octet = 1;
 
 #include "./airrohr-cfg.h"
+#include "./airrohr-cfg7000.h"
 
 /*****************************************************************
  * Variables for Noise Measurement DNMS                          *
@@ -1368,6 +1378,8 @@ static void readConfig(bool oldconfig = false)
 	DynamicJsonDocument json(JSON_BUFFER_SIZE);
 	DeserializationError err = deserializeJson(json, configFile.readString());
 	configFile.close();
+	debug_outln_info(F("Read config json...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
+
 
 #pragma GCC diagnostic pop
 
@@ -1406,6 +1418,9 @@ static void readConfig(bool oldconfig = false)
 					break;
 			};
 		}
+		debug_outln_info(F("\nRead config json ...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
+		
+		String MemoryUse =  String(json.memoryUsage()) + String(" char.");
 
 		String writtenVersion(json["SOFTWARE_VERSION"].as<const char *>());
 		
@@ -1497,7 +1512,10 @@ static void init_config()
 	}
 
 	debug_outln_info(F("mounting FS done, read config values."));
+	
 	readConfig();
+	
+	
 }
 
 /*****************************************************************
@@ -1542,7 +1560,7 @@ static bool writeConfig()
 		
 		debug_outln_info(F("Wait 1 second, before close Config file."));
 		delay(1000);
-		
+		debug_outln_info(F("Write config json...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
 		configFile.close();
 		debug_outln_info(F("Config written successfully."));
 	}
@@ -1749,6 +1767,78 @@ static String form_checkbox(const ConfigShapeId cfgid, const String &info, const
 	}
 
 	return s;
+}
+
+// Sim 7000
+static String form_checkbox(const ConfigShape7Id cfgid, const String &info, const bool linebreak)
+{
+	RESERVE_STRING(s, MED_STR);
+	s = F("<label for='{n}'>"
+		  "<input type='checkbox' name='{n}' value='1' id='{n}' {c}/>"
+		  "<input type='hidden' name='{n}' value='0'/>"
+		  "{i}</label><br/>");
+
+	if (*configShape[cfgid].cfg_val.as_bool)
+	{
+		s.replace("{c}", F(" checked='checked'"));
+	}
+	else
+	{
+		s.replace("{c}", emptyString);
+	};
+
+	s.replace("{i}", info);
+	s.replace("{n}", String(configShape[cfgid].cfg_key()));
+
+	if (!linebreak)
+	{
+		s.replace("<br/>", emptyString);
+	}
+
+	return s;
+}
+
+static void add_form_input7(String &page_content, const ConfigShape7Id cfgid, const __FlashStringHelper *info, const int length)
+{
+	RESERVE_STRING(s, MED_STR);
+	s = F("<tr>"
+		  "<td title='[&lt;= {l}]'>{i}:&nbsp;</td>"
+		  "<td style='width:{l}em'>"
+		  "<input type='{t}' name='{n}' id='{n}' placeholder='{i}' value='{v}' maxlength='{l}'/>"
+		  "</td></tr>");
+
+	String t_value;
+	ConfigShapeEntry c;
+	memcpy_P(&c, &configShape[cfgid], sizeof(ConfigShapeEntry));
+	switch (c.cfg_type)
+	{
+	case Config_Type_UInt:
+		t_value = String(*c.cfg_val.as_uint);
+		s.replace("{t}", F("number"));
+		break;
+	case Config_Type_Time:
+		t_value = String((*c.cfg_val.as_uint) / 1000);
+		s.replace("{t}", F("number"));
+		break;
+	default:
+		if (c.cfg_type == Config_Type_Password)
+		{
+			s.replace("{t}", F("password"));
+			info = FPSTR(INTL_PASSWORD);
+		}
+		else
+		{
+			t_value = c.cfg_val.as_str;
+			t_value.replace("'", "&#39;");
+			s.replace("{t}", F("text"));
+		}
+	}
+
+	s.replace("{i}", info);
+	s.replace("{n}", String(c.cfg_key()));
+	s.replace("{v}", t_value);
+	s.replace("{l}", String(length));
+	page_content += s;
 }
 
 static String form_submit(const String &value)
@@ -2771,6 +2861,7 @@ static void webserver_status()
 
 	add_table_row_from_value(page_content, FPSTR(INTL_FIRMWARE), versionHtml);
 	add_table_row_from_value(page_content, F("Free Memory"), String(ESP.getFreeHeap()));
+//	add_table_row_from_value(page_content, F("Used config"), String(json.mem());
 	
 #if defined(ESP8266)
 	add_table_row_from_value(page_content, F("Heap Fragmentation"), String(ESP.getHeapFragmentation()), "%");
@@ -3068,12 +3159,12 @@ static void webserver_s7000()
 
 //	page_content = emptyString;
 	page_content = FPSTR(BR_TAG);
-	page_content += form_checkbox(Config_send2dusti, FPSTR(INTL_SIM_GPS), false);
+	page_content += form_checkbox(Config7000_has_gps, FPSTR(INTL_SIM_GPS), false);
 	page_content += FPSTR(WEB_BR_BR);
 	page_content += FPSTR(TABLE_TAG_OPEN);
-	add_form_input(page_content, Config_www_username, FPSTR(INTL_SIM_MODE), LEN_SIMM7000 - 1);
-	add_form_input(page_content, Config_www_username, FPSTR(INTL_SIM_APN), LEN_SIMM7000 - 1);
-	add_form_input(page_content, Config_www_username, FPSTR(INTL_SIM_TYPE), LEN_SIMM7000 - 1);
+	add_form_input7(page_content, Config7000_mode, FPSTR(INTL_SIM_MODE), LEN_SIMM7000 - 1);
+	add_form_input7(page_content, Config7000_apn, FPSTR(INTL_SIM_APN), LEN_SIMM7000 - 1);
+	add_form_input7(page_content, Config7000_type, FPSTR(INTL_SIM_TYPE), LEN_SIMM7000 - 1);
 	// regel 1820 select mode
 	page_content += form_select_mode();
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);

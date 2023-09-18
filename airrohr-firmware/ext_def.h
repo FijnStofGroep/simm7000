@@ -109,7 +109,10 @@ static const char URL_INFLUX[] PROGMEM = "/write?db=sensorcommunity";
 static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = "feinstaub";
 #define SSL_INFLUX 0
 #define HAS_FIX_IP 0
+
+// Simm7000
 #define HAS_S7000 0
+#define HAS_GPS 0
 
 // define MQTT Definitionen
 static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
