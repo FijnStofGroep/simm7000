@@ -54,9 +54,11 @@
 #define DEBUG_MED_INFO 4
 #define DEBUG_MAX_INFO 5
 
+
 /******************************************************************
  * Constants                                                      *
  ******************************************************************/
+constexpr unsigned long MemUseConfig  = 0;
 constexpr const unsigned long SLEEPTIME_MS = 250;
 constexpr const unsigned long SAMPLETIME_MS = 30000;									// time between two measurements of the PPD42NS
 constexpr const unsigned long SAMPLETIME_SDS_MS = 1000;								    // time between two measurements of the SDS011, PMSx003, Honeywell PM sensor

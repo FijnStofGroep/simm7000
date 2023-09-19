@@ -148,6 +148,7 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include "defines.h"
 #include "ext_def.h"
 #include "html-content.h"
+#include "./airrohr-cfg7000.h"
 
 /******************************************************************
  * The variables inside the cfg namespace are persistent          *
@@ -181,14 +182,6 @@ namespace cfg
 	char static_subnet[LEN_STATIC_ADRESS];
 	char static_gateway[LEN_STATIC_ADRESS];
 	char static_dns[LEN_STATIC_ADRESS];
-
-	// Simm7000
-	bool s7000_has_gps = HAS_GPS;
-	char simm700_mode[3];
-	char s7000_type[LEN_SIMM7000];
-	char s7000_mode[LEN_SIMM7000];
-	char s7000_apn[LEN_SIMM7000];
-
 
 	// credentials of the sensor in access point mode
 	char fs_ssid[LEN_FS_SSID] = FS_SSID;
@@ -307,9 +300,16 @@ namespace cfg
 
 } // namespace cfg
 
+
+
 //*************************************************************************************************************************************************
 
+String json_config_used_string;					// Status web
+String json_config7000_used_string;				// Status web
+
 #define JSON_BUFFER_SIZE 2900					// 2300 -> 2900	=> increase: 20-07-2023
+#define JSON_BUFFER_SIZE_SIMM7000 500			// Simm7000
+
 
 LoggerConfig loggerConfigs[LoggerCount];
 
@@ -351,7 +351,6 @@ const uint8_t default_ip_third_octet = 4;
 const uint8_t default_ip_fourth_octet = 1;
 
 #include "./airrohr-cfg.h"
-#include "./airrohr-cfg7000.h"
 
 /*****************************************************************
  * Variables for Noise Measurement DNMS                          *
@@ -1352,6 +1351,7 @@ static void readConfig(bool oldconfig = false)
 	bool rewriteConfig = false;
 
 	String cfgName(F("/config.json"));
+	String cfgName7(F("/simm7000.json"));
 
 	if (oldconfig)
 	{
@@ -1373,12 +1373,29 @@ static void readConfig(bool oldconfig = false)
 		debug_outln_error(F("failed to open config file."));
 		return;
 	}
+	File configFile7= SPIFFS.open(cfgName7, "r");
+	if (!configFile7)
+	{
+	//	if (!oldconfig)
+//		{	// call 
+//			return readConfig(true /* oldconfig */);
+//		}
+
+		debug_outln_error(F("\n\nfailed to open simm7000 file."));
+	//	return;
+	}
+
 
 	debug_outln_info(F("opened config file..."));
 	DynamicJsonDocument json(JSON_BUFFER_SIZE);
 	DeserializationError err = deserializeJson(json, configFile.readString());
+//	configFile.close();
+	debug_outln_info(F("Read config json.....\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
+	DynamicJsonDocument json7(JSON_BUFFER_SIZE_SIMM7000);
+//	DeserializationError err7 = deserializeJson(json7, configFile.readString());
+	debug_outln_info(F("Read config Sim7000 json.....\nJson memory size: "), String(json7.memoryUsage()) + String(" char."));
 	configFile.close();
-	debug_outln_info(F("Read config json...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
+
 
 
 #pragma GCC diagnostic pop
@@ -1416,11 +1433,17 @@ static void readConfig(bool oldconfig = false)
 					strncpy(c.cfg_val.as_str, json[c.cfg_key()].as<const char *>(), c.cfg_len);
 					c.cfg_val.as_str[c.cfg_len] = '\0';	// set terminator char.
 					break;
+
 			};
 		}
 		debug_outln_info(F("\nRead config json ...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
-		
-		String MemoryUse =  String(json.memoryUsage()) + String(" char.");
+
+		json_config_used_string =  String(json.memoryUsage());
+		DynamicJsonDocument json7(JSON_BUFFER_SIZE_SIMM7000);	
+		json_config7000_used_string =  String(json7.memoryUsage());
+
+		debug_outln_info(F("\nRead config Simm7000 json ...\nJson memory size: "), String(json7.memoryUsage()) + String(" char."));
+
 
 		String writtenVersion(json["SOFTWARE_VERSION"].as<const char *>());
 		
@@ -1524,6 +1547,7 @@ static void init_config()
 static bool writeConfig()
 {
 	DynamicJsonDocument json(JSON_BUFFER_SIZE);
+	DynamicJsonDocument json7(JSON_BUFFER_SIZE_SIMM7000);
 	debug_outln_info(F("Saving config..."));
 	json["SOFTWARE_VERSION"] = SOFTWARE_VERSION;
 
@@ -1547,11 +1571,33 @@ static bool writeConfig()
 		};
 	}
 
+	for (unsigned e = 0; e < sizeof(configShape7) / sizeof(configShape7[0]); ++e)
+	{
+		Config7000ShapeEntry c;
+		memcpy_P(&c, &configShape[e], sizeof(Config7000ShapeEntry));
+		switch (c.cfg_type)
+		{
+			case Config_Type_Bool:
+				json7[c.cfg_key()].set(*c.cfg_val.as_bool);
+				break;
+			case Config_Type_UInt:
+			case Config_Type_Time:
+				json7[c.cfg_key()].set(*c.cfg_val.as_uint);
+				break;
+			case Config_Type_Password:
+			case Config_Type_String:
+				json7[c.cfg_key()].set(c.cfg_val.as_str);
+				break;
+		};
+	}
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 	SPIFFS.remove(F("/config.json.old"));
 	SPIFFS.rename(F("/config.json"), F("/config.json.old"));
+	SPIFFS.remove(F("/simm7000.json.old"));
+	SPIFFS.rename(F("/simm7000.json"), F("/simm7000.json.old"));
 
 	File configFile = SPIFFS.open(F("/config.json"), "w");
 	if (configFile)
@@ -1570,6 +1616,22 @@ static bool writeConfig()
 		return false;
 	}
 
+	File configFile7 = SPIFFS.open(F("/simm7000.json"), "w");
+	if (configFile7)
+	{
+		serializeJson(json, configFile7);
+		
+		debug_outln_info(F("Wait 1 second, before close Config file."));
+		delay(1000);
+		debug_outln_info(F("Write simm7000.json...\nJson memory size: "), String(json7.memoryUsage()) + String(" char."));
+		configFile.close();
+		debug_outln_info(F("Config simm7000 written successfully."));
+	}
+	else
+	{
+		debug_outln_error(F("failed to simm7000 open config file for writing"));
+		return false;
+	}
 #pragma GCC diagnostic pop
 
 	return true;
@@ -1769,77 +1831,7 @@ static String form_checkbox(const ConfigShapeId cfgid, const String &info, const
 	return s;
 }
 
-// Sim 7000
-static String form_checkbox(const ConfigShape7Id cfgid, const String &info, const bool linebreak)
-{
-	RESERVE_STRING(s, MED_STR);
-	s = F("<label for='{n}'>"
-		  "<input type='checkbox' name='{n}' value='1' id='{n}' {c}/>"
-		  "<input type='hidden' name='{n}' value='0'/>"
-		  "{i}</label><br/>");
 
-	if (*configShape[cfgid].cfg_val.as_bool)
-	{
-		s.replace("{c}", F(" checked='checked'"));
-	}
-	else
-	{
-		s.replace("{c}", emptyString);
-	};
-
-	s.replace("{i}", info);
-	s.replace("{n}", String(configShape[cfgid].cfg_key()));
-
-	if (!linebreak)
-	{
-		s.replace("<br/>", emptyString);
-	}
-
-	return s;
-}
-
-static void add_form_input7(String &page_content, const ConfigShape7Id cfgid, const __FlashStringHelper *info, const int length)
-{
-	RESERVE_STRING(s, MED_STR);
-	s = F("<tr>"
-		  "<td title='[&lt;= {l}]'>{i}:&nbsp;</td>"
-		  "<td style='width:{l}em'>"
-		  "<input type='{t}' name='{n}' id='{n}' placeholder='{i}' value='{v}' maxlength='{l}'/>"
-		  "</td></tr>");
-
-	String t_value;
-	ConfigShapeEntry c;
-	memcpy_P(&c, &configShape[cfgid], sizeof(ConfigShapeEntry));
-	switch (c.cfg_type)
-	{
-	case Config_Type_UInt:
-		t_value = String(*c.cfg_val.as_uint);
-		s.replace("{t}", F("number"));
-		break;
-	case Config_Type_Time:
-		t_value = String((*c.cfg_val.as_uint) / 1000);
-		s.replace("{t}", F("number"));
-		break;
-	default:
-		if (c.cfg_type == Config_Type_Password)
-		{
-			s.replace("{t}", F("password"));
-			info = FPSTR(INTL_PASSWORD);
-		}
-		else
-		{
-			t_value = c.cfg_val.as_str;
-			t_value.replace("'", "&#39;");
-			s.replace("{t}", F("text"));
-		}
-	}
-
-	s.replace("{i}", info);
-	s.replace("{n}", String(c.cfg_key()));
-	s.replace("{v}", t_value);
-	s.replace("{l}", String(length));
-	page_content += s;
-}
 
 static String form_submit(const String &value)
 {
@@ -1900,24 +1892,6 @@ static String form_select_lang()
 }
 */
 
-static String form_select_mode()		// mode SIMM7000
-{
-	String s_select = F(" selected='selected'");
-	String s = F("<tr>"
-				 "<td>" INTL_MODE ":&nbsp;</td>"
-				 "<td>"
-				 "<select id='current_lang' name='current_lang'>"
-				 "<option value='1'>Mode 1</option>"
-				 "<option value='2'>Mode 2</option>"
-				 "<option value='3'>Mode 3</option>"
-				 "<option value='4'>Mode 4</option>"
-				 "</select>"
-				 "</td>"
-				 "</tr>");
-
-	s.replace("'" + String(cfg::current_lang) + "'>", "'" + String(cfg::current_lang) + "'" + s_select + ">");
-	return s;
-}
 static void add_warning_first_cycle(String &page_content)
 {
 	String s = FPSTR(INTL_TIME_TO_FIRST_MEASUREMENT);
@@ -2861,7 +2835,8 @@ static void webserver_status()
 
 	add_table_row_from_value(page_content, FPSTR(INTL_FIRMWARE), versionHtml);
 	add_table_row_from_value(page_content, F("Free Memory"), String(ESP.getFreeHeap()));
-//	add_table_row_from_value(page_content, F("Used config"), String(json.mem());
+	add_table_row_from_value(page_content, F("Used json.config (used/max)"), String(json_config_used_string) + String(" / ") + String(JSON_BUFFER_SIZE)+ String("  char") );
+	add_table_row_from_value(page_content, F("Used Simm7000.config (used/max)"), String(json_config7000_used_string) + String(" / ") + String(JSON_BUFFER_SIZE_SIMM7000) + String("  char") );
 	
 #if defined(ESP8266)
 	add_table_row_from_value(page_content, F("Heap Fragmentation"), String(ESP.getHeapFragmentation()), "%");
