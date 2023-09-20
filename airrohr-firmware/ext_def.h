@@ -370,7 +370,7 @@ static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
 // GPS enable
 #define HAS_GPS 0
 
-static const char SIMM_TYPE[] PROGMEM = "Type";
-static const char SIMM_APC[] PROGMEM = "ID12345678";
-static const char SIMM_GPS[] PROGMEM = "GPS";
-static const char SIMM_MODE[] PROGMEM = "Mode";
+//static const char SIMM_TYPE[] PROGMEM = "Type";
+//static const char SIMM_APC[] PROGMEM = "ID12345678";
+//static const char SIMM_GPS[] PROGMEM = "GPS";
+//static const char SIMM_MODE[] PROGMEM = "Mode";
