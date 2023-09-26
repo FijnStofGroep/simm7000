@@ -2,7 +2,7 @@
 
 // This file is generated, please do not edit.
 // Change airrohr-cfg.h.py instead.
-// update MQTT juni 2023
+// update: 28 September 2023
 // add Bool Fix IP
 
 enum ConfigEntryType : unsigned short {
@@ -23,6 +23,7 @@ struct ConfigShapeEntry {
 		unsigned int* as_uint;
 		char* as_str;
 	} cfg_val;
+          
 	const __FlashStringHelper* cfg_key() const { return FPSTR(_cfg_key); }
 };
 
@@ -110,6 +111,7 @@ enum ConfigShapeId {
 	Config_scd30_temp_correction,
 	Config_has_s7000,
 };
+
 static constexpr char CFG_KEY_CURRENT_LANG[] PROGMEM = "current_lang";
 static constexpr char CFG_KEY_WLANSSID[] PROGMEM = "wlanssid";
 static constexpr char CFG_KEY_WLANPWD[] PROGMEM = "wlanpwd";
@@ -192,6 +194,7 @@ static constexpr char CFG_KEY_HAS_FIX_IP[] PROGMEM = "has_fix_ip";
 static constexpr char CFG_KEY_SCD30_CO2_CORRECTION[] PROGMEM = "scd30_co2_correction";
 static constexpr char CFG_KEY_SCD30_TEMP_CORRECTION[] PROGMEM = "scd30_temp_correction";
 static constexpr char CFG_KEY_HAS_S7000[] PROGMEM = "has_s7000";
+
 static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_String, sizeof(cfg::current_lang)-1, CFG_KEY_CURRENT_LANG, cfg::current_lang },
 	{ Config_Type_String, sizeof(cfg::wlanssid)-1, CFG_KEY_WLANSSID, cfg::wlanssid },

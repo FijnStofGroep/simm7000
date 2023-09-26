@@ -112,7 +112,7 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = "feinstaub";
 
 // Simm7000
 #define HAS_S7000 0
-#define HAS_GPS 0
+#define HAS_GPS 0           // GPS enable
 
 // define MQTT Definitionen
 static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
@@ -365,12 +365,6 @@ static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
 #define DISPLAY_DEVICE_INFO 1
 
 // Set debug level for serial output?
-#define DEBUG 1
+// Default DEBUG level, DON'T change.
+#define DEBUG 3
 
-// GPS enable
-#define HAS_GPS 0
-
-//static const char SIMM_TYPE[] PROGMEM = "Type";
-//static const char SIMM_APC[] PROGMEM = "ID12345678";
-//static const char SIMM_GPS[] PROGMEM = "GPS";
-//static const char SIMM_MODE[] PROGMEM = "Mode";

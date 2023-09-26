@@ -90,7 +90,7 @@ with open("airrohr-cfg.h", "w") as h:
 
 // This file is generated, please do not edit.
 // Change airrohr-cfg.h.py instead.
-// update MQTT juni 2023
+// update: 28 September 2023
 // add Bool Fix IP
 
 enum ConfigEntryType : unsigned short {
@@ -111,29 +111,33 @@ struct ConfigShapeEntry {
 		unsigned int* as_uint;
 		char* as_str;
 	} cfg_val;
+          
 	const __FlashStringHelper* cfg_key() const { return FPSTR(_cfg_key); }
 };
 
-enum ConfigShapeId {""", file=h)
+enum ConfigShapeId {""", file=h )
 
     for cfgentry in configshape_in.strip().split('\n'):
-        print("\tConfig_", cfgentry.split()[1], ",", sep='', file=h)
-    print("};", file=h)
+        if(len(cfgentry) > 2):      # checking if string is empty line (only LF/CR char.)
+            print("\tConfig_", cfgentry.split()[1], ",", sep='', file=h )
+    
+    print("};\n", file=h)
 
     for cfgentry in configshape_in.strip().split('\n'):
-        _, cfgkey = cfgentry.split()
-        print("static constexpr char CFG_KEY_", cfgkey.upper(),
-              "[] PROGMEM = \"", cfgkey, "\";", sep='', file=h)
+        if(len(cfgentry) > 2):
+            _, cfgkey = cfgentry.split()
+            print("static constexpr char CFG_KEY_", cfgkey.upper(),
+                "[] PROGMEM = \"", cfgkey, "\";", sep='', file=h)
 
-    print("static constexpr ConfigShapeEntry configShape[] PROGMEM = {",
-          file=h)
+    print("\nstatic constexpr ConfigShapeEntry configShape[] PROGMEM = {", file=h )
     
     for cfgentry in configshape_in.strip().split('\n'):
-        cfgtype, cfgkey = cfgentry.split()
-        print("\t{ Config_Type_", cfgtype,
-              ", sizeof(cfg::" + cfgkey + ")-1" if cfgtype in ('String', 'Password') else ", 0",
-              ", CFG_KEY_", cfgkey.upper(),
-              ", ", "" if cfgtype in ('String', 'Password') else "&",
-              "cfg::", cfgkey, " },", sep='', file=h)
+        if(len(cfgentry) > 2):
+            cfgtype, cfgkey = cfgentry.split()
+            print("\t{ Config_Type_", cfgtype,
+                ", sizeof(cfg::" + cfgkey + ")-1" if cfgtype in ('String', 'Password') else ", 0",
+                ", CFG_KEY_", cfgkey.upper(),
+                ", ", "" if cfgtype in ('String', 'Password') else "&",
+                "cfg::", cfgkey, " },", sep='', file=h)
         
     print("};", file=h)

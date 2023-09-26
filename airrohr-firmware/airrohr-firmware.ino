@@ -52,13 +52,13 @@
  * Wifi signal MUST be strong.											*
  * 																		*
  * Tasmota-sensors:(https://github.com/arendst/Tasmota/releases) 13 	*
- * firmware flashed	
- * 
- * 													*
- * 2023-08-12
- * Add MQTT	RD/FvD	
- * 2023-09-17
- * Add Simm7000 Webservice															*
+ * firmware flashed														*
+ * 																		*
+ * 																		*
+ * 2023-08-12															*
+ * Add MQTT	RD/FvD														*
+ * 2023-09-17															*
+ * Add Simm7000 Webservice												*
  ************************************************************************
  *
  * latest build using lib 3.1.0
@@ -286,6 +286,7 @@ namespace cfg
 		strcpy_P(cfg::measurement_name_influx, MEASUREMENT_NAME_INFLUX);
 
 		strcpy_P(cfg::mqtt_server, SERVER_MQTT);
+
 		strcpy_P(cfg::static_ip, STATIC_IP);
 		strcpy_P(cfg::static_subnet, STATIC_SUBNET);
 		strcpy_P(cfg::static_gateway, STATIC_GATEWAY);
@@ -301,13 +302,12 @@ namespace cfg
 } // namespace cfg
 
 
-
 //*************************************************************************************************************************************************
 
 String json_config_used_string;					// Status web
 String json_config7000_used_string;				// Status web
 
-#define JSON_BUFFER_SIZE 2900					// 2300 -> 2900	=> increase: 20-07-2023
+#define JSON_BUFFER_SIZE 3000					// 2300 -> 2900	=> increase: 20-07-2023
 #define JSON_BUFFER_SIZE_SIMM7000 500			// Simm7000
 
 
@@ -1343,9 +1343,11 @@ static bool boolFromJSON(const DynamicJsonDocument &json, const __FlashStringHel
 	return json[key].as<bool>();
 }
 
+/*****************************************************************
 /// @brief 
 /// Read config data from SPIFFS E-memory.
 /// @param oldconfig
+******************************************************************/
 static void readConfig(bool oldconfig = false)
 {
 	bool rewriteConfig = false;
@@ -1355,7 +1357,8 @@ static void readConfig(bool oldconfig = false)
 
 	if (oldconfig)
 	{
-		cfgName += F(".old");
+		cfgName += F("/config..old");
+		cfgName7 += F("/simm7000..old");
 	}
 
 #pragma GCC diagnostic push
@@ -1367,43 +1370,56 @@ static void readConfig(bool oldconfig = false)
 	{
 		if (!oldconfig)
 		{	// call 
+			debug_outln_info(F("Try to open \"OLD\" Config file: "), cfgName );
 			return readConfig(true /* oldconfig */);
 		}
 
-		debug_outln_error(F("failed to open config file."));
-		return;
-	}
-	File configFile7= SPIFFS.open(cfgName7, "r");
-	if (!configFile7)
-	{
-		if (!oldconfig)
-		{	// call 
-			return readConfig(true /* oldconfig */);
-		}
-
-		debug_outln_error(F("\n\nfailed to open simm7000 file."));
+		debug_outln_error(F("Failed to open config file."));
 		return;
 	}
 
+	// File configFile7= SPIFFS.open(cfgName7, "r");
+	// if (!configFile7)
+	// {
+	// 	if (!configFile7)
+	// 	{	// call 
+	// 		return readConfig(true /* configFile7 */);
+	// 	}
 
-	debug_outln_info(F("opened config file..."));
+	// 	debug_outln_error(F("\n\nfailed to open simm7000 file."));
+	// 	return;
+	// }
+
+	debug_outln_info(F("Opened config file..."));
 	DynamicJsonDocument json(JSON_BUFFER_SIZE);
 	DeserializationError err = deserializeJson(json, configFile.readString());
-//	configFile.close();
-	debug_outln_info(F("Read config json.....\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
-//	DynamicJsonDocument json7(JSON_BUFFER_SIZE_SIMM7000);
-//	DeserializationError err7 = deserializeJson(json7, configFile7.readString());
-//	debug_outln_info(F("Read config Sim7000 json.....\nJson memory size: "), String(json7.memoryUsage()) + String(" char."));
+
+	debug_outln_info(F("Read JSON format.....\nJson memory size: "), String(json.memoryUsage()) + 
+					 " | Elementen in array: " + String(json.size()) + 
+					 String(" char. Error Code = ") + err.code() + " => " + err.f_str() );
+
+	configFile.seek(0);				// set file pointer back to begin file.
+	debug_outln_info(F("Read(): Config file content: ***\n"), configFile.readString() + String("\n***") );
 	configFile.close();
 
+	if (err.code() == DeserializationError::InvalidInput)
+	{// Check Json string
+		String json_string;
+		serializeJson(json, json_string);
+		debug_outln_info(F("readConfig() => [JSON] input: \n"), json_string.c_str());
 
+		if (json_string.startsWith("{") && json_string.endsWith("}"))
+		{ // still a good Json format
+			err = DeserializationError(DeserializationError::Ok);
+		}
+	}
 
 #pragma GCC diagnostic pop
 
 	if ( !err )
 	{
-		serializeJsonPretty(json, Debug);
-		debug_outln_info(F("parsed json...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
+		serializeJsonPretty(json, Debug);		// display all members + value of config file.
+		debug_outln_info(F("\nparsed json...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
 
 		// "configShape" memory array[], defined in airrohr-cfg.h
 		for (unsigned e = 0; e < sizeof(configShape) / sizeof(configShape[0]); ++e)
@@ -1436,14 +1452,6 @@ static void readConfig(bool oldconfig = false)
 
 			};
 		}
-		debug_outln_info(F("\nRead config json ...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
-
-		json_config_used_string =  String(json.memoryUsage());
-		//DynamicJsonDocument json7(JSON_BUFFER_SIZE_SIMM7000);	
-		//json_config7000_used_string =  String(json7.memoryUsage());
-
-		//debug_outln_info(F("\nRead config Simm7000 json ...\nJson memory size: "), String(json7.memoryUsage()) + String(" char."));
-
 
 		String writtenVersion(json["SOFTWARE_VERSION"].as<const char *>());
 		
@@ -1493,128 +1501,69 @@ static void readConfig(bool oldconfig = false)
 			rewriteConfig = true;
 		}
 	}
-
-	
 	else
 	{
-		debug_outln_error(F("failed to load json config"));
+		debug_outln_error(F("Failed to load json config"));
+		debug_outln_info(F("Config file: "), cfgName );
 
 		if (!oldconfig)
 		{
+			debug_outln_error(F("Return, call readConfig(true /* oldconfig */"));
 			return readConfig(true /* oldconfig */);
-			debug_outln_error(F("Return readConfig(true /* oldconfig */"));
 		}
 	}
 
-	// Simm7000
-	DynamicJsonDocument json7(JSON_BUFFER_SIZE_SIMM7000);
-	DeserializationError err7 = deserializeJson(json7, configFile7.readString());
-	if ( !err7 )
-	{
-		serializeJsonPretty(json7, Debug);
-		debug_outln_info(F("parsed json7...\nJson memory size: "), String(json7.memoryUsage()) + String(" char."));
+	// // Start Simm7000
+	// DynamicJsonDocument json7(JSON_BUFFER_SIZE_SIMM7000);
+	// DeserializationError err7 = deserializeJson(json7, configFile7.readString());
+	// configFile7.close();
 
-		// "configShape" memory array[], defined in airrohr-cfg.h
-		for (unsigned e = 0; e < sizeof(configShape7) / sizeof(configShape7[0]); ++e)
-		{
-			ConfigShapeEntry c;
-			memcpy_P(&c, &configShape[e], sizeof(ConfigShapeEntry));
+	// //debug_outln_info(F("Read config Sim7000 json.....\nJson memory size: "), String(json7.memoryUsage()) + String(" char."));
 
-			if (json7[c.cfg_key()].isNull())
-			{
-				debug_outln_info(F("Key NOT in configration file:..."), FPSTR(c.cfg_key()));
-				continue;
-			}
+	// if ( !err7 )
+	// {
+	// 	serializeJsonPretty(json7, Debug);					// display all members + value of config file.
+	// 	debug_outln_info(F("parsed json7...\nJson memory size: "), String(json7.memoryUsage()) + String(" char."));
 
-			switch (c.cfg_type)
-			{
-				case Config_Type_Bool:
-					*(c.cfg_val.as_bool) = boolFromJSON(json7, c.cfg_key());
-					break;
+	// 	// "configShape" memory array[], defined in airrohr-cfg.h
+	// 	for (unsigned e = 0; e < sizeof(configShape7) / sizeof(configShape7[0]); ++e)
+	// 	{
+	// 		Config7000ShapeEntry c;
+	// 		memcpy_P(&c, &configShape7[e], sizeof(Config7000ShapeEntry));
 
-				case Config_Type_UInt:
-				case Config_Type_Time:
-					*(c.cfg_val.as_uint) = json7[c.cfg_key()].as<unsigned int>();
-					break;
+	// 		if (json7[c.cfg_key()].isNull())
+	// 		{
+	// 			debug_outln_info(F("Key NOT in configration file:..."), FPSTR(c.cfg_key()));
+	// 			continue;
+	// 		}
 
-				case Config_Type_String:
-				case Config_Type_Password:
-					strncpy(c.cfg_val.as_str, json7[c.cfg_key()].as<const char *>(), c.cfg_len);
-					c.cfg_val.as_str[c.cfg_len] = '\0';	// set terminator char.
-					break;
+	// 		switch (c.cfg_type)
+	// 		{
+	// 			case Config7_Type_Bool:
+	// 				*(c.cfg_val.as_bool) = boolFromJSON(json7, c.cfg_key());
+	// 				break;
 
-			};
-		}
-		//debug_outln_info(F("\nRead config json ...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
+	// 			case Config7_Type_UInt:
+	// 				*(c.cfg_val.as_uint) = json7[c.cfg_key()].as<unsigned int>();
+	// 				break;
 
-		//json_config_used_string =  String(json.memoryUsage());
-		DynamicJsonDocument json7(JSON_BUFFER_SIZE_SIMM7000);	
-		json_config7000_used_string =  String(json7.memoryUsage());
+	// 			case Config7_Type_String:
+	// 				strncpy(c.cfg_val.as_str, json7[c.cfg_key()].as<const char *>(), c.cfg_len);
+	// 				c.cfg_val.as_str[c.cfg_len] = '\0';			// set terminator char.
+	// 				break;
+	// 		};
+	// 	}
+	// }
+	// else
+	// {
+	// 	debug_outln_error(F("failed to load json7 config"));
 
-		debug_outln_info(F("\nRead config Simm7000 json ...\nJson memory size: "), String(json7.memoryUsage()) + String(" char."));
-
-
-		String writtenVersion(json7["SOFTWARE_VERSION"].as<const char *>());
-		
-		if (writtenVersion.length() && writtenVersion[0] == 'N' && SOFTWARE_VERSION != writtenVersion)
-		{
-			debug_outln_info(F("Rewriting old config from: "), writtenVersion);
-			// would like to do that, but this would wipe firmware.old which the two stage loader
-			// might still need
-			// SPIFFS.format();
-			rewriteConfig = true;
-		}
-
-		if (cfg::sending_intervall_ms < READINGTIME_SDS_MS)
-		{
-			cfg::sending_intervall_ms = READINGTIME_SDS_MS;
-		}
-
-		if (strcmp_P(cfg::senseboxid, PSTR("00112233445566778899aabb")) == 0)
-		{
-			cfg::senseboxid[0] = '\0';
-			cfg::send2sensemap = false;
-			rewriteConfig = true;
-		}
-
-		if (strlen(cfg::measurement_name_influx) == 0)
-		{
-			strcpy_P(cfg::measurement_name_influx, MEASUREMENT_NAME_INFLUX);
-			rewriteConfig = true;
-		}
-
-		if (strcmp_P(cfg::host_influx, PSTR("api.luftdaten.info")) == 0)
-		{
-			cfg::host_influx[0] = '\0';
-			cfg::send2influx = false;
-			rewriteConfig = true;
-		}
-
-		if (boolFromJSON(json7, F("pm24_read")) || boolFromJSON(json7, F("pms32_read")))
-		{
-			cfg::pms_read = true;
-			rewriteConfig = true;
-		}
-
-		if (boolFromJSON(json7, F("bmp280_read")) || boolFromJSON(json7, F("bme280_read")))
-		{
-			cfg::bmx280_read = true;
-			rewriteConfig = true;
-		}
-	}
-
-	
-	else
-	{
-		debug_outln_error(F("failed to load json7 config"));
-
-		if (!oldconfig)
-		{
-			return readConfig(true /* oldconfig */);
-			debug_outln_error(F("Simm7000 -return readConfig(true /* oldconfig */"));
-
-		}
-	}
+	// 	if (!oldconfig)
+	// 	{
+	// 		return readConfig(true /* oldconfig */);
+	// 		debug_outln_error(F("Simm7000 -return readConfig(true /* oldconfig */"));
+	// 	}
+	// }
 
 // End Simm7000
 
@@ -1625,9 +1574,11 @@ static void readConfig(bool oldconfig = false)
 
 }	// readConfig()
 
+/*****************************************************************
 /// @brief 
 /// Init config data from SPIFFS E-memory.
 /// @param None
+******************************************************************/
 static void init_config()
 {
 	debug_outln_info(F("mounting FS..."));
@@ -1641,8 +1592,6 @@ static void init_config()
 	bool spiffs_begin_ok = SPIFFS.begin();
 #endif
 
-#pragma GCC diagnostic pop
-
 	if (!spiffs_begin_ok)
 	{
 		debug_outln_error(F("failed to mount FS"));
@@ -1650,10 +1599,20 @@ static void init_config()
 	}
 
 	debug_outln_info(F("mounting FS done, read config values."));
-	
+
+	FSInfo fs_info;
+	SPIFFS.info(fs_info);
+
+	debug_outln_info(F("fs_info.totalBytes = "), String(fs_info.totalBytes));
+	debug_outln_info(F("fs_info.usedBytes = "), String(fs_info.usedBytes));
+	debug_outln_info(F("fs_info.blockSize = "), String(fs_info.blockSize));
+	debug_outln_info(F("fs_info.pageSize = "), String(fs_info.pageSize));
+	debug_outln_info(F("fs_info.maxOpenFiles = "), String(fs_info.maxOpenFiles));
+	debug_outln_info(F("fs_info.maxPathLength = "), String(fs_info.maxPathLength));
+
+#pragma GCC diagnostic pop
+
 	readConfig();
-	
-	
 }
 
 /*****************************************************************
@@ -1662,23 +1621,27 @@ static void init_config()
 static bool writeConfig()
 {
 	DynamicJsonDocument json(JSON_BUFFER_SIZE);
-	DynamicJsonDocument json7(JSON_BUFFER_SIZE_SIMM7000);
+	//DynamicJsonDocument json7(JSON_BUFFER_SIZE_SIMM7000);
 	debug_outln_info(F("Saving config..."));
+
 	json["SOFTWARE_VERSION"] = SOFTWARE_VERSION;
 
 	for (unsigned e = 0; e < sizeof(configShape) / sizeof(configShape[0]); ++e)
 	{
 		ConfigShapeEntry c;
 		memcpy_P(&c, &configShape[e], sizeof(ConfigShapeEntry));
+
 		switch (c.cfg_type)
 		{
 			case Config_Type_Bool:
 				json[c.cfg_key()].set(*c.cfg_val.as_bool);
 				break;
+
 			case Config_Type_UInt:
 			case Config_Type_Time:
 				json[c.cfg_key()].set(*c.cfg_val.as_uint);
 				break;
+
 			case Config_Type_Password:
 			case Config_Type_String:
 				json[c.cfg_key()].set(c.cfg_val.as_str);
@@ -1686,33 +1649,42 @@ static bool writeConfig()
 		};
 	}
 
-	for (unsigned e = 0; e < sizeof(configShape7) / sizeof(configShape7[0]); ++e)
-	{
-		Config7000ShapeEntry c;
-		memcpy_P(&c, &configShape[e], sizeof(Config7000ShapeEntry));
-		switch (c.cfg_type)
-		{
-			case Config_Type_Bool:
-				json7[c.cfg_key()].set(*c.cfg_val.as_bool);
-				break;
-			case Config_Type_UInt:
-			case Config_Type_Time:
-				json7[c.cfg_key()].set(*c.cfg_val.as_uint);
-				break;
-			case Config_Type_Password:
-			case Config_Type_String:
-				json7[c.cfg_key()].set(c.cfg_val.as_str);
-				break;
-		};
-	}
+	debug_outln_info(F("Write JSON format.....\nJson memory size: "), String(json.memoryUsage()) + 
+					 " | Elementen in array: " + String(json.size()) );
+
+  	String json_string;
+  	serializeJson(json, json_string);
+	debug_outln_info(F("writeConfig() => [JSON] output: \n"), json_string.c_str());
+
+
+	// for (unsigned e = 0; e < sizeof(configShape7) / sizeof(configShape7[0]); ++e)
+	// {
+	// 	Config7000ShapeEntry c;
+	// 	memcpy_P(&c, &configShape7[e], sizeof(Config7000ShapeEntry));
+
+	// 	switch (c.cfg_type)
+	// 	{
+	// 		case Config7_Type_Bool:
+	// 			json7[c.cfg_key()].set(*c.cfg_val.as_bool);
+	// 			break;
+
+	// 		case Config7_Type_UInt:
+	// 			json7[c.cfg_key()].set(*c.cfg_val.as_uint);
+	// 			break;
+
+	// 		case Config7_Type_String:
+	// 			json7[c.cfg_key()].set(c.cfg_val.as_str);
+	// 			break;
+	// 	};
+	// }
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 	SPIFFS.remove(F("/config.json.old"));
 	SPIFFS.rename(F("/config.json"), F("/config.json.old"));
-	SPIFFS.remove(F("/simm7000.json.old"));
-	SPIFFS.rename(F("/simm7000.json"), F("/simm7000.json.old"));
+	// SPIFFS.remove(F("/simm7000.json.old"));
+	// SPIFFS.rename(F("/simm7000.json"), F("/simm7000.json.old"));
 
 	File configFile = SPIFFS.open(F("/config.json"), "w");
 	if (configFile)
@@ -1724,6 +1696,10 @@ static bool writeConfig()
 		debug_outln_info(F("Write config json...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
 		configFile.close();
 		debug_outln_info(F("Config written successfully."));
+
+		// String json_string;
+  		// serializeJson(json, json_string);
+		// debug_outln_info(F("writeConfig() => [JSON] output: \n"), json_string.c_str());
 	}
 	else
 	{
@@ -1731,22 +1707,27 @@ static bool writeConfig()
 		return false;
 	}
 
-	File configFile7 = SPIFFS.open(F("/simm7000.json"), "w");
-	if (configFile7)
-	{
-		serializeJson(json, configFile7);
+	// File configFile7 = SPIFFS.open(F("/simm7000.json"), "w");
+	// if (configFile7)
+	// {
+	// 	serializeJson(json7, configFile7);
 		
-		debug_outln_info(F("Wait 1 second, before close Config file."));
-		delay(1000);
-		debug_outln_info(F("Write simm7000.json...\nJson memory size: "), String(json7.memoryUsage()) + String(" char."));
-		configFile.close();
-		debug_outln_info(F("Config simm7000 written successfully."));
-	}
-	else
-	{
-		debug_outln_error(F("failed to simm7000 open config file for writing"));
-		return false;
-	}
+	// 	debug_outln_info(F("Wait 1 second, before close Config file."));
+	// 	delay(1000);
+	// 	debug_outln_info(F("Write simm7000.json...\nJson memory size: "), String(json7.memoryUsage()) + String(" char."));
+	// 	configFile.close();
+	// 	debug_outln_info(F("Config simm7000 written successfully."));
+
+	// 	String json_string;
+  	// 	serializeJson(json7, json_string);
+	// 	debug_outln_info(F("writeConfig() => [JSON7] output: \n"), json_string.c_str());
+	// }
+	// else
+	// {
+	// 	debug_outln_error(F("failed to simm7000 open config file for writing"));
+	// 	return false;
+	// }
+
 #pragma GCC diagnostic pop
 
 	return true;
@@ -1875,9 +1856,13 @@ static void end_html_page(String &page_content)
 /*****************************************************************
  * add html helper functions                                     *
  *****************************************************************/
-static void add_form_input(String &page_content, const ConfigShapeId cfgid, const __FlashStringHelper *info, const int length)
+static void add_form_input( String &page_content, 
+							const ConfigShapeId cfgid, 
+							const __FlashStringHelper *info, 
+							const int length)
 {
 	RESERVE_STRING(s, MED_STR);
+
 	s = F("<tr>"
 		  "<td title='[&lt;= {l}]'>{i}:&nbsp;</td>"
 		  "<td style='width:{l}em'>"
@@ -1887,16 +1872,19 @@ static void add_form_input(String &page_content, const ConfigShapeId cfgid, cons
 	String t_value;
 	ConfigShapeEntry c;
 	memcpy_P(&c, &configShape[cfgid], sizeof(ConfigShapeEntry));
+
 	switch (c.cfg_type)
 	{
 	case Config_Type_UInt:
 		t_value = String(*c.cfg_val.as_uint);
 		s.replace("{t}", F("number"));
 		break;
+
 	case Config_Type_Time:
 		t_value = String((*c.cfg_val.as_uint) / 1000);
 		s.replace("{t}", F("number"));
 		break;
+
 	default:
 		if (c.cfg_type == Config_Type_Password)
 		{
@@ -1918,9 +1906,14 @@ static void add_form_input(String &page_content, const ConfigShapeId cfgid, cons
 	page_content += s;
 }
 
+/*
+  return value:
+			str = fill webpage value.
+*/
 static String form_checkbox(const ConfigShapeId cfgid, const String &info, const bool linebreak)
 {
 	RESERVE_STRING(s, MED_STR);
+
 	s = F("<label for='{n}'>"
 		  "<input type='checkbox' name='{n}' value='1' id='{n}' {c}/>"
 		  "<input type='hidden' name='{n}' value='0'/>"
@@ -1947,7 +1940,10 @@ static String form_checkbox(const ConfigShapeId cfgid, const String &info, const
 }
 
 
-
+/*
+  Input:
+		value => pointer to HTTP webpage memory.
+*/
 static String form_submit(const String &value)
 {
 	String s = F("<tr>"
@@ -2007,21 +2003,32 @@ static String form_select_lang()
 }
 */
 
+/*
+  Input:
+		page_content => pointer to HTTP webpage memory.
+*/
 static void add_warning_first_cycle(String &page_content)
 {
 	String s = FPSTR(INTL_TIME_TO_FIRST_MEASUREMENT);
 	unsigned int time_to_first = cfg::sending_intervall_ms - msSince(starttime);
+
 	if (time_to_first > cfg::sending_intervall_ms)
 	{
 		time_to_first = 0;
 	}
+
 	s.replace("{v}", String(((time_to_first + 500) / 1000)));
 	page_content += s;
 }
 
-static void add_age_last_values(String &s)
+
+/*
+  Input:
+		sourceStr => pointer to HTTP webpage memory.
+*/
+static void add_age_last_values(String &sourceStr)
 {
-	s += "<b>";
+	sourceStr += "<b>";
 	unsigned int time_since_last = msSince(starttime);
 	if (time_since_last > cfg::sending_intervall_ms)
 	{
@@ -2030,14 +2037,14 @@ static void add_age_last_values(String &s)
 	
 	time_t now = time(nullptr);
 
-	s += String((time_since_last + 500) / 1000);
-	s += FPSTR(INTL_TIME_SINCE_LAST_MEASUREMENT);
-	s += "<br/><br/>";
-	s += FPSTR(INTL_TIME_UTC);
-	s += "&nbsp;";
-	s += String(ctime(&now));
+	sourceStr += String((time_since_last + 500) / 1000);
+	sourceStr += FPSTR(INTL_TIME_SINCE_LAST_MEASUREMENT);
+	sourceStr += "<br/><br/>";
+	sourceStr += FPSTR(INTL_TIME_UTC);
+	sourceStr += "&nbsp;";
+	sourceStr += String(ctime(&now));
 
-	s += FPSTR(WEB_B_BR_BR);
+	sourceStr += FPSTR(WEB_B_BR_BR);
 }
 
 /*****************************************************************
@@ -2050,6 +2057,7 @@ static bool webserver_request_auth()
 	if (cfg::www_basicauth_enabled && !wificonfig_loop)
 	{
 		debug_outln_info(F("validate request auth..."));
+		
 		if (!server.authenticate(cfg::www_username, cfg::www_password))
 		{
 			server.requestAuthentication(BASIC_AUTH, "Sensor Login", F("Authentication failed"));
@@ -2096,18 +2104,19 @@ static void webserver_root()
 		// Enable Pagination
 		if (cfg::has_s7000)
 		{
-		page_content += FPSTR(WEB_ROOT_PAGE_CONTENT_S7000);
+		 	page_content += FPSTR(WEB_ROOT_PAGE_CONTENT_S7000);
 		}
-		else{
-		page_content += FPSTR(WEB_ROOT_PAGE_CONTENT);	
+		else
+		{
+		 	page_content += FPSTR(WEB_ROOT_PAGE_CONTENT);	
 		}
+
 		page_content.replace(F("{t}"), FPSTR(INTL_CURRENT_DATA));
 		page_content.replace(F("{s}"), FPSTR(INTL_DEVICE_STATUS));
 		page_content.replace(F("{conf}"), FPSTR(INTL_CONFIGURATION));
 		page_content.replace(F("{s7000}"), FPSTR(INTL_SIM7000));
 		page_content.replace(F("{restart}"), FPSTR(INTL_RESTART_SENSOR));
 		page_content.replace(F("{debug}"), FPSTR(INTL_DEBUG_LEVEL));
-
 		
 		end_html_page(page_content);
 	}
@@ -3239,7 +3248,8 @@ static void webserver_s7000()
 
 //	if (cfg::has_s7000)
 	debug_outln_info(F("begin webserver_simm7000_body_get ..."));
-	debug_outln_info(F("SIM7000 enable ."),cfg::has_s7000);
+	debug_outln_info(F("SIM7000 enable: "), cfg::has_s7000);
+
 	RESERVE_STRING(page_content, LARGE_STR);
 	start_html_page(page_content, FPSTR(INTL_SIM7000));
 	page_content += F("<form method='POST' action='/config' style='width:100%;'>\n");
@@ -3248,14 +3258,14 @@ static void webserver_s7000()
 //  Voor test gebruik eerdere variabele
 //	page_content = emptyString;
 	page_content += FPSTR(BR_TAG);
-	page_content += form_checkbox(Config7000_has_gps, FPSTR(INTL_SIM_GPS), false);
+	page_content += form_checkbox7(Config7000_has_gps, FPSTR(INTL_SIM_GPS), false);
 	page_content += FPSTR(WEB_BR_BR);
 	page_content += FPSTR(TABLE_TAG_OPEN);
 	add_form_input7(page_content, Config7000_mode, FPSTR(INTL_SIM_MODE), LEN_SIMM7000 - 1);
 	add_form_input7(page_content, Config7000_apn, FPSTR(INTL_SIM_APN), LEN_SIMM7000 - 1);
 	add_form_input7(page_content, Config7000_type, FPSTR(INTL_SIM_TYPE), LEN_SIMM7000 - 1);
 	// regel 1820 select mode
-	page_content += form_select_mode();
+	page_content += form_select_mode7();
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	page_content += FPSTR(WEB_BR_BR);
 	page_content += F("</div></div>");
@@ -3296,7 +3306,8 @@ static void webserver_removeConfig()
 		SPIFFS.remove(F("/config.json.old"));
 		if (SPIFFS.exists(F("/config.json")))
 		{ //file exists
-			debug_outln_info(F("removing config.json..."));
+			debug_outln_info(F("removing current config.json..."));
+
 			if (SPIFFS.remove(F("/config.json")))
 			{
 				page_content += F("<h3>" INTL_CONFIG_DELETED ".</h3>");
@@ -3778,6 +3789,7 @@ static void connectWifi()
 	}
 	
 	WiFi.hostname(cfg::fs_ssid);
+
 	if (cfg::has_fix_ip &&
 		addr_static_ip.fromString(cfg::static_ip) && 
 		addr_static_subnet.fromString(cfg::static_subnet) && 
@@ -7488,6 +7500,9 @@ void setup(void)
 	cfg::initNonTrivials(esp_chipid.c_str());
 
 	debug_outln_info(F("airRohr: " SOFTWARE_VERSION_STR "/"), String(CURRENT_LANG));
+
+	// TEST TEST
+	delay(2000);
 
 #if defined(ESP8266)
 	if ((airrohr_selftest_failed = !ESP.checkFlashConfig() /* after 2.7.0 update: || !ESP.checkFlashCRC() */ ))
