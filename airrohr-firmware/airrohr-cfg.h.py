@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 configshape_in = """
+
 String		current_lang
 String		wlanssid
 Password	wlanpwd
@@ -83,6 +84,7 @@ Bool		has_fix_ip
 String		scd30_co2_correction
 String		scd30_temp_correction
 Bool        has_s7000
+
 """
 
 with open("airrohr-cfg.h", "w") as h:

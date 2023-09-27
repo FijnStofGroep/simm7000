@@ -307,7 +307,7 @@ namespace cfg
 String json_config_used_string;					// Status web
 String json_config7000_used_string;				// Status web
 
-#define JSON_BUFFER_SIZE 3000					// 2300 -> 2900	=> increase: 20-07-2023
+#define JSON_BUFFER_SIZE 2900					// 2300 -> 2900	=> increase: 20-07-2023
 #define JSON_BUFFER_SIZE_SIMM7000 500			// Simm7000
 
 
@@ -1344,21 +1344,28 @@ static bool boolFromJSON(const DynamicJsonDocument &json, const __FlashStringHel
 }
 
 /*****************************************************************
+ * read config from spiffs                                       *
+ *****************************************************************/
+static void readConfig(bool oldconfig = false)
+{
+	readConfigBase( oldconfig);
+	//readConfigS7000( oldconfig);
+}
+
+/*****************************************************************
 /// @brief 
 /// Read config data from SPIFFS E-memory.
 /// @param oldconfig
 ******************************************************************/
-static void readConfig(bool oldconfig = false)
+static void readConfigBase(bool oldconfig)
 {
 	bool rewriteConfig = false;
 
 	String cfgName(F("/config.json"));
-	String cfgName7(F("/simm7000.json"));
 
 	if (oldconfig)
 	{
 		cfgName += F("/config..old");
-		cfgName7 += F("/simm7000..old");
 	}
 
 #pragma GCC diagnostic push
@@ -1377,18 +1384,6 @@ static void readConfig(bool oldconfig = false)
 		debug_outln_error(F("Failed to open config file."));
 		return;
 	}
-
-	// File configFile7= SPIFFS.open(cfgName7, "r");
-	// if (!configFile7)
-	// {
-	// 	if (!configFile7)
-	// 	{	// call 
-	// 		return readConfig(true /* configFile7 */);
-	// 	}
-
-	// 	debug_outln_error(F("\n\nfailed to open simm7000 file."));
-	// 	return;
-	// }
 
 	debug_outln_info(F("Opened config file..."));
 	DynamicJsonDocument json(JSON_BUFFER_SIZE);
@@ -1513,57 +1508,116 @@ static void readConfig(bool oldconfig = false)
 		}
 	}
 
-	// // Start Simm7000
-	// DynamicJsonDocument json7(JSON_BUFFER_SIZE_SIMM7000);
-	// DeserializationError err7 = deserializeJson(json7, configFile7.readString());
-	// configFile7.close();
+	if (rewriteConfig)
+	{
+		writeConfig();
+	}
 
-	// //debug_outln_info(F("Read config Sim7000 json.....\nJson memory size: "), String(json7.memoryUsage()) + String(" char."));
+}	// readConfigBase()
 
-	// if ( !err7 )
-	// {
-	// 	serializeJsonPretty(json7, Debug);					// display all members + value of config file.
-	// 	debug_outln_info(F("parsed json7...\nJson memory size: "), String(json7.memoryUsage()) + String(" char."));
+/*****************************************************************
+/// @brief 
+/// Read config S7000 data from SPIFFS E-memory.
+/// @param oldconfig
+******************************************************************/
+static void readConfigS7000(bool oldconfig)
+{
+	bool rewriteConfig = false;
 
-	// 	// "configShape" memory array[], defined in airrohr-cfg.h
-	// 	for (unsigned e = 0; e < sizeof(configShape7) / sizeof(configShape7[0]); ++e)
-	// 	{
-	// 		Config7000ShapeEntry c;
-	// 		memcpy_P(&c, &configShape7[e], sizeof(Config7000ShapeEntry));
+	String cfgName7(F("/simm7000.json"));
 
-	// 		if (json7[c.cfg_key()].isNull())
-	// 		{
-	// 			debug_outln_info(F("Key NOT in configration file:..."), FPSTR(c.cfg_key()));
-	// 			continue;
-	// 		}
+	if (oldconfig)
+	{
+		cfgName7 += F("/simm7000..old");
+	}
 
-	// 		switch (c.cfg_type)
-	// 		{
-	// 			case Config7_Type_Bool:
-	// 				*(c.cfg_val.as_bool) = boolFromJSON(json7, c.cfg_key());
-	// 				break;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
-	// 			case Config7_Type_UInt:
-	// 				*(c.cfg_val.as_uint) = json7[c.cfg_key()].as<unsigned int>();
-	// 				break;
+	File configFile= SPIFFS.open(cfgName7, "r");
 
-	// 			case Config7_Type_String:
-	// 				strncpy(c.cfg_val.as_str, json7[c.cfg_key()].as<const char *>(), c.cfg_len);
-	// 				c.cfg_val.as_str[c.cfg_len] = '\0';			// set terminator char.
-	// 				break;
-	// 		};
-	// 	}
-	// }
-	// else
-	// {
-	// 	debug_outln_error(F("failed to load json7 config"));
+	if (!configFile)
+	{
+		if (!configFile)
+		{	// call 
+			return readConfig(true /* configFile7 */);
+		}
 
-	// 	if (!oldconfig)
-	// 	{
-	// 		return readConfig(true /* oldconfig */);
-	// 		debug_outln_error(F("Simm7000 -return readConfig(true /* oldconfig */"));
-	// 	}
-	// }
+		debug_outln_error(F("\n\nfailed to open simm7000 file."));
+		return;
+	}
+
+	debug_outln_info(F("Opened config 7000 file..."));
+
+	DynamicJsonDocument json(JSON_BUFFER_SIZE_SIMM7000);
+	DeserializationError err = deserializeJson(json, configFile.readString());
+
+	debug_outln_info(F("Read JSON S7000 format.....\nJson memory size: "), String(json.memoryUsage()) + 
+					 " | Elementen in array: " + String(json.size()) + 
+					 String(" char. Error Code = ") + err.code() + " => " + err.f_str() );
+
+	configFile.seek(0);				// set file pointer back to begin file.
+	debug_outln_info(F("Read(): Config file content: ***\n"), configFile.readString() + String("\n***") );
+	configFile.close();
+
+	if (err.code() == DeserializationError::InvalidInput)
+	{// Check Json string
+		String json_string;
+		serializeJson(json, json_string);
+		debug_outln_info(F("readConfig() => [JSON] input: \n"), json_string.c_str());
+
+		if (json_string.startsWith("{") && json_string.endsWith("}"))
+		{ // still a good Json format
+			err = DeserializationError(DeserializationError::Ok);
+		}
+	}
+
+#pragma GCC diagnostic pop
+
+	if ( !err )
+	{
+		serializeJsonPretty(json, Debug);					// display all members + value of config file.
+		debug_outln_info(F("parsed json7...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
+
+		// "configShape" memory array[], defined in airrohr-cfg.h
+		for (unsigned e = 0; e < sizeof(configShape7) / sizeof(configShape7[0]); ++e)
+		{
+			Config7000ShapeEntry c;
+			memcpy_P(&c, &configShape7[e], sizeof(Config7000ShapeEntry));
+
+			if (json[c.cfg_key()].isNull())
+			{
+				debug_outln_info(F("Key NOT in configration file:..."), FPSTR(c.cfg_key()));
+				continue;
+			}
+
+			switch (c.cfg_type)
+			{
+				case Config7_Type_Bool:
+					*(c.cfg_val.as_bool) = boolFromJSON(json, c.cfg_key());
+					break;
+
+				case Config7_Type_UInt:
+					*(c.cfg_val.as_uint) = json[c.cfg_key()].as<unsigned int>();
+					break;
+
+				case Config7_Type_String:
+					strncpy(c.cfg_val.as_str, json[c.cfg_key()].as<const char *>(), c.cfg_len);
+					c.cfg_val.as_str[c.cfg_len] = '\0';			// set terminator char.
+					break;
+			};
+		}
+	}
+	else
+	{
+		debug_outln_error(F("failed to load JSON S7000 config"));
+
+		if (!oldconfig)
+		{
+			debug_outln_error(F("Simm7000 -return readConfig(true /* oldconfig */"));
+			return readConfig(true /* oldconfig */);
+		}
+	}
 
 // End Simm7000
 
@@ -1572,7 +1626,7 @@ static void readConfig(bool oldconfig = false)
 		writeConfig();
 	}
 
-}	// readConfig()
+}	// readConfigS7000()
 
 /*****************************************************************
 /// @brief 
@@ -1615,10 +1669,22 @@ static void init_config()
 	readConfig();
 }
 
+
 /*****************************************************************
  * write config to spiffs                                        *
  *****************************************************************/
 static bool writeConfig()
+{
+	bool ret = writeConfigBase();
+	//ret |= writeConfigS7000();
+
+	return ret;
+}
+
+/*****************************************************************
+ * write config to spiffs                                        *
+ *****************************************************************/
+static bool writeConfigBase()
 {
 	DynamicJsonDocument json(JSON_BUFFER_SIZE);
 	//DynamicJsonDocument json7(JSON_BUFFER_SIZE_SIMM7000);
@@ -1656,50 +1722,23 @@ static bool writeConfig()
   	serializeJson(json, json_string);
 	debug_outln_info(F("writeConfig() => [JSON] output: \n"), json_string.c_str());
 
-
-	// for (unsigned e = 0; e < sizeof(configShape7) / sizeof(configShape7[0]); ++e)
-	// {
-	// 	Config7000ShapeEntry c;
-	// 	memcpy_P(&c, &configShape7[e], sizeof(Config7000ShapeEntry));
-
-	// 	switch (c.cfg_type)
-	// 	{
-	// 		case Config7_Type_Bool:
-	// 			json7[c.cfg_key()].set(*c.cfg_val.as_bool);
-	// 			break;
-
-	// 		case Config7_Type_UInt:
-	// 			json7[c.cfg_key()].set(*c.cfg_val.as_uint);
-	// 			break;
-
-	// 		case Config7_Type_String:
-	// 			json7[c.cfg_key()].set(c.cfg_val.as_str);
-	// 			break;
-	// 	};
-	// }
-
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 	SPIFFS.remove(F("/config.json.old"));
 	SPIFFS.rename(F("/config.json"), F("/config.json.old"));
-	// SPIFFS.remove(F("/simm7000.json.old"));
-	// SPIFFS.rename(F("/simm7000.json"), F("/simm7000.json.old"));
 
 	File configFile = SPIFFS.open(F("/config.json"), "w");
 	if (configFile)
 	{
 		serializeJson(json, configFile);
 		
-		debug_outln_info(F("Wait 1 second, before close Config file."));
-		delay(1000);
-		debug_outln_info(F("Write config json...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
+		debug_outln_info(F("Wait 2 second, before close Config file."));
+		delay(2000);
 		configFile.close();
-		debug_outln_info(F("Config written successfully."));
 
-		// String json_string;
-  		// serializeJson(json, json_string);
-		// debug_outln_info(F("writeConfig() => [JSON] output: \n"), json_string.c_str());
+		debug_outln_info(F("Write config json...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
+		debug_outln_info(F("Config written successfully."));
 	}
 	else
 	{
@@ -1707,31 +1746,82 @@ static bool writeConfig()
 		return false;
 	}
 
-	// File configFile7 = SPIFFS.open(F("/simm7000.json"), "w");
-	// if (configFile7)
-	// {
-	// 	serializeJson(json7, configFile7);
-		
-	// 	debug_outln_info(F("Wait 1 second, before close Config file."));
-	// 	delay(1000);
-	// 	debug_outln_info(F("Write simm7000.json...\nJson memory size: "), String(json7.memoryUsage()) + String(" char."));
-	// 	configFile.close();
-	// 	debug_outln_info(F("Config simm7000 written successfully."));
+#pragma GCC diagnostic pop
 
-	// 	String json_string;
-  	// 	serializeJson(json7, json_string);
-	// 	debug_outln_info(F("writeConfig() => [JSON7] output: \n"), json_string.c_str());
-	// }
-	// else
-	// {
-	// 	debug_outln_error(F("failed to simm7000 open config file for writing"));
-	// 	return false;
-	// }
+	return true;
+}
+
+/*****************************************************************
+ * write config to spiffs                                        *
+ *****************************************************************/
+static bool writeConfigS7000()
+{
+	DynamicJsonDocument json(JSON_BUFFER_SIZE_SIMM7000);
+	debug_outln_info(F("Saving config..."));
+
+	for (unsigned e = 0; e < sizeof(configShape7) / sizeof(configShape7[0]); ++e)
+	{
+		Config7000ShapeEntry c;
+		memcpy_P(&c, &configShape7[e], sizeof(Config7000ShapeEntry));
+
+		switch (c.cfg_type)
+		{
+			case Config7_Type_Bool:
+				json[c.cfg_key()].set(*c.cfg_val.as_bool);
+				break;
+
+			case Config7_Type_UInt:
+				json[c.cfg_key()].set(*c.cfg_val.as_uint);
+				break;
+
+			case Config7_Type_String:
+				json[c.cfg_key()].set(c.cfg_val.as_str);
+				break;
+		};
+	}
+
+	debug_outln_info(F("Write JSON 7000 format.....\nJson memory size: "), String(json.memoryUsage()) + 
+					 " | Elementen in array: " + String(json.size()) );
+
+  	String json_string;
+  	serializeJson(json, json_string);
+	debug_outln_info(F("writeConfig() => [JSON] output: \n"), json_string.c_str());
+
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+
+	SPIFFS.remove(F("/simm7000.json.old"));
+	SPIFFS.rename(F("/simm7000.json"), F("/simm7000.json.old"));
+
+	File configFile = SPIFFS.open(F("/simm7000.json"), "w");
+
+	if (configFile)
+	{
+		serializeJson(json, configFile);
+		
+		debug_outln_info(F("Wait 1 second, before close Config file."));
+		delay(1000);
+		debug_outln_info(F("Write config json7000...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
+		configFile.close();
+		debug_outln_info(F("Config written successfully."));
+
+		String json_string;
+  		serializeJson(json, json_string);
+		debug_outln_info(F("writeConfig() => [JSON] S7000 output: \n"), json_string.c_str());
+	}
+	else
+	{
+		debug_outln_error(F("failed to open config S7000 file for writing"));
+		return false;
+	}
 
 #pragma GCC diagnostic pop
 
 	return true;
 }
+
 
 /*****************************************************************
  * Prepare information for data Loggers                          *
