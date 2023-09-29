@@ -149,6 +149,7 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include "ext_def.h"
 #include "html-content.h"
 #include "./airrohr-cfg7000.h"
+#include "./RCWL-0516.h"
 
 /******************************************************************
  * The variables inside the cfg namespace are persistent          *
@@ -1348,8 +1349,11 @@ static bool boolFromJSON(const DynamicJsonDocument &json, const __FlashStringHel
  *****************************************************************/
 static void readConfig(bool oldconfig = false)
 {
+	debug_outln_info(F("*** call readConfigBase()... ***"));
 	readConfigBase( oldconfig);
-	//readConfigS7000( oldconfig);
+
+	debug_outln_info(F("*** call readConfigS7000()... ***"));
+	readConfigS7000( oldconfig);
 }
 
 /*****************************************************************
@@ -1365,7 +1369,7 @@ static void readConfigBase(bool oldconfig)
 
 	if (oldconfig)
 	{
-		cfgName += F("/config..old");
+		cfgName += F("/config.json.old");
 	}
 
 #pragma GCC diagnostic push
@@ -1377,8 +1381,8 @@ static void readConfigBase(bool oldconfig)
 	{
 		if (!oldconfig)
 		{	// call 
-			debug_outln_info(F("Try to open \"OLD\" Config file: "), cfgName );
-			return readConfig(true /* oldconfig */);
+			debug_outln_info(F("Try to open Config file: "), cfgName );
+			return readConfigBase(true /* oldconfig */);
 		}
 
 		debug_outln_error(F("Failed to open config file."));
@@ -1386,12 +1390,13 @@ static void readConfigBase(bool oldconfig)
 	}
 
 	debug_outln_info(F("Opened config file..."));
+
 	DynamicJsonDocument json(JSON_BUFFER_SIZE);
 	DeserializationError err = deserializeJson(json, configFile.readString());
 
 	debug_outln_info(F("Read JSON format.....\nJson memory size: "), String(json.memoryUsage()) + 
-					 " | Elementen in array: " + String(json.size()) + 
-					 String(" char. Error Code = ") + err.code() + " => " + err.f_str() );
+					 " | Elements in array: " + String(json.size()) + 
+					 String(" | Error Code = ") + err.code() + " => " + err.f_str() );
 
 	configFile.seek(0);				// set file pointer back to begin file.
 	debug_outln_info(F("Read(): Config file content: ***\n"), configFile.readString() + String("\n***") );
@@ -1401,7 +1406,7 @@ static void readConfigBase(bool oldconfig)
 	{// Check Json string
 		String json_string;
 		serializeJson(json, json_string);
-		debug_outln_info(F("readConfig() => [JSON] input: \n"), json_string.c_str());
+		debug_outln_info(F("readConfig():Parse => [JSON] input: \n"), json_string.c_str());
 
 		if (json_string.startsWith("{") && json_string.endsWith("}"))
 		{ // still a good Json format
@@ -1504,14 +1509,16 @@ static void readConfigBase(bool oldconfig)
 		if (!oldconfig)
 		{
 			debug_outln_error(F("Return, call readConfig(true /* oldconfig */"));
-			return readConfig(true /* oldconfig */);
+			return readConfigBase(true /* oldconfig */);
 		}
 	}
 
 	if (rewriteConfig)
 	{
-		writeConfig();
+		writeConfigBase();
 	}
+
+	debug_outln_info(F("Exit: readConfigBase() methode."));
 
 }	// readConfigBase()
 
@@ -1524,37 +1531,37 @@ static void readConfigS7000(bool oldconfig)
 {
 	bool rewriteConfig = false;
 
-	String cfgName7(F("/simm7000.json"));
+	String cfgName(F("/simm7000.json"));
 
 	if (oldconfig)
 	{
-		cfgName7 += F("/simm7000..old");
+		cfgName += F("/simm7000.json.old");
 	}
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
-	File configFile= SPIFFS.open(cfgName7, "r");
+	File configFile= SPIFFS.open(cfgName, "r");
 
 	if (!configFile)
 	{
-		if (!configFile)
+		if (!oldconfig)
 		{	// call 
-			return readConfig(true /* configFile7 */);
+			return readConfigS7000(true /* configFile */);
 		}
 
-		debug_outln_error(F("\n\nfailed to open simm7000 file."));
+		debug_outln_error(F("Failed to open config S7000 file."));
 		return;
 	}
 
-	debug_outln_info(F("Opened config 7000 file..."));
+	debug_outln_info(F("Opened config S7000 file..."));
 
 	DynamicJsonDocument json(JSON_BUFFER_SIZE_SIMM7000);
 	DeserializationError err = deserializeJson(json, configFile.readString());
 
 	debug_outln_info(F("Read JSON S7000 format.....\nJson memory size: "), String(json.memoryUsage()) + 
 					 " | Elementen in array: " + String(json.size()) + 
-					 String(" char. Error Code = ") + err.code() + " => " + err.f_str() );
+					 String(" | Error Code = ") + err.code() + " => " + err.f_str() );
 
 	configFile.seek(0);				// set file pointer back to begin file.
 	debug_outln_info(F("Read(): Config file content: ***\n"), configFile.readString() + String("\n***") );
@@ -1564,7 +1571,7 @@ static void readConfigS7000(bool oldconfig)
 	{// Check Json string
 		String json_string;
 		serializeJson(json, json_string);
-		debug_outln_info(F("readConfig() => [JSON] input: \n"), json_string.c_str());
+		debug_outln_info(F("readConfig():Parse => [JSON] input: \n"), json_string.c_str());
 
 		if (json_string.startsWith("{") && json_string.endsWith("}"))
 		{ // still a good Json format
@@ -1577,7 +1584,7 @@ static void readConfigS7000(bool oldconfig)
 	if ( !err )
 	{
 		serializeJsonPretty(json, Debug);					// display all members + value of config file.
-		debug_outln_info(F("parsed json7...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
+		debug_outln_info(F("\nparsed json7...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
 
 		// "configShape" memory array[], defined in airrohr-cfg.h
 		for (unsigned e = 0; e < sizeof(configShape7) / sizeof(configShape7[0]); ++e)
@@ -1615,7 +1622,7 @@ static void readConfigS7000(bool oldconfig)
 		if (!oldconfig)
 		{
 			debug_outln_error(F("Simm7000 -return readConfig(true /* oldconfig */"));
-			return readConfig(true /* oldconfig */);
+			return readConfigS7000(true /* oldconfig */);
 		}
 	}
 
@@ -1623,9 +1630,11 @@ static void readConfigS7000(bool oldconfig)
 
 	if (rewriteConfig)
 	{
-		writeConfig();
+		writeConfigS7000();
 	}
 
+	debug_outln_info(F("Exit: readConfigS7000() methode."));
+	
 }	// readConfigS7000()
 
 /*****************************************************************
@@ -1676,7 +1685,7 @@ static void init_config()
 static bool writeConfig()
 {
 	bool ret = writeConfigBase();
-	//ret |= writeConfigS7000();
+	ret |= writeConfigS7000();
 
 	return ret;
 }
@@ -1780,12 +1789,12 @@ static bool writeConfigS7000()
 		};
 	}
 
-	debug_outln_info(F("Write JSON 7000 format.....\nJson memory size: "), String(json.memoryUsage()) + 
-					 " | Elementen in array: " + String(json.size()) );
+	// debug_outln_info(F("Write JSON 7000 format.....\nJson memory size: "), String(json.memoryUsage()) + 
+	// 				 " | Elementen in array: " + String(json.size()));
 
-  	String json_string;
-  	serializeJson(json, json_string);
-	debug_outln_info(F("writeConfig() => [JSON] output: \n"), json_string.c_str());
+  	// String json_string;
+  	// serializeJson(json, json_string);
+	// debug_outln_info(F("writeConfig() => [JSON] output: \n"), json_string.c_str());
 
 
 #pragma GCC diagnostic push
@@ -1799,17 +1808,23 @@ static bool writeConfigS7000()
 
 	if (configFile)
 	{
+		// write JSON content into configfile.
 		serializeJson(json, configFile);
 		
-		debug_outln_info(F("Wait 1 second, before close Config file."));
-		delay(1000);
-		debug_outln_info(F("Write config json7000...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
+		debug_outln_info(F("Wait 2 second, before close Config file."));
+		delay(2000);
 		configFile.close();
+
+		debug_outln_info(F("Write JSON 7000 format.....\nJson memory size: "), String(json.memoryUsage()) + 
+					 	 F(" | Elementen in array: ") + String(json.size()) +
+						 F("\nConfig written successfully."));
+
+
 		debug_outln_info(F("Config written successfully."));
 
 		String json_string;
   		serializeJson(json, json_string);
-		debug_outln_info(F("writeConfig() => [JSON] S7000 output: \n"), json_string.c_str());
+		debug_outln_info(F("writeConfig() => [JSON] S7000 Input: \n"), json_string.c_str());
 	}
 	else
 	{
@@ -2553,7 +2568,7 @@ static void webserver_config_send_body_post(String &page_content)
 }
 
 /*
-
+	Write webside settings into Config file. 
 */
 static void webserver_config()
 {
@@ -2595,7 +2610,7 @@ static void webserver_config()
 		display_debug(F("Writing config"), emptyString);
 
 		if (writeConfig())
-		{
+		{// TODO: devide in two section to know which writeconfig has a error.
 			display_debug(F("Writing config"), F("and restarting"));
 			sensor_restart();
 		}
@@ -8191,6 +8206,12 @@ void loop(void)
 	}
 
 #endif
+
+	if (false)
+	{
+		// Radar motion loop
+		RCWL0516.loop();
+	}
 
 	// Sleep if all of the tasks have an event in the future. The chip can then
 	// enter a lower power mode.

@@ -63,6 +63,7 @@ class InterruptLock {
    InterruptLock() {
     noInterrupts();
    }
+   
    ~InterruptLock() {
     interrupts();
    }
