@@ -85,7 +85,7 @@ static const char URL_AIRCMS[] PROGMEM = "/php/sensors.php?h=";
 #define PORT_AIRCMS 80
 
 static const char FW_DOWNLOAD_HOST[] PROGMEM = "firmware.sensor.community";
-#define FW_DOWNLOAD_PORT 443
+#define FW_DOWNLOAD_PORT 443                    // 443 is for HTTPS
 
 static const char FW_2ND_LOADER_URL[] PROGMEM = OTA_BASENAME "/loader-002.bin";
 
@@ -113,6 +113,9 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = "feinstaub";
 // Simm7000
 #define HAS_S7000 0
 #define HAS_GPS 0           // GPS enable
+
+// Radar Motion
+#define HAS_RADARMOTION 0
 
 // define MQTT Definitionen
 static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
@@ -366,5 +369,5 @@ static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
 
 // Set debug level for serial output?
 // Default DEBUG level, DON'T change.
-#define DEBUG 3
+#define DEBUG 6
 

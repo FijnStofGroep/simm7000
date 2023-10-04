@@ -170,16 +170,20 @@ void configureCACertTrustAnchor(WiFiClientSecure* client) {
 							  (__DATE__[ 8] - '0') *  100 + \
 							  (__DATE__[ 9] - '0') *   10 + \
 							  (__DATE__[10] - '0');
-	if (time(nullptr) < (fw_built_year - 1970) * 365 * 24 * 3600) {
+
+	if (time(nullptr) < (fw_built_year - 1970) * 365 * 24 * 3600) 
+	{
 		debug_outln_info(F("Time incorrect; Disabling CA verification."));
-		client->setInsecure();
+		client->setInsecure(); 					// this is the magical line that makes everything work
 	}
-	else {
+	else 
+	{
 		client->setTrustAnchors(&x509_dst_root_ca);
 	}
 }
 
-bool launchUpdateLoader(const String& md5) {
+bool launchUpdateLoader(const String& md5) 
+{
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored  "-Wdeprecated-declarations"
@@ -209,6 +213,7 @@ bool launchUpdateLoader(const String& md5) {
 	debug_outln_info(F("Erasing SDK config."));
 	ESP.eraseConfig();
 	return true;
+	
 #pragma GCC diagnostic pop
 }
 

@@ -1,0 +1,144 @@
+(11:13:21.147) ws: config page ...
+(11:13:21.147) output debug text to displays...
+(11:13:21.166) Saving config...
+(11:13:21.355) Config written successfully.
+(11:13:21.355) output debug text to displays...
+(11:13:21.448) Restart.
+
+(11:13:22.038) airRohr: NRZ-2020-133/EN
+
+(11:13:22.165) mounting FS...
+(11:13:22.212) opened config file...
+(11:13:22.212) parsed json...
+(11:13:22.251) output debug text to displays...
+(11:13:22.322) Connecting to Spider_Router_15
+(11:13:22.793) ......SNTP synced: Wed Oct  4 09:13:26 2023<LF>
+(11:13:26.413) twoStageOTAUpdate
+(11:13:26.413) R/ SDS011 version date
+(11:13:27.076) /R SDS011 version date
+
+(11:13:27.076) HTTP GET: firmware.sensor.community:443/airrohr/update/latest_en.bin.md5
+(11:13:28.159) GET r: 200
+(11:13:28.347) output debug text to displays...
+(11:13:28.379) No newer version available.
+
+(11:13:28.379) .
+(11:13:28.410) WiFi connected, IP is: 192.168.2.120
+(11:13:28.441) Starting Webserver... 192.168.2.120
+(11:13:28.472) <LF>ChipId: 12818401
+(11:13:28.504) <LF>MAC Id: 8caab5c397e1
+(11:13:28.504) R/ SDS011 version date
+(11:13:29.125) /R SDS011 version date
+(11:13:29.125) Read SDS...: 
+(11:13:29.266) Stopping SDS011...
+(11:13:29.266) Read DHT...
+(11:13:29.298) Send to :
+(11:13:29.298) sensor.community
+(11:13:29.298) Madavi.de
+(11:13:29.329) ----
+(11:13:29.329) Auto-Update active...
+
+
+
+(11:14:24.004) ws: root ...
+(11:14:26.580) ws: config page ...
+(11:14:26.580) begin webserver_config_body_get ...
+(11:14:37.051) ws: config page ...
+(11:14:37.051) output debug text to displays...
+(11:14:37.082) Saving config...
+(11:14:37.270) Config written successfully.
+(11:14:37.270) output debug text to displays...
+(11:14:37.349) Restart.
+
+(11:14:37.953) airRohr: NRZ-2020-133/EN
+
+(11:14:38.078) mounting FS...
+(11:14:38.126) opened config file...
+(11:14:38.126) parsed json...
+(11:14:38.157) output debug text to displays...
+(11:14:38.235) Connecting to Spider_Router_15
+(11:14:38.708) ......SNTP synced: Wed Oct  4 09:14:42 2023<LF>
+(11:14:42.315) twoStageOTAUpdate
+(11:14:42.315) R/ SDS011 version date
+(11:14:42.976) /R SDS011 version date
+
+(11:14:42.976) HTTP GET: firmware.sensor.community:443/airrohr/beta/latest_en.bin.md5
+(11:14:44.037) GET r: 200
+
+(11:14:44.225) Update md5: 093e9b3b365051fcf9990abdea28d737
+(11:14:44.256) Sketch md5: ae7dec34c27aafed3de7dd0059bdba79
+
+(11:14:44.410) R/ SDS011 version date
+(11:14:45.111) /R SDS011 version date
+
+(11:14:45.111) HTTP GET: firmware.sensor.community:443/airrohr/beta/latest_en.bin
+(11:14:45.205) GET r: 200
+(11:15:02.985) Success downloading: /airrohr/beta/latest_en.bin
+
+(11:15:03.083) R/ SDS011 version date
+(11:15:03.780) /R SDS011 version date
+
+(11:15:03.780) HTTP GET: firmware.sensor.community:443/airrohr/beta/latest_en.bin.md5
+(11:15:03.874) GET r: 200
+(11:15:04.000) Success downloading: /airrohr/beta/latest_en.bin.md5
+
+(11:15:04.080) R/ SDS011 version date
+(11:15:04.782) /R SDS011 version date
+
+(11:15:04.782) HTTP GET: firmware.sensor.community:443/airrohr/loader-002.bin
+(11:15:05.097) GET r: 200
+(11:15:14.337) Success downloading: /airrohr/loader-002.bin
+
+(11:15:14.620) R/ SDS011 version date
+(11:15:15.333) /R SDS011 version date
+
+(11:15:15.333) HTTP GET: firmware.sensor.community:443/airrohr/loader-002.bin.md5
+(11:15:15.451) GET r: 200
+
+(11:15:15.451) launching 2nd stage
+(11:15:20.141) Erasing SDK config.
+(11:15:20.354) Restart.
+
+(11:15:20.943) Found firmware MD5: 093e9b3b365051fcf9990abdea28d737<LF>
+
+(11:15:36.426) Moving Firmware image to old.
+(11:15:36.573) Erasing SDK config.
+(11:15:36.700) Finished successfully.. Rebooting!
+
+(11:15:37.271) airRohr: NRZ-2021-134-B4/EN
+
+(11:15:47.904) mounting FS...
+(11:15:47.936) opened config file...
+(11:15:47.967) parsed json...
+(11:15:47.967) Rewriting old config from: NRZ-2020-133
+(11:15:47.999) Saving config...
+(11:15:48.187) Config written successfully.
+(11:15:48.187) output debug text to displays...
+(11:15:48.297) Connecting to Spider_Router_15
+(11:15:48.768) .....SNTP synced: Wed Oct  4 09:15:52 2023<LF>
+(11:15:52.179) twoStageOTAUpdate
+(11:15:52.179) R/ SDS011 version date
+(11:15:52.838) /R SDS011 version date
+
+(11:15:52.838) HTTP GET: firmware.sensor.community:443/airrohr/beta/latest_en.bin.md5
+(11:15:55.581) GET r: 200
+(11:15:55.769) output debug text to displays...
+(11:15:55.801) No newer version available.
+(11:15:55.801) .
+
+(11:15:55.848) WiFi connected, IP is: 192.168.2.120
+(11:15:55.879) Starting Webserver... 192.168.2.120
+(11:15:55.911) <LF>ChipId: 12818401
+(11:15:55.942) <LF>MAC Id: 8caab5c397e1
+(11:15:55.942) R/ SDS011 version date
+(11:15:56.559) /R SDS011 version date
+(11:15:56.559) Read SDS...: 
+(11:15:56.690) Stopping SDS011...
+(11:15:56.690) Read DHT...
+(11:15:56.721) Send to :
+(11:15:56.721) sensor.community
+(11:15:56.721) Madavi.de
+(11:15:56.752) ----
+(11:15:56.752) Auto-Update active...
+
+

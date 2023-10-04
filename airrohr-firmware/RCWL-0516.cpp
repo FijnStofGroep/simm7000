@@ -27,69 +27,33 @@ ICACHE_RAM_ATTR void DetectsCHANGE()
 }
 
 //***********************************************************************************************************
-/*
- *  Send motion value To a Server.
- *
- */
-void RCWL_0516::SendToServer(int val)
-{
-  // printf("SendToServer(): Sensor value: %d\n", val);
-  debug_outln_info(F("SendToServer(): Radar Motion value: "), String(val));
-
-  WiFiClient client;
-
-  Serial.print("connecting to ");
-  Serial.print(m_serverHost);
-  Serial.print(':');
-  Serial.println(m_port);
-  // Serial.printf("\n[Connecting to %s:%d ...]\n", host, port);
-
-  if (!client.connect(m_serverHost, m_port))
-  {
-    // Serial.println("connection failed");
-    Serial.println(String("Connection failed to Host = ") + String(m_serverHost));
-    delay(1000);
-    return;
-  }
-
-  if (client.connected())
-  {
-    // Serial.println("** [Connected] **");
-
-    debug_outln_info(F("[Sending a request] => Radar Motion Value: "), String(val));
-
-    client.print(String("Radar Value: ") + String(val));
-    // client.println( String( "Radar Value: ") + String(val));   // send include "\r\n" char.
-
-    // delay(500);
-    client.stop();
-
-    // Serial.println("** [Disconnect] **");
-  }
-  else
-  {
-    debug_outln_info(F("Could Not connect to Host = "), String(m_serverHost));
-  }
-}
-
-//***********************************************************************************************************
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 /*
- *
- */
-void RCWL_0516::begin(char *serverHost, uint port)
-{
-  strcpy(m_serverHost, serverHost); // m_serverHost = serverHost;
-  m_port = port;
 
+*/
+bool RCWL_0516::init(int motionSensorID)
+{
   // Set GPIO mode (LED) to output
-  //pinMode(MotionLedID, OUTPUT);
+  // pinMode(MotionLedID, OUTPUT);
+
+  MotionSensorID = motionSensorID;
 
   // PIR Motion Sensor mode INPUT_PULLUP => is more stabale signal.
   pinMode(MotionSensorID, INPUT_PULLUP);
   // pinMode(MotionSensorID, INPUT);
+
+  return true;
+}
+
+/*
+ *
+ */
+void RCWL_0516::begin(const char *serverHost, uint port)
+{
+  strcpy(m_serverHost, serverHost); // m_serverHost = serverHost;
+  m_port = port;
 
   /*
       Set MotionSensor pin as interrupt, assign interrupt function and set "CHANGE" mode
@@ -106,7 +70,7 @@ void RCWL_0516::begin(char *serverHost, uint port)
    *
    */
 
-  attachInterrupt( digitalPinToInterrupt(MotionSensorID), DetectsCHANGE, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(MotionSensorID), DetectsCHANGE, CHANGE);
 
   // digitalWrite(led, LEDLOW);
 }
@@ -145,5 +109,47 @@ void RCWL_0516::loop()
     //     motionState = LOW; // update variable state to LOW
     //   }
     // }
+  }
+}
+
+//***********************************************************************************************************
+/*
+ *  Send motion value To a Server.
+ *
+ */
+void RCWL_0516::SendToServer(int val)
+{
+  // printf("SendToServer(): Sensor value: %d\n", val);
+  debug_outln_info(F("SendToServer(): Radar Motion value: "), String(val));
+
+  WiFiClient client;
+
+  debug_outln_info(F("connecting to "), String(m_serverHost) + F(":") + String(m_port));
+  // Serial.printf("\n[Connecting to %s:%d ...]\n", host, port);
+
+  if (!client.connect(m_serverHost, m_port))
+  {
+    // Serial.println("connection failed");
+    debug_outln_info(F("Connection failed to Host = "), String(m_serverHost));
+    delay(1000);
+    return;
+  }
+
+  if (client.connected())
+  {
+    // Serial.println("** [Connected] **");
+    debug_outln_info(F("[Sending a request] => Radar Motion Value: "), String(val));
+
+    client.print(String("Radar Value: ") + String(val));
+    // client.println( String( "Radar Value: ") + String(val));   // send include "\r\n" char.
+
+    // delay(500);
+    client.stop();
+
+    // Serial.println("** [Disconnect] **");
+  }
+  else
+  {
+    debug_outln_info(F("Could Not connect to Host = "), String(m_serverHost));
   }
 }

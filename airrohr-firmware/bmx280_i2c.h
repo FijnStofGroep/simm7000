@@ -189,6 +189,7 @@ protected:
     /// @return combined ctrl register
     uint8_t get() { return (osrs_t << 5) | (osrs_p << 2) | mode; }
   };
+  
   ctrl_meas _measReg; //!< measurement register object
 
   /**************************************************************************/

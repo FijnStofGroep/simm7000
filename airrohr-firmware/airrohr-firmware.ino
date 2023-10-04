@@ -262,6 +262,10 @@ namespace cfg
 	char user_custom[LEN_USER_CUSTOM] = USER_CUSTOM;
 	char pwd_custom[LEN_CFG_PASSWORD] = PWD_CUSTOM;
 
+	// Radar motion setting
+	bool has_radarMotion = HAS_RADARMOTION;
+
+
 #if defined(ESP8266)
 	/*	MQTT  */
 	char mqtt_server[LEN_HOST_CUSTOM];
@@ -1349,10 +1353,10 @@ static bool boolFromJSON(const DynamicJsonDocument &json, const __FlashStringHel
  *****************************************************************/
 static void readConfig(bool oldconfig = false)
 {
-	debug_outln_info(F("*** call readConfigBase()... ***"));
+	//debug_outln_info(F("*** call readConfigBase()... ***"));
 	readConfigBase( oldconfig);
 
-	debug_outln_info(F("*** call readConfigS7000()... ***"));
+	//debug_outln_info(F("*** call readConfigS7000()... ***"));
 	readConfigS7000( oldconfig);
 }
 
@@ -1696,7 +1700,7 @@ static bool writeConfig()
 static bool writeConfigBase()
 {
 	DynamicJsonDocument json(JSON_BUFFER_SIZE);
-	//DynamicJsonDocument json7(JSON_BUFFER_SIZE_SIMM7000);
+
 	debug_outln_info(F("Saving config..."));
 
 	json["SOFTWARE_VERSION"] = SOFTWARE_VERSION;
@@ -1729,7 +1733,7 @@ static bool writeConfigBase()
 
   	String json_string;
   	serializeJson(json, json_string);
-	debug_outln_info(F("writeConfig() => [JSON] output: \n"), json_string.c_str());
+	debug_outln_info(F("writeConfigBase() => [JSON] format: \n"), json_string.c_str());
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -1746,12 +1750,12 @@ static bool writeConfigBase()
 		delay(2000);
 		configFile.close();
 
-		debug_outln_info(F("Write config json...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
+		debug_outln_info(F("Write config json... => Json memory size: "), String(json.memoryUsage()) + String(" char."));
 		debug_outln_info(F("Config written successfully."));
 	}
 	else
 	{
-		debug_outln_error(F("failed to open config file for writing"));
+		debug_outln_error(F("writeConfigBase():failed to open config file for writing"));
 		return false;
 	}
 
@@ -1766,7 +1770,8 @@ static bool writeConfigBase()
 static bool writeConfigS7000()
 {
 	DynamicJsonDocument json(JSON_BUFFER_SIZE_SIMM7000);
-	debug_outln_info(F("Saving config..."));
+
+	debug_outln_info(F("Saving S7000 config..."));
 
 	for (unsigned e = 0; e < sizeof(configShape7) / sizeof(configShape7[0]); ++e)
 	{
@@ -1789,12 +1794,12 @@ static bool writeConfigS7000()
 		};
 	}
 
-	// debug_outln_info(F("Write JSON 7000 format.....\nJson memory size: "), String(json.memoryUsage()) + 
+	// debug_outln_info(F("JSON 7000 format.....\nJson memory size: "), String(json.memoryUsage()) + 
 	// 				 " | Elementen in array: " + String(json.size()));
 
   	// String json_string;
   	// serializeJson(json, json_string);
-	// debug_outln_info(F("writeConfig() => [JSON] output: \n"), json_string.c_str());
+	// debug_outln_info(F("writeConfigS7000() => [JSON] format: \n"), json_string.c_str());
 
 
 #pragma GCC diagnostic push
@@ -1819,16 +1824,13 @@ static bool writeConfigS7000()
 					 	 F(" | Elementen in array: ") + String(json.size()) +
 						 F("\nConfig written successfully."));
 
-
-		debug_outln_info(F("Config written successfully."));
-
 		String json_string;
   		serializeJson(json, json_string);
-		debug_outln_info(F("writeConfig() => [JSON] S7000 Input: \n"), json_string.c_str());
+		debug_outln_info(F("writeConfigS7000() => [JSON] S7000 format: \n"), json_string.c_str());
 	}
 	else
 	{
-		debug_outln_error(F("failed to open config S7000 file for writing"));
+		debug_outln_error(F("writeConfigS7000():failed to open config S7000 file for writing"));
 		return false;
 	}
 
@@ -3746,7 +3748,7 @@ static void wifiConfig()
 		server.handleClient();
 
 #if defined(ESP8266)
-		wdt_reset(); // nodemcu is alive
+		wdt_reset(); 		// nodemcu is alive
 		MDNS.update();
 #endif
 
@@ -3800,6 +3802,9 @@ static void wifiConfig()
 	debug_outln_info_bool(F("CSV: "), cfg::send2csv);
 	debug_outln_info_bool(F("MQTT: "), cfg::send2mqtt);
 	debug_outln_info_bool(F("Fix IP address: "), cfg::has_fix_ip);
+	debug_outln_info(FPSTR(DBG_TXT_SEP));
+	debug_outln_info_bool(F("SIMM-7000: "), cfg::has_s7000);
+	debug_outln_info_bool(F("RCWL-0516: "), cfg::has_radarMotion);
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 	debug_outln_info_bool(F("Autoupdate: "), cfg::auto_update);
 	debug_outln_info_bool(F("Display: "), cfg::has_display);
@@ -5984,6 +5989,9 @@ static __noinline void fetchSensorGPS(String &s)
 
 /*****************************************************************
  * OTAUpdate                                                     *
+ * client => wifi intstance									 	 *
+ * url => URL command string									 *
+ * ostream => File stream									 	 *
  *****************************************************************/
 static bool fwDownloadStream(WiFiClientSecure &client, const String &url, Stream *ostream)
 {
@@ -6027,21 +6035,29 @@ static bool fwDownloadStream(WiFiClientSecure &client, const String &url, Stream
 	http.setReuse(false);
 
 	debug_outln_verbose(F("HTTP GET: "), String(FPSTR(FW_DOWNLOAD_HOST)) + ':' + String(FW_DOWNLOAD_PORT) + url);
+	//debug_outln_info(F("HTTP GET: "), String(FPSTR(FW_DOWNLOAD_HOST)) + ':' + String(FW_DOWNLOAD_PORT) + url);
 
 	// example Update firmware url address:  https://firmware.sensor.community:443/airrohr/update/latest_nl.bin	
 	if (http.begin(client, FPSTR(FW_DOWNLOAD_HOST), FW_DOWNLOAD_PORT, url))
 	{
-		int r = http.GET();
-		debug_outln_verbose(F("GET r: "), String(r));
-		last_update_returncode = r;
+		int resp = http.GET();
 
-		if (r == HTTP_CODE_OK)
+		debug_outln_verbose(F("GET responce code: "), String(resp));
+		//debug_outln_info(F("GET responce code: "), String(resp));
+
+		last_update_returncode = resp;
+
+		if (resp == HTTP_CODE_OK)
 		{
+			debug_outln_verbose(F("Start writeToStream(***): "));
 			bytes_written = http.writeToStream(ostream);		// data stored in file in SPIFF memory drive.
+			debug_outln_verbose(F("End writeToStream(**): ret code: "), String(bytes_written));
 		}
 
 		http.end();
 	}
+
+	debug_outln_verbose(F("HTTP End: read chars = "), String(bytes_written));
 
 	if (bytes_written > 0)
 	{
@@ -6058,6 +6074,7 @@ static bool fwDownloadStream(WiFiClientSecure &client, const String &url, Stream
 /// @return 
 static bool fwDownloadStreamFile(WiFiClientSecure &client, const String &url, const String &fname)
 {
+	debug_outln_verbose(F("fwDownloadStreamFile(): URL | file name "), String(url) + " | " + String(fname));
 
 	String fname_new(fname);
 	fname_new += F(".new");
@@ -6065,11 +6082,19 @@ static bool fwDownloadStreamFile(WiFiClientSecure &client, const String &url, co
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 	File fwFile = SPIFFS.open(fname_new, "w");
+
+	// bool fileExist = SPIFFS.exists(fname_new);
+	// debug_outln_verbose(F("Check if File Open, File Name: "), fname_new + F(", Exist: ") + String(fileExist));
+
+	debug_outln_verbose(F("File created in SPIFFS, Stream to File object: "), fwFile.fullName());
+
 	if (fwFile)
 	{
 		downloadSuccess = fwDownloadStream(client, url, &fwFile);
 		fwFile.close();
+
 		if (downloadSuccess)
 		{
 			SPIFFS.remove(fname);
@@ -6077,12 +6102,21 @@ static bool fwDownloadStreamFile(WiFiClientSecure &client, const String &url, co
 			debug_outln_info(F("Success downloading: "), url);
 		}
 	}
+	else
+	{
+		debug_outln_verbose(F("File open failed"));
+	}
+
+	debug_outln_verbose(F("fwDownloadStreamFile():Ending, status: "), String(downloadSuccess));
 
 	if (downloadSuccess)
+	{
 		return true;
+	}
 
 	SPIFFS.remove(fname_new);
 #pragma GCC diagnostic pop
+
 	return false;
 }
 
@@ -6097,6 +6131,9 @@ static bool fwDownloadStreamFile(WiFiClientSecure &client, const String &url, co
 */
 static void twoStageOTAUpdate()
 {
+	// always return => process become dead could not load binary data into FS.
+	// TODO: to find out what are the problem.
+	return;
 
 	if (!cfg::auto_update)
 	{// NO auto firmware update
@@ -6120,6 +6157,8 @@ static void twoStageOTAUpdate()
 		fetch_name = F(OTA_BASENAME "/beta/latest_");
 	}
 
+	// OTA HTTP server URL
+	// https://firmware.sensor.community:443/airrohr/update/latest_nl.bin
 	fetch_name += lang_variant;
 	fetch_name += F(".bin");
 
@@ -6148,36 +6187,46 @@ static void twoStageOTAUpdate()
 	}
 
 	debug_outln_info(F("Update md5: "), newFwmd5);
-	debug_outln_info(F("Sketch md5: "), ESP.getSketchMD5());
+	debug_outln_info(F("Current Sketch md5: "), ESP.getSketchMD5());
 
 	// We're entering update phase, kill off everything else
 	WiFiUDP::stopAll();
 	WiFiClient::stopAllExcept(&client);
 	delay(100);
 
+	debug_outln_verbose(F("Start DownloadStreamFilev process.."));
+
 	String firmware_name(F("/firmware.bin"));
 	String firmware_md5(F("/firmware.bin.md5"));
 	String loader_name(F("/loader.bin"));
 
+	debug_outln_verbose(F("Start DownloadStreamFile() process.. "), String(fetch_name) + " | " + String(firmware_name));
+
 	if (!fwDownloadStreamFile(client, fetch_name, firmware_name))
 	{
+		debug_outln_verbose(F("Failed DownloadStreamFile() firmware_name file.."));
 		return;
 	}
 
 	if (!fwDownloadStreamFile(client, fetch_md5_name, firmware_md5))
 	{
+		debug_outln_verbose(F("Failed DownloadStreamFile() firmware_md5 file.."));
 		return;
 	}
 
 	if (!fwDownloadStreamFile(client, FPSTR(FW_2ND_LOADER_URL), loader_name))
 	{
+		debug_outln_verbose(F("Failed DownloadStreamFile() loader_name file.."));
 		return;
 	}
+
+	debug_outln_verbose(F("All Files are downloaded.. "), String(firmware_name));
 
 	// SPIFFS is deprecated, we know
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 	File fwFile = SPIFFS.open(firmware_name, "r");
+
 	if (!fwFile)
 	{
 		SPIFFS.remove(firmware_name);
@@ -6185,6 +6234,7 @@ static void twoStageOTAUpdate()
 		debug_outln_error(F("Failed reopening fw file.."));
 		return;
 	}
+
 	size_t fwSize = fwFile.size();
 	MD5Builder md5;
 	md5.begin();
@@ -6204,7 +6254,9 @@ static void twoStageOTAUpdate()
 
 	StreamString loaderMD5;
 	if (!fwDownloadStream(client, String(FPSTR(FW_2ND_LOADER_URL)) + F(".md5"), &loaderMD5))
+	{
 		return;
+	}
 
 	loaderMD5.trim();
 
@@ -7720,6 +7772,15 @@ void setup(void)
 		last_display_millis = starttime_SDS = starttime;
 	}
 
+	// Radar Motion.
+	if (cfg::has_radarMotion)
+	{
+		RCWL0516.init();
+
+		char serverHost[] = "192.168.2.105";
+		RCWL0516.begin(serverHost, 8080);		
+	}
+
 } // end setup()
 
 /*****************************************************************
@@ -8207,7 +8268,7 @@ void loop(void)
 
 #endif
 
-	if (false)
+	if (cfg::has_radarMotion)
 	{
 		// Radar motion loop
 		RCWL0516.loop();
