@@ -11,22 +11,19 @@ RCWL_0516 RCWL0516;
 
 /*
  *
- * DetectsCHANGE() => ISRs should be as short and fast as possible as they block normal program execution.
+ * SensorMotionChange() => ISRs should be as short and fast as possible as they block normal program execution.
  *
  */
-ICACHE_RAM_ATTR void DetectsCHANGE()
+ICACHE_RAM_ATTR void MotionSensorChange()
 {
-  // Serial.println("MOTION CHANGED DETECTED!!!");
-
   RCWL0516.motionValue = digitalRead(RCWL0516.MotionSensorID); // read sensor value
 
   debug_outln_info(F("Radar Motion/Sensor value: "), String(RCWL0516.motionValue));
-  // Serial.println( printf("sensor value: %d", RCWL0516.motionValue));
 
   RCWL0516.flgSendToServer = true;
 }
 
-//***********************************************************************************************************
+//**********************************************************************************************************************************
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
@@ -40,9 +37,9 @@ bool RCWL_0516::init(int motionSensorID)
 
   MotionSensorID = motionSensorID;
 
+  // pinMode(MotionSensorID, INPUT);
   // PIR Motion Sensor mode INPUT_PULLUP => is more stabale signal.
   pinMode(MotionSensorID, INPUT_PULLUP);
-  // pinMode(MotionSensorID, INPUT);
 
   return true;
 }
@@ -70,7 +67,7 @@ void RCWL_0516::begin(const char *serverHost, uint port)
    *
    */
 
-  attachInterrupt(digitalPinToInterrupt(MotionSensorID), DetectsCHANGE, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(MotionSensorID), MotionSensorChange, CHANGE);
 
   // digitalWrite(led, LEDLOW);
 }
@@ -78,7 +75,7 @@ void RCWL_0516::begin(const char *serverHost, uint port)
 #pragma GCC diagnostic pop
 
 /*
- * Message loop
+ * Motion -Sensor Message loop 
  */
 void RCWL_0516::loop()
 {

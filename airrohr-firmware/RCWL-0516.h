@@ -2,7 +2,8 @@
 #ifndef __RCWL_0516_H__
 #define __RCWL_0516_H__
 
-#include "Arduino.h"
+// VS: Convert Arduino file to C++ manually.
+#include <Arduino.h>
 #include <ESP8266WiFi.h>
 
 class RCWL_0516
@@ -10,6 +11,7 @@ class RCWL_0516
 
 public:
   // Set GPIO no. Radar Motion Sensor.
+  //                        // comment: pinNo D8 => MCU NOT start-UP.
   int MotionSensorID = D6;  // Radar data out. => the pin D6 = 12 that the sensor is attached to.
 
   // Auxiliary variables
