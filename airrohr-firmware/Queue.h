@@ -174,24 +174,4 @@ public:
     //      Count(): This operation returns the count of the queue i.e. the total number of elements it contains.
 };
 
-//
-// sample Queue main code
-// int TestMain(void)
-// {
-//     // Create a queue of capacity 4
-//     Queue* q = new Queue(4);
-
-//     // inserting elements in the queue[]
-//     q->Enqueue(20);
-//     q->Enqueue(30);
-//     q->Enqueue(40);
-//     q->Enqueue(50);
-
-//     // print Queue elements
-//     int val1 = q->Dequeue();
-//     int val2 = q->Dequeue();
-
-//     return 0;
-// }
-
 #endif

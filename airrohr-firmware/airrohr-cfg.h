@@ -31,6 +31,10 @@ enum ConfigShapeId {
 	Config_current_lang,
 	Config_wlanssid,
 	Config_wlanpwd,
+	Config_wlanssid_2,
+	Config_wlanpwd_2,
+	Config_wlanssid_3,
+	Config_wlanpwd_3,
 	Config_www_username,
 	Config_www_password,
 	Config_fs_ssid,
@@ -110,11 +114,16 @@ enum ConfigShapeId {
 	Config_scd30_co2_correction,
 	Config_scd30_temp_correction,
 	Config_has_s7000,
+	Config_has_radarmotion,
 };
 
 static constexpr char CFG_KEY_CURRENT_LANG[] PROGMEM = "current_lang";
 static constexpr char CFG_KEY_WLANSSID[] PROGMEM = "wlanssid";
 static constexpr char CFG_KEY_WLANPWD[] PROGMEM = "wlanpwd";
+static constexpr char CFG_KEY_WLANSSID_2[] PROGMEM = "wlanssid_2";
+static constexpr char CFG_KEY_WLANPWD_2[] PROGMEM = "wlanpwd_2";
+static constexpr char CFG_KEY_WLANSSID_3[] PROGMEM = "wlanssid_3";
+static constexpr char CFG_KEY_WLANPWD_3[] PROGMEM = "wlanpwd_3";
 static constexpr char CFG_KEY_WWW_USERNAME[] PROGMEM = "www_username";
 static constexpr char CFG_KEY_WWW_PASSWORD[] PROGMEM = "www_password";
 static constexpr char CFG_KEY_FS_SSID[] PROGMEM = "fs_ssid";
@@ -194,11 +203,16 @@ static constexpr char CFG_KEY_HAS_FIX_IP[] PROGMEM = "has_fix_ip";
 static constexpr char CFG_KEY_SCD30_CO2_CORRECTION[] PROGMEM = "scd30_co2_correction";
 static constexpr char CFG_KEY_SCD30_TEMP_CORRECTION[] PROGMEM = "scd30_temp_correction";
 static constexpr char CFG_KEY_HAS_S7000[] PROGMEM = "has_s7000";
+static constexpr char CFG_KEY_HAS_RADARMOTION[] PROGMEM = "has_radarmotion";
 
 static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_String, sizeof(cfg::current_lang)-1, CFG_KEY_CURRENT_LANG, cfg::current_lang },
 	{ Config_Type_String, sizeof(cfg::wlanssid)-1, CFG_KEY_WLANSSID, cfg::wlanssid },
 	{ Config_Type_Password, sizeof(cfg::wlanpwd)-1, CFG_KEY_WLANPWD, cfg::wlanpwd },
+	{ Config_Type_String, sizeof(cfg::wlanssid_2)-1, CFG_KEY_WLANSSID_2, cfg::wlanssid_2 },
+	{ Config_Type_Password, sizeof(cfg::wlanpwd_2)-1, CFG_KEY_WLANPWD_2, cfg::wlanpwd_2 },
+	{ Config_Type_String, sizeof(cfg::wlanssid_3)-1, CFG_KEY_WLANSSID_3, cfg::wlanssid_3 },
+	{ Config_Type_Password, sizeof(cfg::wlanpwd_3)-1, CFG_KEY_WLANPWD_3, cfg::wlanpwd_3 },
 	{ Config_Type_String, sizeof(cfg::www_username)-1, CFG_KEY_WWW_USERNAME, cfg::www_username },
 	{ Config_Type_Password, sizeof(cfg::www_password)-1, CFG_KEY_WWW_PASSWORD, cfg::www_password },
 	{ Config_Type_String, sizeof(cfg::fs_ssid)-1, CFG_KEY_FS_SSID, cfg::fs_ssid },
@@ -278,4 +292,5 @@ static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_String, sizeof(cfg::scd30_co2_correction)-1, CFG_KEY_SCD30_CO2_CORRECTION, cfg::scd30_co2_correction },
 	{ Config_Type_String, sizeof(cfg::scd30_temp_correction)-1, CFG_KEY_SCD30_TEMP_CORRECTION, cfg::scd30_temp_correction },
 	{ Config_Type_Bool, 0, CFG_KEY_HAS_S7000, &cfg::has_s7000 },
+	{ Config_Type_Bool, 0, CFG_KEY_HAS_RADARMOTION, &cfg::has_radarmotion },
 };

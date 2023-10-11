@@ -7,15 +7,15 @@
  *	Texts should be as short as possible
  */
 
+#include "./airrohr-logo-common.h"
+
 #define INTL_LANG "EN"
 #define INTL_PM_SENSOR "Particulate matter sensor"
-const char INTL_CONFIGURATION[] PROGMEM = "Configuration";
-const char INTL_SIM7000[] PROGMEM = "Sim7000 LTE";
-const char INTL_SIM7000_DIS[] PROGMEM = "Disable";
 #define INTL_WIFI_SETTINGS "WiFi Settings"
 #define INTL_WIFI_NETWORKS "Loading wifi networks ..."
 #define INTL_LANGUAGE "Language"
 
+const char INTL_CONFIGURATION[] PROGMEM = "Configuration";
 const char INTL_NO_NETWORKS[] PROGMEM =  "No WiFi Network Found";
 const char INTL_NETWORKS_FOUND[] PROGMEM = "Found Networks: ";
 const char INTL_AB_HIER_NUR_ANDERN[] PROGMEM = "Advanced settings (оnly if you know what you are doing)";
@@ -50,8 +50,10 @@ const char INTL_BASICAUTH[] PROGMEM = "Authentication";
 #define INTL_REPORT_ISSUE "Report an issue"
 
 const char INTL_FS_WIFI_DESCRIPTION[] PROGMEM = "WiFi Sensor in configuration mode";
-const char INTL_FS_WIFI_NAME[] PROGMEM = "Network name";
 const char INTL_MORE_SETTINGS[] PROGMEM = "More settings";
+const char INTL_FS_WIFI_NAME[] PROGMEM = "Network name";
+const char INTL_FS_WIFI_NAME_2[] PROGMEM = "Network name 2";
+const char INTL_FS_WIFI_NAME_3[] PROGMEM = "Network name 3";
 const char INTL_AUTO_UPDATE[] PROGMEM = "Auto update firmware";
 const char INTL_USE_BETA[] PROGMEM = "Load beta firmware";
 const char INTL_DISPLAY[] PROGMEM = "OLED SSD1306";
@@ -63,8 +65,6 @@ const char INTL_LCD2004_27[] PROGMEM = "LCD 2004 (I2C: 0x27)";
 const char INTL_LCD2004_3F[] PROGMEM = "LCD 2004 (I2C: 0x3F)";
 const char INTL_DISPLAY_WIFI_INFO[] PROGMEM = "Display Wifi info";
 const char INTL_DISPLAY_DEVICE_INFO[] PROGMEM = "Display device info";
-
-#define INTL_ENABLE_S7000 "Enable S7000 LTE"
 
 
 #define INTL_STATIC_IP_TEXT "Configuration static IP address (all fields must be completed)"
@@ -147,11 +147,16 @@ const char INTL_SIGNAL_QUALITY[] PROGMEM = "signal quality";
 #define INTL_PARAMETER "Parameter"
 #define INTL_VALUE "Value"
 
-#include "./airrohr-logo-common.h"
+#define INTL_ENABLE_S7000 "Enable S7000 LTE"
+
+const char INTL_SIM7000[] PROGMEM = "Sim7000 LTE";
+const char INTL_SIM7000_DIS[] PROGMEM = "Disable";
 const char INTL_SIM_APN[] PROGMEM = "APN";
 const char INTL_SIM_ID[] PROGMEM = "ID";
 const char INTL_SIM_GPS[] PROGMEM = "GPS";
 const char INTL_SIM_TYPE[] PROGMEM = "Type";
 const char INTL_SIM_MODE[] PROGMEM = "Mode";
+
+#define INTL_ENABLE_RCWL_0516 "Enable Radar Motion"
 
 #define INTL_MODE "Mode"

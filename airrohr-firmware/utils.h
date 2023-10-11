@@ -78,7 +78,7 @@ extern bool launchUpdateLoader(const String& md5);
 
 extern float readCorrectionOffset(const char* correction);
 
-// external define cfg type.
+// external define cfg::member type.
 namespace cfg 
 {
 	extern unsigned debug;

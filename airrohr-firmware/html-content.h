@@ -129,6 +129,14 @@ const char WEB_ROOT_PAGE_CONTENT_S7000[] PROGMEM = "<a class='b' href='/values'>
 const char WEB_CONFIG_SCRIPT[] PROGMEM = "<script>\
 function setSSID(ssid){document.getElementById('wlanssid').value=ssid.innerText||ssid.textContent;document.getElementById('wlanpwd').focus();}\
 function load_wifi_list(){var x=new XMLHttpRequest();x.open('GET','/wifi');x.onload = function(){if (x.status === 200) {document.getElementById('wifilist').innerHTML = x.responseText;}};x.send();}\
+</script>\
+<script>\
+function setSSID(ssid){document.getElementById('wlanssid_2').value=ssid.innerText||ssid.textContent;document.getElementById('wlanpwd_2');}\
+function load_wifi_list(){var x=new XMLHttpRequest();x.open('GET','/wifi');x.onload = function(){if (x.status === 200) {document.getElementById('wifilist').innerHTML = x.responseText;}};x.send();}\
+</script>\
+<script>\
+function setSSID(ssid){document.getElementById('wlanssid_3').value=ssid.innerText||ssid.textContent;document.getElementById('wlanpwd_3');}\
+function load_wifi_list(){var x=new XMLHttpRequest();x.open('GET','/wifi');x.onload = function(){if (x.status === 200) {document.getElementById('wifilist').innerHTML = x.responseText;}};x.send();}\
 </script>";
 
 const char WEB_REMOVE_CONFIG_CONTENT[] PROGMEM = "<h3>" INTL_CONFIGURATION_REALLY_DELETE "</h3>\

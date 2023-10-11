@@ -6,21 +6,24 @@
 
 #include "RCWL-0516.h"
 #include "./utils.h"
+#include "./Queue.h"
 
-RCWL_0516 RCWL0516;
+
+RCWL_0516 RCWL0516;   // Create RCWL_0516 instance on Stack.
 
 /*
  *
- * SensorMotionChange() => ISRs should be as short and fast as possible as they block normal program execution.
+ * MotionSensorChangeEvent() => ISRs should be as short and fast as possible as they block normal program execution.
  *
  */
-ICACHE_RAM_ATTR void MotionSensorChange()
+ICACHE_RAM_ATTR void MotionSensorChangeEvent()
 {
-  RCWL0516.motionValue = digitalRead(RCWL0516.MotionSensorID); // read sensor value
+  int motionValue = digitalRead(RCWL0516.MotionSensorID); // read sensor value
 
-  debug_outln_info(F("Radar Motion/Sensor value: "), String(RCWL0516.motionValue));
+  RCWL0516.m_queue->Enqueue(motionValue);
 
-  RCWL0516.flgSendToServer = true;
+  debug_outln_info(F("MotionSensorChangeEvent()::Radar Motion/Sensor value: "), String(motionValue));
+
 }
 
 //**********************************************************************************************************************************
@@ -28,7 +31,7 @@ ICACHE_RAM_ATTR void MotionSensorChange()
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 /*
-
+    Init RCWL_0516 Instance.
 */
 bool RCWL_0516::init(int motionSensorID)
 {
@@ -40,6 +43,9 @@ bool RCWL_0516::init(int motionSensorID)
   // pinMode(MotionSensorID, INPUT);
   // PIR Motion Sensor mode INPUT_PULLUP => is more stabale signal.
   pinMode(MotionSensorID, INPUT_PULLUP);
+
+  // Create a Queue[] array of capacity 10 on the heap.
+  m_queue = new Queue(10);
 
   return true;
 }
@@ -67,7 +73,7 @@ void RCWL_0516::begin(const char *serverHost, uint port)
    *
    */
 
-  attachInterrupt(digitalPinToInterrupt(MotionSensorID), MotionSensorChange, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(MotionSensorID), MotionSensorChangeEvent, CHANGE);
 
   // digitalWrite(led, LEDLOW);
 }
@@ -79,15 +85,17 @@ void RCWL_0516::begin(const char *serverHost, uint port)
  */
 void RCWL_0516::loop()
 {
-  if (flgSendToServer)
+  if (!RCWL0516.m_queue->IsEmpty())
   {
-    flgSendToServer = false;
+    int motionval = RCWL0516.m_queue->Dequeue();
+
+    //debug_outln_info(F("loop()::Radar Motion-Sensor value: "), String(motionval));
 
     // Send Radar value to Server.
-    SendToServer(motionValue);
+    SendToServer(motionval);
 
     // if (motionValue == HIGH)
-    // {                                   // check if the sensor is HIGH
+    // { // check if the sensor is HIGH
     //   digitalWrite(MotionLed, LEDHIGH); // turn LED ON
 
     //   if (motionState == LOW)
@@ -109,20 +117,18 @@ void RCWL_0516::loop()
   }
 }
 
-//***********************************************************************************************************
+//*************************************************************************************************************************************
 /*
- *  Send motion value To a Server.
+ *  Send Radar motion value To a Server.
  *
  */
 void RCWL_0516::SendToServer(int val)
 {
-  // printf("SendToServer(): Sensor value: %d\n", val);
   debug_outln_info(F("SendToServer(): Radar Motion value: "), String(val));
 
   WiFiClient client;
 
   debug_outln_info(F("connecting to "), String(m_serverHost) + F(":") + String(m_port));
-  // Serial.printf("\n[Connecting to %s:%d ...]\n", host, port);
 
   if (!client.connect(m_serverHost, m_port))
   {
@@ -134,16 +140,14 @@ void RCWL_0516::SendToServer(int val)
 
   if (client.connected())
   {
-    // Serial.println("** [Connected] **");
-    debug_outln_info(F("[Sending a request] => Radar Motion Value: "), String(val));
+    //debug_outln_info(F("[Sending a request] => Radar Motion Value: "), String(val));
 
-    client.print(String("Radar Value: ") + String(val));
-    // client.println( String( "Radar Value: ") + String(val));   // send include "\r\n" char.
-
+    client.print( String("Radar Value: ") + String(val));
+    
     // delay(500);
     client.stop();
 
-    // Serial.println("** [Disconnect] **");
+    //debug_outln_info(F("[Sending a request] => ENDED: "));
   }
   else
   {

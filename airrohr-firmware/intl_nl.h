@@ -7,6 +7,8 @@
  *	Texts should be as short as possible
  */
 
+#include "./airrohr-logo-common.h"
+
 #define INTL_LANG "NL"
 #define INTL_PM_SENSOR "Fijnstofsensor"
 #define INTL_WIFI_SETTINGS "WiFi-instellingen"
@@ -142,4 +144,15 @@ const char INTL_SIGNAL_QUALITY[] PROGMEM = "Signaalkwaliteit";
 #define INTL_PARAMETER "Parameter"
 #define INTL_VALUE "Waarde"
 
-#include "./airrohr-logo-common.h"
+#define INTL_ENABLE_S7000 "Enable S7000 LTE"
+
+const char INTL_SIM7000[] PROGMEM = "Sim7000 LTE";
+const char INTL_SIM7000_DIS[] PROGMEM = "Disable";
+
+const char INTL_SIM_APN[] PROGMEM = "APN";
+const char INTL_SIM_ID[] PROGMEM = "ID";
+const char INTL_SIM_GPS[] PROGMEM = "GPS";
+const char INTL_SIM_TYPE[] PROGMEM = "Type";
+const char INTL_SIM_MODE[] PROGMEM = "Mode";
+
+#define INTL_MODE "Mode"

@@ -1,7 +1,6 @@
 FWL-2023-09-B1  (Fijnstof Werkgroep Leusden)
-* Add 
-
-
+* Add sim7000 LTE
+* 
 
 FWL-2023-08-B1  (Fijnstof Werkgroep Leusden)
 * SEN5X sensor

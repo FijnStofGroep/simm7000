@@ -5,6 +5,10 @@ configshape_in = """
 String		current_lang
 String		wlanssid
 Password	wlanpwd
+String		wlanssid_2
+Password	wlanpwd_2
+String		wlanssid_3
+Password	wlanpwd_3
 String		www_username
 Password	www_password
 String		fs_ssid
@@ -84,6 +88,7 @@ Bool		has_fix_ip
 String		scd30_co2_correction
 String		scd30_temp_correction
 Bool        has_s7000
+Bool        has_radarmotion
 
 """
 

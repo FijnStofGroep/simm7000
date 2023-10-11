@@ -11,20 +11,18 @@ class RCWL_0516
 
 public:
   // Set GPIO no. Radar Motion Sensor.
-  //                        // comment: pinNo D8 => MCU NOT start-UP.
+  //                        // comment: pinNo D8 => MCU DON'T start-UP.
   int MotionSensorID = D6;  // Radar data out. => the pin D6 = 12 that the sensor is attached to.
 
   // Auxiliary variables
   int motionState;          // by default, no motion detected
-  int motionValue;          // variable to store the sensor status (value)
-  bool flgSendToServer;
+
+  Queue* m_queue;
 
   // constructor
   RCWL_0516()
   {
-    flgSendToServer = false;
     motionState = LOW;
-    motionValue = 0;
   };
 
   // destructor => Clean-up all resource.

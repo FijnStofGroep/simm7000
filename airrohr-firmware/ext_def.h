@@ -1,3 +1,4 @@
+
 // Language config
 #define CURRENT_LANG INTL_LANG
                                              
@@ -113,9 +114,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = "feinstaub";
 // Simm7000
 #define HAS_S7000 0
 #define HAS_GPS 0           // GPS enable
-
-// Radar Motion
-#define HAS_RADARMOTION 0
 
 // define MQTT Definitionen
 static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
@@ -264,7 +262,7 @@ static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
 #define PPD_API_PIN 5
 
 // SDS011, the more expensive version of the particle sensor
-#define SDS_READ 1              // Particle sensor, default: true  
+#define SDS_READ 0              // Particle sensor, default: true  
 #define SDS_API_PIN 1
 
 // PMS1003, PMS300, 3PMS5003, PMS6003, PMS7003
@@ -366,6 +364,9 @@ static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
 
 // Show device info on displays
 #define DISPLAY_DEVICE_INFO 1
+
+// RCWL-0516 sensor => Radar Motion.
+#define HAS_RADARMOTION 0
 
 // Set debug level for serial output?
 // Default DEBUG level, DON'T change.

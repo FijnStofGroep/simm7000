@@ -7,6 +7,8 @@
  *	Texts should be as short as possible
  */
 
+#include "./airrohr-logo-common.h"
+
 #define INTL_LANG "FR"
 #define INTL_PM_SENSOR "Détecteur de particules fines"
 const char INTL_CONFIGURATION[] PROGMEM = "Configuration";
@@ -142,4 +144,16 @@ const char INTL_SIGNAL_QUALITY[] PROGMEM = "Qualité du signal";
 #define INTL_PARAMETER "Paramètres"
 #define INTL_VALUE "Valeur"
 
-#include "./airrohr-logo-common.h"
+
+#define INTL_ENABLE_S7000 "Enable S7000 LTE"
+
+const char INTL_SIM7000[] PROGMEM = "Sim7000 LTE";
+const char INTL_SIM7000_DIS[] PROGMEM = "Disable";
+
+const char INTL_SIM_APN[] PROGMEM = "APN";
+const char INTL_SIM_ID[] PROGMEM = "ID";
+const char INTL_SIM_GPS[] PROGMEM = "GPS";
+const char INTL_SIM_TYPE[] PROGMEM = "Type";
+const char INTL_SIM_MODE[] PROGMEM = "Mode";
+
+#define INTL_MODE "Mode"

@@ -59,6 +59,8 @@
  * Add MQTT	RD/FvD														*
  * 2023-09-17															*
  * Add Simm7000 Webservice												*
+ * Add WiFiMulti used to connect to a WiFi network with strongest 		*
+ * WiFi signal (RSSI). 													*
  ************************************************************************
  *
  * latest build using lib 3.1.0
@@ -88,7 +90,8 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include <FS.h> // must be first
 
 #include <ESP8266HTTPClient.h>
-#include <ESP8266WiFi.h>
+//#include <ESP8266WiFi.h>
+#include <ESP8266WiFiMulti.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <SoftwareSerial.h>
@@ -178,13 +181,17 @@ namespace cfg
 	// wifi credentials
 	char wlanssid[LEN_WLANSSID];
 	char wlanpwd[LEN_CFG_PASSWORD];
+	char wlanssid_2[LEN_WLANSSID];
+	char wlanpwd_2[LEN_CFG_PASSWORD];
+	char wlanssid_3[LEN_WLANSSID];
+	char wlanpwd_3[LEN_CFG_PASSWORD];
 
 	char static_ip[LEN_STATIC_ADRESS];
 	char static_subnet[LEN_STATIC_ADRESS];
 	char static_gateway[LEN_STATIC_ADRESS];
 	char static_dns[LEN_STATIC_ADRESS];
 
-	// credentials of the sensor in access point mode
+	// credentials of the sensor in Access Point (AP) mode.
 	char fs_ssid[LEN_FS_SSID] = FS_SSID;
 	char fs_pwd[LEN_CFG_PASSWORD] = FS_PWD;
 
@@ -263,7 +270,7 @@ namespace cfg
 	char pwd_custom[LEN_CFG_PASSWORD] = PWD_CUSTOM;
 
 	// Radar motion setting
-	bool has_radarMotion = HAS_RADARMOTION;
+	bool has_radarmotion = HAS_RADARMOTION;
 
 
 #if defined(ESP8266)
@@ -284,6 +291,10 @@ namespace cfg
 		strcpy_P(cfg::www_password, WWW_PASSWORD);
 		strcpy_P(cfg::wlanssid, WLANSSID);
 		strcpy_P(cfg::wlanpwd, WLANPWD);
+		strcpy_P(cfg::wlanssid_2, WLANPWD);
+		strcpy_P(cfg::wlanpwd_2, WLANPWD);
+		strcpy_P(cfg::wlanssid_3, WLANPWD);
+		strcpy_P(cfg::wlanpwd_3, WLANPWD);
 		strcpy_P(cfg::host_custom, HOST_CUSTOM);
 		strcpy_P(cfg::url_custom, URL_CUSTOM);
 		strcpy_P(cfg::host_influx, HOST_INFLUX);
@@ -315,6 +326,7 @@ String json_config7000_used_string;				// Status web
 #define JSON_BUFFER_SIZE 2900					// 2300 -> 2900	=> increase: 20-07-2023
 #define JSON_BUFFER_SIZE_SIMM7000 500			// Simm7000
 
+ESP8266WiFiMulti wifiMulti;
 
 LoggerConfig loggerConfigs[LoggerCount];
 
@@ -797,6 +809,7 @@ const char JSON_SENSOR_DATA_VALUES[] PROGMEM = "sensordatavalues";
 static void display_debug(const String &text1, const String &text2)
 {
 	debug_outln_info(F("output debug text to displays..."));
+
 	if (oled_ssd1306)
 	{
 		oled_ssd1306->clear();
@@ -852,6 +865,7 @@ static String SDS_version_date()
 #endif
 
 		serialSDS.flush();
+
 		// Query Version/Date
 		SDS_rawcmd(0x07, 0x00, 0x00);
 		delay(400);
@@ -1209,8 +1223,8 @@ static String IPS_version_date()
 
 	if (serialIPS.available() > 0)
 	{
-	serial_data = serialIPS.readString();
-	//Debug.println(serial_data);
+		serial_data = serialIPS.readString();
+		//Debug.println(serial_data);
 	}
 
 	int index1 = serial_data.indexOf("VERSION_NUMBER ");
@@ -2271,6 +2285,10 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content += FPSTR(TABLE_TAG_OPEN);
 	add_form_input(page_content, Config_wlanssid, FPSTR(INTL_FS_WIFI_NAME), LEN_WLANSSID - 1);
 	add_form_input(page_content, Config_wlanpwd, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
+	add_form_input(page_content, Config_wlanssid_2, FPSTR(INTL_FS_WIFI_NAME_2), LEN_WLANSSID - 1);
+	add_form_input(page_content, Config_wlanpwd_2, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
+	add_form_input(page_content, Config_wlanssid_3, FPSTR(INTL_FS_WIFI_NAME_3), LEN_WLANSSID - 1);
+	add_form_input(page_content, Config_wlanpwd_3, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	page_content += F("<hr/>");
 
@@ -2309,10 +2327,12 @@ static void webserver_config_send_body_get(String &page_content)
 
 	// Add IP static (FVD)
 	page_content = FPSTR(WEB_BR_LF_B);
+
 	// add checkbox
 	server.sendContent(page_content);
 	page_content = emptyString;
 	add_form_checkbox(Config_has_s7000, FPSTR(INTL_ENABLE_S7000));
+	add_form_checkbox(Config_has_radarmotion, FPSTR(INTL_ENABLE_RCWL_0516));
 	page_content += FPSTR(WEB_BR_LF_B);
 	add_form_checkbox(Config_has_fix_ip, FPSTR(INTL_STATIC_IP_TEXT));
 	page_content += FPSTR(TABLE_TAG_OPEN);
@@ -2652,6 +2672,7 @@ static void sensor_restart()
 
 	debug_outln_info(F("Restart."));
 	delay(500);
+
 	ESP.restart();
 
 	// should not be reached, forever loop.
@@ -3586,6 +3607,7 @@ static void webserver_not_found()
 {
 	last_page_load = millis();
 	debug_outln_info(F("ws: not found ..."));
+
 	if (WiFi.status() != WL_CONNECTED)
 	{
 		if ((server.uri().indexOf(F("success.html")) != -1) || (server.uri().indexOf(F("detect.html")) != -1))
@@ -3627,7 +3649,9 @@ static void setup_webserver()
 
 	server.onNotFound(webserver_not_found);
 
-	debug_outln_info(F("Starting Webserver... "), WiFi.localIP().toString());
+	debug_outln_info(F("Station (STA) Mode: Starting Webserver... "), WiFi.localIP().toString());
+	debug_outln_info(F("Access Point (AP) Mode: Starting Webserver... "), WiFi.softAPIP().toString());
+
 	server.begin();
 }
 
@@ -3720,6 +3744,11 @@ static void wifiConfig()
 	wifi_set_country(&wifi);
 #endif
 
+	/*
+		Access Point (AP).
+		In this mode, ESP8266 will advertise its WiFi hotspot with a custom SSID and Password. 
+		Other smart devices will be able to connect, and consequently establish communication with the ESP8266 WiFi module.
+	*/
 	WiFi.mode(WIFI_AP);
 	const IPAddress apIP(
 						default_ip_first_octet, 
@@ -3729,6 +3758,7 @@ static void wifiConfig()
 		
 	WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
 	WiFi.softAP(cfg::fs_ssid, cfg::fs_pwd, selectChannelForAp());
+
 	// In case we create a unique password at first start
 	debug_outln_info(F("AP Password is: "), cfg::fs_pwd);
 
@@ -3736,12 +3766,13 @@ static void wifiConfig()
 	// Ensure we don't poison the client DNS cache
 	dnsServer.setTTL(0);
 	dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-	dnsServer.start(53, "*", apIP); // 53 is port for DNS server
+	dnsServer.start(53, "*", apIP); 					// 53 is port for DNS server
 
 	setup_webserver();
 
 	// 10 minutes timeout for wifi config.
 	last_page_load = millis();
+
 	while ((millis() - last_page_load) < cfg::time_for_wifi_config + 500)
 	{
 		dnsServer.processNextRequest();
@@ -3753,7 +3784,15 @@ static void wifiConfig()
 #endif
 
 		yield();
+
+		if( millis() % last_page_load == 0)
+		{
+			debug_out("-", DEBUG_MIN_INFO);
+			delay(5);
+		}
 	}
+
+	debug_outln_info(emptyString);			// LF/CR char.
 
 // after 10 minutes waiting on server commando's => restart current configuration settings.
 	WiFi.softAPdisconnect(true);
@@ -3767,17 +3806,33 @@ static void wifiConfig()
 	wifi_set_country(&wifi);
 #endif
 
+	/*
+		Station (STA) Mode:
+	 	In station mode, ESP8266 will act just like your smartphone or laptop. 
+	 	It will connect to an existing WiFi channel, or in most cases, the WiFi advertised by your router.
+	*/
 	WiFi.mode(WIFI_STA);
 
 	dnsServer.stop();
 	delay(100);
 
-	debug_outln_info(FPSTR(DBG_TXT_CONNECTING_TO), cfg::wlanssid);
+	if (cfg::has_fix_ip)
+	{
+		WiFi.begin(cfg::wlanssid, cfg::wlanpwd);
+	}
+	else
+	{
+		// Register multi WiFi networks
+		RegisterMultiWiFiNetworks();
+	}
 
-	WiFi.begin(cfg::wlanssid, cfg::wlanpwd);
+	// debug_outln_info(FPSTR(DBG_TXT_CONNECTING_TO), cfg::wlanssid);
+	debug_outln_info(FPSTR(DBG_TXT_CONNECTING_TO), WiFi.SSID());
 
 	debug_outln_info(F("---- Result Webconfig ----"));
 	debug_outln_info(F("WLANSSID: "), cfg::wlanssid);
+	debug_outln_info(F("WLANSSID_2: "), cfg::wlanssid_2);
+	debug_outln_info(F("WLANSSID_3: "), cfg::wlanssid_3);
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 	debug_outln_info_bool(F("PPD: "), cfg::ppd_read);
 	debug_outln_info_bool(F("SDS: "), cfg::sds_read);
@@ -3804,7 +3859,7 @@ static void wifiConfig()
 	debug_outln_info_bool(F("Fix IP address: "), cfg::has_fix_ip);
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 	debug_outln_info_bool(F("SIMM-7000: "), cfg::has_s7000);
-	debug_outln_info_bool(F("RCWL-0516: "), cfg::has_radarMotion);
+	debug_outln_info_bool(F("RCWL-0516: "), cfg::has_radarmotion);
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 	debug_outln_info_bool(F("Autoupdate: "), cfg::auto_update);
 	debug_outln_info_bool(F("Display: "), cfg::has_display);
@@ -3815,9 +3870,9 @@ static void wifiConfig()
 	wificonfig_loop = false;
 }
 
-/*
-
-*/
+/*****************************************************************
+	Wait For Wifi To Connect.
+******************************************************************/
 static void waitForWifiToConnect(int maxRetries)
 {
 	int retryCount = 0;
@@ -3830,13 +3885,44 @@ static void waitForWifiToConnect(int maxRetries)
 }
 
 /*****************************************************************
+	Adding the WiFi networks to the MultiWiFi instance
+******************************************************************/
+static void RegisterMultiWiFiNetworks()
+{
+	debug_outln_info(F("Register to Multi WiFi Network."));
+
+	uint16_t connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS;	//Defines the TimeOut(ms) which will be used to try and connect with any specific Access Point.
+
+	wifiMulti.addAP(cfg::wlanssid, cfg::wlanpwd); 			// Open/Start WiFI coonection to router/modem. (default)
+
+	if (strlen(cfg::wlanssid_2) != 0)
+	{
+		wifiMulti.addAP(cfg::wlanssid_2, cfg::wlanpwd_2);
+	}
+
+	if (strlen(cfg::wlanssid_3) != 0)
+	{
+		wifiMulti.addAP(cfg::wlanssid_3, cfg::wlanpwd_3);
+	}
+
+	// Wait for ESP8266 to scan the local area and connect with the strongest of the networks defined above
+	while (wifiMulti.run(connectTimeOutPerAP) != WL_CONNECTED)
+	{
+		delay(500);
+		debug_out("*", DEBUG_MIN_INFO);
+	}
+
+	debug_outln_info(emptyString);
+}
+
+/*****************************************************************
  * WiFi auto connecting script                                   *
  *****************************************************************/
 
 static WiFiEventHandler disconnectEventHandler;
 
 /*
-
+	connect to Wifi network. ()
 */
 static void connectWifi()
 {
@@ -3908,16 +3994,23 @@ static void connectWifi()
 	{
 		//WiFi.config(addr_static_ip, addr_static_gateway, addr_static_subnet, addr_static_dns, addr_static_dns);
 		WiFi.config(addr_static_ip, addr_static_gateway, addr_static_subnet, addr_static_dns);
+		
+		WiFi.begin(cfg::wlanssid, cfg::wlanpwd); 				// Open/Start WiFI coonection to router/modem.
+	}
+	else
+	{
+		// Register multi WiFi networks.
+		RegisterMultiWiFiNetworks();
 	}
 #endif
 
 #if defined(ESP32)
 	WiFi.setHostname(cfg::fs_ssid);
+	WiFi.begin(cfg::wlanssid, cfg::wlanpwd); 				// Open/Start WiFI coonection to router/modem.
 #endif
 
-	WiFi.begin(cfg::wlanssid, cfg::wlanpwd); 			// Open/Start WiFI coonection to router/modem.
-
-	debug_outln_info(FPSTR(DBG_TXT_CONNECTING_TO), cfg::wlanssid);
+	//debug_outln_info(FPSTR(DBG_TXT_CONNECTING_TO), cfg::wlanssid);
+	debug_outln_info(FPSTR(DBG_TXT_CONNECTING_TO), WiFi.SSID());
 
 	waitForWifiToConnect(40);
 	debug_outln_info(emptyString);
@@ -3934,6 +4027,7 @@ static void connectWifi()
 #endif
 
 		wifiConfig();
+
 		if (WiFi.status() != WL_CONNECTED)
 		{
 			waitForWifiToConnect(20);
@@ -3945,7 +4039,7 @@ static void connectWifi()
 	last_signal_strength = WiFi.RSSI();
 
 	if (MDNS.begin(cfg::fs_ssid))
-	{
+	{// setUp Configuration Server.
 		MDNS.addService("http", "tcp", 80);
 		MDNS.addServiceTxt("http", "tcp", "PATH", "/config");
 	}
@@ -6015,9 +6109,13 @@ static bool fwDownloadStream(WiFiClientSecure &client, const String &url, Stream
 	{
 		agent += IPS_version_date();
 	}
-	else
+	else if (cfg::sds_read)
 	{
 		agent += SDS_version_date();
+	}
+	else
+	{
+		agent += "Fijnstof Leusden/13-09-2023";
 	}
 
 	agent += ' ';
@@ -6115,6 +6213,7 @@ static bool fwDownloadStreamFile(WiFiClientSecure &client, const String &url, co
 	}
 
 	SPIFFS.remove(fname_new);
+	
 #pragma GCC diagnostic pop
 
 	return false;
@@ -6136,7 +6235,7 @@ static void twoStageOTAUpdate()
 	return;
 
 	if (!cfg::auto_update)
-	{// NO auto firmware update
+	{// NO auto firmware update.
 		return;
 	}
 
@@ -6201,6 +6300,68 @@ static void twoStageOTAUpdate()
 	String loader_name(F("/loader.bin"));
 
 	debug_outln_verbose(F("Start DownloadStreamFile() process.. "), String(fetch_name) + " | " + String(firmware_name));
+
+//---------------- TEST TEST -----File write / read works OK ------------------------------------------------------------------------------------------------------------
+#if TEST
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+
+	// Create New File And Write Data to It
+	// w=Write Open file for writing
+	File f = SPIFFS.open(firmware_name, "w");
+
+	if (!f)
+	{
+		debug_outln_verbose(F("file open failed"));
+	}
+	else
+	{
+		// Write data to file
+		debug_outln_verbose(F("Writing Data to File"));
+		f.print("This is sample data which is written in file");
+		f.close(); // Close file
+	}
+
+	delay(2000);
+
+	// Read File data
+	File rf = SPIFFS.open(firmware_name, "r");
+
+	if (!rf)
+	{
+		debug_outln_verbose(F("file open failed"));
+	}
+	else
+	{
+		debug_outln_verbose(F("Reading Data from File:"));
+
+		String tmp = "";
+
+		// Data from file.
+		for (int i = 0; i < rf.size(); i++) // Read upto complete file size
+		{
+			tmp += (char)rf.read();
+		}
+
+		debug_outln_info(F("file contents: "), tmp);
+
+		rf.close(); // Close file
+		debug_outln_info(F("File Closed"));
+	}
+
+	debug_outln_info(F("Remove File from FS: "), firmware_name);
+	SPIFFS.remove(firmware_name);
+
+	delay(1000);
+
+	return;
+
+	#pragma GCC diagnostic pop
+
+#endif
+//--------------------TEST TEST -------------------------------------------------------------------------------------------------------------
+
 
 	if (!fwDownloadStreamFile(client, fetch_name, firmware_name))
 	{
@@ -7773,7 +7934,7 @@ void setup(void)
 	}
 
 	// Radar Motion.
-	if (cfg::has_radarMotion)
+	if (cfg::has_radarmotion)
 	{
 		RCWL0516.init();
 
@@ -8192,6 +8353,9 @@ void loop(void)
 			data.remove(data.length() - 1);
 		}
 
+		// TODO: set radar motion value into data.
+
+
 		data += "]}";						// set JSON end chars.
 
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
@@ -8268,7 +8432,7 @@ void loop(void)
 
 #endif
 
-	if (cfg::has_radarMotion)
+	if (cfg::has_radarmotion)
 	{
 		// Radar motion loop
 		RCWL0516.loop();

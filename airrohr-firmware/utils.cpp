@@ -189,24 +189,30 @@ bool launchUpdateLoader(const String& md5)
 #pragma GCC diagnostic ignored  "-Wdeprecated-declarations"
 
 	File loaderFile = SPIFFS.open(F("/loader.bin"), "r");
-	if (!loaderFile) {
+	if (!loaderFile) 
+	{
 		return false;
 	}
 
-	if (!Update.begin(loaderFile.size(), U_FLASH)) {
+	if (!Update.begin(loaderFile.size(), U_FLASH)) 
+	{
 		return false;
 	}
 
-	if (md5.length() && !Update.setMD5(md5.c_str())) {
+	if (md5.length() && !Update.setMD5(md5.c_str())) 
+	{
 		return false;
 	}
 
-	if (Update.writeStream(loaderFile) != loaderFile.size()) {
+	if (Update.writeStream(loaderFile) != loaderFile.size()) 
+	{
 		return false;
 	}
+
 	loaderFile.close();
 
-	if (!Update.end()) {
+	if (!Update.end()) 
+	{
 		return false;
 	}
 
@@ -331,6 +337,7 @@ String LoggingSerial::popLines()
 			break;
 	}
 #endif
+
 #if defined(ESP32)
 	uint8_t c;
 	while (xQueueReceive(m_buffer, &(c ), (TickType_t) 1 )) {
@@ -340,6 +347,7 @@ String LoggingSerial::popLines()
 			break;
 	}
 #endif
+
 	return r;
 }
 
@@ -476,16 +484,20 @@ bool SDS_cmd(PmSensorCmd cmd)
 /*****************************************************************
  * send Plantower PMS sensor command start, stop, cont. mode     *
  *****************************************************************/
-bool PMS_cmd(PmSensorCmd cmd) {
+bool PMS_cmd(PmSensorCmd cmd) 
+{
 	static constexpr uint8_t start_cmd[] PROGMEM = {
 		0x42, 0x4D, 0xE4, 0x00, 0x01, 0x01, 0x74
 	};
+
 	static constexpr uint8_t stop_cmd[] PROGMEM = {
 		0x42, 0x4D, 0xE4, 0x00, 0x00, 0x01, 0x73
 	};
+
 	static constexpr uint8_t continuous_mode_cmd[] PROGMEM = {
 		0x42, 0x4D, 0xE1, 0x00, 0x01, 0x01, 0x71
 	};
+	
 	constexpr uint8_t cmd_len = array_num_elements(start_cmd);
 
 	uint8_t buf[cmd_len];
@@ -500,6 +512,7 @@ bool PMS_cmd(PmSensorCmd cmd) {
 		memcpy_P(buf, continuous_mode_cmd, cmd_len);
 		break;
 	}
+	
 	serialSDS.write(buf, cmd_len);
 	return cmd != PmSensorCmd::Stop;
 }
