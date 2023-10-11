@@ -3823,7 +3823,7 @@ static void wifiConfig()
 	else
 	{
 		// Register multi WiFi networks
-		RegisterMultiWiFiNetworks();
+		RegisterMultiWiFiNetworks(10);
 	}
 
 	// debug_outln_info(FPSTR(DBG_TXT_CONNECTING_TO), cfg::wlanssid);
@@ -3887,7 +3887,7 @@ static void waitForWifiToConnect(int maxRetries)
 /*****************************************************************
 	Adding the WiFi networks to the MultiWiFi instance
 ******************************************************************/
-static void RegisterMultiWiFiNetworks()
+static void RegisterMultiWiFiNetworks(int maxRetries)
 {
 	debug_outln_info(F("Register to Multi WiFi Network."));
 
@@ -3895,21 +3895,25 @@ static void RegisterMultiWiFiNetworks()
 
 	wifiMulti.addAP(cfg::wlanssid, cfg::wlanpwd); 			// Open/Start WiFI coonection to router/modem. (default)
 
-	if (strlen(cfg::wlanssid_2) != 0)
+	if (strlen(cfg::wlanpwd_2) != 0)
 	{
 		wifiMulti.addAP(cfg::wlanssid_2, cfg::wlanpwd_2);
+		connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS / 2;
 	}
 
-	if (strlen(cfg::wlanssid_3) != 0)
+	if (strlen(cfg::wlanpwd_3) != 0)
 	{
 		wifiMulti.addAP(cfg::wlanssid_3, cfg::wlanpwd_3);
+		connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS / 3;
 	}
 
+	int retryCount = 0;
 	// Wait for ESP8266 to scan the local area and connect with the strongest of the networks defined above
-	while (wifiMulti.run(connectTimeOutPerAP) != WL_CONNECTED)
+	while ((retryCount < maxRetries) && wifiMulti.run(connectTimeOutPerAP) != WL_CONNECTED )
 	{
 		delay(500);
 		debug_out("*", DEBUG_MIN_INFO);
+		retryCount++;
 	}
 
 	debug_outln_info(emptyString);
@@ -3996,24 +4000,27 @@ static void connectWifi()
 		WiFi.config(addr_static_ip, addr_static_gateway, addr_static_subnet, addr_static_dns);
 		
 		WiFi.begin(cfg::wlanssid, cfg::wlanpwd); 				// Open/Start WiFI coonection to router/modem.
+
+		waitForWifiToConnect(40);
+		debug_outln_info(emptyString);
 	}
 	else
 	{
 		// Register multi WiFi networks.
-		RegisterMultiWiFiNetworks();
+		RegisterMultiWiFiNetworks(10);
 	}
 #endif
 
 #if defined(ESP32)
 	WiFi.setHostname(cfg::fs_ssid);
 	WiFi.begin(cfg::wlanssid, cfg::wlanpwd); 				// Open/Start WiFI coonection to router/modem.
+
+	waitForWifiToConnect(40);
+	debug_outln_info(emptyString);
 #endif
 
 	//debug_outln_info(FPSTR(DBG_TXT_CONNECTING_TO), cfg::wlanssid);
 	debug_outln_info(FPSTR(DBG_TXT_CONNECTING_TO), WiFi.SSID());
-
-	waitForWifiToConnect(40);
-	debug_outln_info(emptyString);
 
 	if (WiFi.status() != WL_CONNECTED)
 	{

@@ -106,7 +106,7 @@ public:
     {
         int value;
 
-        if (front == -1 || IsEmpty())
+        if ( IsEmpty())
         { // if queue[] is empty
             QDEBUG_PRINT("\nDequeue()::Queue is  empty\n");
             return INT32_MIN;
