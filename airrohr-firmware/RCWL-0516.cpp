@@ -1,15 +1,17 @@
-/*********
-
-  RCWL-0516 Microwave Radar Motion Sensor.
-
-*********/
+/*
+ * @file RCWL-0516.cpp
+ *
+ * Written by Roel, Rolenco Leusden
+ *
+ * RCWL-0516 Microwave Radar Motion Sensor.
+ *
+*/
 
 #include "RCWL-0516.h"
 #include "./utils.h"
 #include "./Queue.h"
 
-
-RCWL_0516 RCWL0516;   // Create RCWL_0516 instance on Stack.
+RCWL_0516 RCWL0516; // Create RCWL_0516 instance on Stack.
 
 /*
  *
@@ -23,7 +25,6 @@ ICACHE_RAM_ATTR void MotionSensorChangeEvent()
   RCWL0516.m_queue->Enqueue(motionValue);
 
   debug_outln_info(F("MotionSensorChangeEvent()::Radar Motion/Sensor value: "), String(motionValue));
-
 }
 
 //**********************************************************************************************************************************
@@ -53,10 +54,20 @@ bool RCWL_0516::init(int motionSensorID)
 /*
  *
  */
-void RCWL_0516::begin(const char *serverHost, uint port)
+bool RCWL_0516::begin(const char *serverHost, uint port)
 {
   strcpy(m_serverHost, serverHost); // m_serverHost = serverHost;
   m_port = port;
+  m_Active = true;
+  WiFiClient client;
+
+  if (!client.connect(m_serverHost, m_port))
+  {
+    lastTrigger = millis() - m_timeSeconds;
+    m_Active = false;
+  }
+
+  client.stop();
 
   /*
       Set MotionSensor pin as interrupt, assign interrupt function and set "CHANGE" mode
@@ -76,20 +87,22 @@ void RCWL_0516::begin(const char *serverHost, uint port)
   attachInterrupt(digitalPinToInterrupt(MotionSensorID), MotionSensorChangeEvent, CHANGE);
 
   // digitalWrite(led, LEDLOW);
+
+  return m_Active;
 }
 
 #pragma GCC diagnostic pop
 
 /*
- * Motion -Sensor Message loop 
+ * Motion -Sensor Message loop()
  */
 void RCWL_0516::loop()
 {
-  if (!RCWL0516.m_queue->IsEmpty())
+  if (RCWL0516.m_queue != NULL && !RCWL0516.m_queue->IsEmpty())
   {
     int motionval = RCWL0516.m_queue->Dequeue();
 
-    //debug_outln_info(F("loop()::Radar Motion-Sensor value: "), String(motionval));
+    // debug_outln_info(F("loop()::Radar Motion-Sensor value: "), String(motionval));
 
     // Send Radar value to Server.
     SendToServer(motionval);
@@ -117,6 +130,14 @@ void RCWL_0516::loop()
   }
 }
 
+/*
+    Stop Radar motion detection Event process.
+*/
+void RCWL_0516::end(void)
+{
+  detachInterrupt(digitalPinToInterrupt(MotionSensorID));
+}
+
 //*************************************************************************************************************************************
 /*
  *  Send Radar motion value To a Server.
@@ -126,6 +147,20 @@ void RCWL_0516::SendToServer(int val)
 {
   debug_outln_info(F("SendToServer(): Radar Motion value: "), String(val));
 
+  if (!m_Active)
+  {
+    // Current time
+    now = millis();
+
+    if ((now - lastTrigger < m_timeSeconds))
+    {
+      debug_outln_info(F("Wait for retry connect to Server = "), String((now - lastTrigger) / 1000) + F(" sec."));
+      return;
+    }
+
+    m_Active = true;
+  }
+
   WiFiClient client;
 
   debug_outln_info(F("connecting to "), String(m_serverHost) + F(":") + String(m_port));
@@ -133,24 +168,25 @@ void RCWL_0516::SendToServer(int val)
   if (!client.connect(m_serverHost, m_port))
   {
     // Serial.println("connection failed");
-    debug_outln_info(F("Connection failed to Host = "), String(m_serverHost));
-    delay(1000);
+    debug_outln_info(F("Connection failed to Server = "), String(m_serverHost));
+
+    lastTrigger = millis();
+    m_Active = false;
     return;
   }
 
   if (client.connected())
   {
-    //debug_outln_info(F("[Sending a request] => Radar Motion Value: "), String(val));
+    // debug_outln_info(F("[Sending a request] => Radar Motion Value: "), String(val));
 
-    client.print( String("Radar Value: ") + String(val));
-    
-    // delay(500);
+    client.print(String("Radar Value: ") + String(val));
+
     client.stop();
 
-    //debug_outln_info(F("[Sending a request] => ENDED: "));
+    // debug_outln_info(F("[Sending a request] => ENDED: "));
   }
   else
   {
-    debug_outln_info(F("Could Not connect to Host = "), String(m_serverHost));
+    debug_outln_info(F("Could Not connect to Server = "), String(m_serverHost));
   }
 }

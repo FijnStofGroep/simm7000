@@ -320,9 +320,6 @@ namespace cfg
 
 //*************************************************************************************************************************************************
 
-String json_config_used_string;					// Status web
-String json_config7000_used_string;				// Status web
-
 #define JSON_BUFFER_SIZE 2900					// 2300 -> 2900	=> increase: 20-07-2023
 #define JSON_BUFFER_SIZE_SIMM7000 500			// Simm7000
 
@@ -789,6 +786,9 @@ struct struct_wifiInfo
 	uint8_t unused[3];
 #endif
 };
+
+String json_config_memory_used;					// Status web
+String json_config7000_memory_used;				// Status web
 
 struct struct_wifiInfo *wifiInfo;
 uint8_t count_wifiInfo;
@@ -1416,6 +1416,8 @@ static void readConfigBase(bool oldconfig)
 					 " | Elements in array: " + String(json.size()) + 
 					 String(" | Error Code = ") + err.code() + " => " + err.f_str() );
 
+	json_config_memory_used = String(json.memoryUsage());
+
 	configFile.seek(0);				// set file pointer back to begin file.
 	debug_outln_info(F("Read(): Config file content: ***\n"), configFile.readString() + String("\n***") );
 	configFile.close();
@@ -1580,6 +1582,8 @@ static void readConfigS7000(bool oldconfig)
 	debug_outln_info(F("Read JSON S7000 format.....\nJson memory size: "), String(json.memoryUsage()) + 
 					 " | Elementen in array: " + String(json.size()) + 
 					 String(" | Error Code = ") + err.code() + " => " + err.f_str() );
+
+	json_config7000_memory_used = String(json.memoryUsage());
 
 	configFile.seek(0);				// set file pointer back to begin file.
 	debug_outln_info(F("Read(): Config file content: ***\n"), configFile.readString() + String("\n***") );
@@ -2599,6 +2603,12 @@ static void webserver_config()
 		return;
 	}
 
+	if (cfg::has_radarmotion)
+	{
+		debug_outln_info(F("STOP Radar motion sensor (RCWL_0516) process."));
+		RCWL0516.end();
+	}
+
 	debug_outln_info(F("ws: config page ..."));
 
 	server.sendHeader(F("Cache-Control"), F("no-cache, no-store, must-revalidate"));
@@ -2668,6 +2678,11 @@ static void sensor_restart()
 	else
 	{
 		serialSDS.end();
+	}
+
+	if (cfg::has_radarmotion)
+	{// Stop Radar motion Event process.
+		RCWL0516.end();
 	}
 
 	debug_outln_info(F("Restart."));
@@ -3087,8 +3102,8 @@ static void webserver_status()
 
 	add_table_row_from_value(page_content, FPSTR(INTL_FIRMWARE), versionHtml);
 	add_table_row_from_value(page_content, F("Free Memory"), String(ESP.getFreeHeap()));
-	add_table_row_from_value(page_content, F("Used json.config (used/max)"), String(json_config_used_string) + String(" / ") + String(JSON_BUFFER_SIZE)+ String("  char") );
-	add_table_row_from_value(page_content, F("Used Simm7000.config (used/max)"), String(json_config7000_used_string) + String(" / ") + String(JSON_BUFFER_SIZE_SIMM7000) + String("  char") );
+	add_table_row_from_value(page_content, F("Used json.config (used/max)"), String(json_config_memory_used) + String(" / ") + String(JSON_BUFFER_SIZE)+ String("  char") );
+	add_table_row_from_value(page_content, F("Used Simm7000.config (used/max)"), String(json_config7000_memory_used) + String(" / ") + String(JSON_BUFFER_SIZE_SIMM7000) + String("  char") );
 	
 #if defined(ESP8266)
 	add_table_row_from_value(page_content, F("Heap Fragmentation"), String(ESP.getHeapFragmentation()), "%");
@@ -3478,6 +3493,7 @@ static void webserver_reset()
 	{
 		sensor_restart();
 	}
+
 	end_html_page(page_content);
 }
 
@@ -3819,6 +3835,7 @@ static void wifiConfig()
 	if (cfg::has_fix_ip)
 	{
 		WiFi.begin(cfg::wlanssid, cfg::wlanpwd);
+		waitForWifiToConnect(20);
 	}
 	else
 	{
@@ -3891,20 +3908,20 @@ static void RegisterMultiWiFiNetworks(int maxRetries)
 {
 	debug_outln_info(F("Register to Multi WiFi Network."));
 
-	uint16_t connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS;	//Defines the TimeOut(ms) which will be used to try and connect with any specific Access Point.
+	uint16_t connectTimeOutPerAP = 2000;					//Defines the TimeOut(ms) which will be used to try and connect with any specific Access Point.
 
 	wifiMulti.addAP(cfg::wlanssid, cfg::wlanpwd); 			// Open/Start WiFI coonection to router/modem. (default)
 
 	if (strlen(cfg::wlanpwd_2) != 0)
 	{
 		wifiMulti.addAP(cfg::wlanssid_2, cfg::wlanpwd_2);
-		connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS / 2;
+		connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS;
 	}
 
 	if (strlen(cfg::wlanpwd_3) != 0)
 	{
 		wifiMulti.addAP(cfg::wlanssid_3, cfg::wlanpwd_3);
-		connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS / 3;
+		connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS;
 	}
 
 	int retryCount = 0;
@@ -7894,8 +7911,10 @@ void setup(void)
 
 	if(cfg::send2mqtt)
 	{// MQTT => set Client_id
-			strcpy(mqtt_client_id, SSID_BASENAME);
-			strcat(mqtt_client_id, esp_chipid.c_str());			// airRohr-<chipid>
+		debug_outln_info(F("MQTT => set Client_id"));
+
+		strcpy(mqtt_client_id, SSID_BASENAME);
+		strcat(mqtt_client_id, esp_chipid.c_str());			// airRohr-<chipid>
 	}
 
 	init_display();
@@ -7943,10 +7962,14 @@ void setup(void)
 	// Radar Motion.
 	if (cfg::has_radarmotion)
 	{
+		debug_outln_info(F("Start to Initialize Radar motion sensor (RCWL_0516)."));
+
 		RCWL0516.init();
 
-		char serverHost[] = "192.168.2.105";
-		RCWL0516.begin(serverHost, 8080);		
+		if(!RCWL0516.begin(cfg::host_custom, cfg::port_custom))
+		{
+			debug_outln_info(F("Couldn't connect to Server: "), String(cfg::host_custom) + F(":") + String(cfg::port_custom));
+		}		
 	}
 
 } // end setup()

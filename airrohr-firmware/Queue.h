@@ -52,7 +52,7 @@ public:
         front = -1;
         rear = -1;
         capacity = _capacity;
-        queue = new int[capacity]; // or queue = (int*)malloc(capacity);       // create queue[] on heap memory.
+        queue = new int[capacity]; // or queue = (int*)malloc(capacity);    // create queue[] on heap memory.
     }
 
     /*
