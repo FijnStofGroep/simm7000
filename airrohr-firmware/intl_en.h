@@ -131,7 +131,7 @@ const char INTL_PRESSURE[] PROGMEM = "air pressure";
 const char INTL_VOC[] PROGMEM = "Volatile organic compound";
 const char INTL_NOX[] PROGMEM = "Nitrogen oxides";
 const char INTL_DEW_POINT[] PROGMEM = "dew point";
-const char INTL_CO2_PPM[] PROGMEM = "ppm CO₂";
+const char INTL_CO2_PPM[] PROGMEM = "CO₂";
 const char INTL_LEQ_A[] PROGMEM = "LAeq";
 const char INTL_LA_MIN[] PROGMEM = "LA min";
 const char INTL_LA_MAX[] PROGMEM = "LA max";
@@ -141,7 +141,9 @@ const char INTL_ALTITUDE[] PROGMEM = "Altitude";
 const char INTL_TIME_UTC[] PROGMEM = "Time (UTC)";
 const char INTL_SIGNAL_STRENGTH[] PROGMEM = "signal strength";
 const char INTL_SIGNAL_QUALITY[] PROGMEM = "signal quality";
+
 #define INTL_NUMBER_OF_MEASUREMENTS "Number of measurements"
+#define INTL_NUMBER_OF_RADARMOTION "Number of radar motions"
 #define INTL_TIME_SENDING_MS "Time spent uploading"
 #define INTL_SENSOR "Sensor"
 #define INTL_PARAMETER "Parameter"

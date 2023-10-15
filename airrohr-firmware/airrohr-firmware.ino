@@ -2603,12 +2603,6 @@ static void webserver_config()
 		return;
 	}
 
-	if (cfg::has_radarmotion)
-	{
-		debug_outln_info(F("STOP Radar motion sensor (RCWL_0516) process."));
-		RCWL0516.end();
-	}
-
 	debug_outln_info(F("ws: config page ..."));
 
 	server.sendHeader(F("Cache-Control"), F("no-cache, no-store, must-revalidate"));
@@ -2641,8 +2635,14 @@ static void webserver_config()
 	{
 		display_debug(F("Writing config"), emptyString);
 
+		if (cfg::has_radarmotion)
+		{
+			debug_outln_info(F("STOP Radar motion sensor (RCWL_0516) process."));
+			RCWL0516.end();
+		}
+
 		if (writeConfig())
-		{// TODO: devide in two section to know which writeconfig has a error.
+		{ // TODO: devide in two section to know which writeconfig has a error.
 			display_debug(F("Writing config"), F("and restarting"));
 			sensor_restart();
 		}
@@ -3205,6 +3205,7 @@ static void webserver_status()
 
 	page_content += FPSTR(EMPTY_ROW);
 	page_content += F("<tr><td colspan='2'><b>" INTL_ERROR "</b></td></tr>");
+
 	String wifiStatus(WiFi_error_count);
 	wifiStatus += '/';
 	wifiStatus += String(last_signal_strength);
@@ -3281,10 +3282,16 @@ static void webserver_status()
 	{
 		page_content += FPSTR(EMPTY_ROW);
 		add_table_row_from_value(page_content, F(INTL_NUMBER_OF_MEASUREMENTS), String(count_sends));
+
 		if (sending_time > 0)
 		{
 			add_table_row_from_value(page_content, F(INTL_TIME_SENDING_MS), String(sending_time), "ms");
 		}
+	}
+
+	if (cfg::has_radarmotion)
+	{
+		add_table_row_from_value(page_content, F(INTL_NUMBER_OF_RADARMOTION), String(RCWL0516.GetMotionCount()));
 	}
 
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
@@ -3512,16 +3519,19 @@ static void webserver_data_json()
 		s1 = FPSTR(data_first_part);
 		s1 += "]}";
 		age = cfg::sending_intervall_ms - msSince(starttime);
+
 		if (age > cfg::sending_intervall_ms)
 		{
 			age = 0;
 		}
+
 		age = 0 - age;
 	}
 	else
 	{
 		s1 = last_data_string;
 		age = msSince(starttime);
+		
 		if (age > cfg::sending_intervall_ms)
 		{
 			age = 0;
@@ -3901,6 +3911,26 @@ static void waitForWifiToConnect(int maxRetries)
 	}
 }
 
+/***************************************************************************************************************************
+*	Wait For MultiWiFi To Connect/Reconnect to a WiFi network.
+*
+*	connectTimeOutPerAP => Defines the TimeOut(ms) which will be used to try and connect with any specific Access Point.
+****************************************************************************************************************************/
+static void waitForMultiWiFiToConnect(int maxRetries, uint16_t connectTimeOutPerAP = 2000)
+{
+	int retryCount = 0;
+
+	// Wait for ESP8266 to scan the local area and connect with the strongest of the networks defined above
+	while ((retryCount < maxRetries) && wifiMulti.run(connectTimeOutPerAP) != WL_CONNECTED )
+	{
+		delay(500);
+		debug_out("*", DEBUG_MIN_INFO);
+		retryCount++;
+	}
+
+	debug_outln_info(emptyString);
+}
+
 /*****************************************************************
 	Adding the WiFi networks to the MultiWiFi instance
 ******************************************************************/
@@ -3924,16 +3954,7 @@ static void RegisterMultiWiFiNetworks(int maxRetries)
 		connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS;
 	}
 
-	int retryCount = 0;
-	// Wait for ESP8266 to scan the local area and connect with the strongest of the networks defined above
-	while ((retryCount < maxRetries) && wifiMulti.run(connectTimeOutPerAP) != WL_CONNECTED )
-	{
-		delay(500);
-		debug_out("*", DEBUG_MIN_INFO);
-		retryCount++;
-	}
-
-	debug_outln_info(emptyString);
+	waitForMultiWiFiToConnect( maxRetries,  connectTimeOutPerAP );
 }
 
 /*****************************************************************
@@ -8418,9 +8439,16 @@ void loop(void)
 			debug_outln_info(F("Connection lost, reconnecting "));
 
 			WiFi_error_count++;
-			WiFi.reconnect();
-			
-			waitForWifiToConnect(20);
+
+			if (cfg::has_fix_ip)
+			{
+				WiFi.reconnect();
+				waitForWifiToConnect(20);
+			}
+			else
+			{
+				waitForMultiWiFiToConnect(20, 3000);
+			}
 		}
 
 		// only do a restart after finishing sending
@@ -8464,6 +8492,8 @@ void loop(void)
 
 	if (cfg::has_radarmotion)
 	{
+		// TODO: if needed implement MQTT.
+
 		// Radar motion loop
 		RCWL0516.loop();
 	}

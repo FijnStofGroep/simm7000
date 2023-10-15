@@ -49,11 +49,12 @@ public:
     }
   };
 
-  //public methods
+  //public function methods
   bool init(int motionSensorID = D6);             // default: pin D6(12) that the radar sensor is attached to.
   bool begin(const char *serverHost, uint port);  
   void loop(void);
   void end(void);                                 // end/stop motion Event process.
+  unsigned long GetMotionCount();
 
 private:
   const int LEDHIGH = LOW;
@@ -61,16 +62,18 @@ private:
   unsigned long m_timeSeconds = 30 * 1000;        // WaitTime in seconds. Every 30 sec. retry to connect to Server.
 
  // Set GPIO no. for LED indicator.
-  int MotionLedID = 2;                            // blue led on board
+  int MotionLedID = LED_BUILTIN;                  // blue led on board
 
 // Timer: Auxiliary variables
   unsigned long now = 0;
   unsigned long lastTrigger = 0;
+  unsigned long count_RadarMotion = 0;
 
   bool m_Active = false;
   char m_serverHost[25] = "192.168.2.105";        // server has static IPAdres.
   uint m_port = 8080;                             // 8080 default port nr.
 
+  // private function methods
   void SendToServer(int val);
  
 };

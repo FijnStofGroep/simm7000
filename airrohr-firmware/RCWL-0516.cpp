@@ -36,7 +36,7 @@ ICACHE_RAM_ATTR void MotionSensorChangeEvent()
 */
 bool RCWL_0516::init(int motionSensorID)
 {
-  // Set GPIO mode (LED) to output
+  // Initialize the BUILTIN_LED pin as an output.
   // pinMode(MotionLedID, OUTPUT);
 
   MotionSensorID = motionSensorID;
@@ -107,26 +107,31 @@ void RCWL_0516::loop()
     // Send Radar value to Server.
     SendToServer(motionval);
 
-    // if (motionValue == HIGH)
-    // { // check if the sensor is HIGH
-    //   digitalWrite(MotionLed, LEDHIGH); // turn LED ON
+    //if (m_Active)
+    {
+      if (motionval == HIGH)
+      { // sensor is HIGH
+        // digitalWrite(MotionLed, LEDHIGH); // turn LED ON
 
-    //   if (motionState == LOW)
-    //   {
-    //     Serial.println("Motion detected!");
-    //     RWCL0516.motionState = HIGH; // update variable state to HIGH
-    //   }
-    // }
-    // else
-    // {
-    //   digitalWrite(MotionLed, LEDLOW); // turn LED OFF
+        if (motionState == LOW)
+        {
+          // Serial.println("Motion detected!");
+          motionState = HIGH; // update variable state to HIGH
+        }
+      }
+      else
+      {
+        // digitalWrite(MotionLed, LEDLOW); // turn LED OFF
 
-    //   if (motionState == HIGH)
-    //   {
-    //     Serial.println("***** Motion stopped *******!");
-    //     motionState = LOW; // update variable state to LOW
-    //   }
-    // }
+        if (motionState == HIGH)
+        {
+          // Serial.println("***** Motion stopped *******!");
+          motionState = LOW; // update variable state to LOW
+          
+          count_RadarMotion++;
+        }
+      }
+    }
   }
 }
 
@@ -136,6 +141,14 @@ void RCWL_0516::loop()
 void RCWL_0516::end(void)
 {
   detachInterrupt(digitalPinToInterrupt(MotionSensorID));
+}
+
+/*
+  Get MotionCount
+*/
+unsigned long RCWL_0516::GetMotionCount()
+{
+  return count_RadarMotion;
 }
 
 //*************************************************************************************************************************************
