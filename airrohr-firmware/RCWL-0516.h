@@ -22,7 +22,7 @@ class RCWL_0516
 public:
   // Set GPIO no. Radar Motion Sensor.
   //                        // comment: pinNo D8 => MCU DON'T start-UP.
-  int MotionSensorID = D6;  // Radar data out. => the pin D6 = 12 that the sensor is attached to.
+  int MotionSensorID = D7;  // Radar data out. => the pin D7 = 13 that the sensor is attached to.
 
   // Auxiliary variables
   int motionState;          // by default, no motion detected
@@ -50,7 +50,7 @@ public:
   };
 
   //public function methods
-  bool init(int motionSensorID = D6);             // default: pin D6(12) that the radar sensor is attached to.
+  bool init(int motionSensorID = D7);             // default: pin D7(13) that the radar sensor is attached to.
   bool begin(const char *serverHost, uint port);  
   void loop(void);
   void end(void);                                 // end/stop motion Event process.

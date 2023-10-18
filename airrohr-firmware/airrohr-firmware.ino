@@ -140,7 +140,7 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include <DallasTemperature.h>
 #include <SparkFun_SCD30_Arduino_Library.h>
 #include <SensirionI2CSen5x.h>
-#include <TinyGPS++.h>
+#include <TinyGPS++.h>					//  Arduino library for parsing NMEA data streams provided by GPS modules. 
 
 // local/modified header files.
 #include "./bmx280_i2c.h"
@@ -8492,7 +8492,7 @@ void loop(void)
 
 	if (cfg::has_radarmotion)
 	{
-		// TODO: if needed implement MQTT.
+		// TODO: if needed implementation of MQTT communication.
 
 		// Radar motion loop
 		RCWL0516.loop();

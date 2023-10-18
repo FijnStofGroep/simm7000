@@ -20,7 +20,7 @@
 #define __QUEUE_H__
 
 // Uncomment to enable printing out nice debug messages.
-// #define QUEUE_DEBUG
+//#define QUEUE_DEBUG
 
 // Setup debug printing macros. Define where debug output will be printed to Serial.
 #ifdef QUEUE_DEBUG
@@ -34,14 +34,15 @@
     }
 #endif
 
-struct Queue
+class   Queue
 {
+    
 private:
     int front;
     int rear;     // rear Store index.
     int capacity; // Array size.
 
-    int *queue; // ptr to queue[] array.
+    int *queue;   // ptr to queue[] array.
 
 public:
     /*
@@ -87,7 +88,7 @@ public:
                 front = 0;
             }
 
-            QDEBUG_PRINT("\nEnqueue()::Element is: %d | index: %d", queue[rear], rear);
+            QDEBUG_PRINT("\nEnqueue(); index: %d = Element: %d", rear, queue[rear]);
         }
 
         return;
@@ -108,7 +109,7 @@ public:
 
         if ( IsEmpty())
         { // if queue[] is empty
-            QDEBUG_PRINT("\nDequeue()::Queue is  empty\n");
+            QDEBUG_PRINT("\nDequeue()::Queue is empty\n");
             return INT32_MIN;
         }
         else
@@ -121,16 +122,16 @@ public:
                 queue[i] = queue[i + 1];
             }
 
-            // store 0 at rear indicating there's no element.
+            // store 0x00 at rear indicating there's no element.
             if (rear < capacity)
             {
                 queue[rear] = 0x00;
             }
 
-            // decrement rear
+            // decrement rear index.
             rear--;
 
-            QDEBUG_PRINT("\nDequeue Element is: %d", value);
+            QDEBUG_PRINT("\nDequeue(), index: %d = Element is: %d", front, value);
         }
 
         return value;
@@ -172,6 +173,7 @@ public:
     // TODO:
     //      isFull(): This operation indicates whether the queue is full or not.
     //      Count(): This operation returns the count of the queue i.e. the total number of elements it contains.
+
 };
 
 #endif

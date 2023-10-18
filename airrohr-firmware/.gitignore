@@ -11,3 +11,7 @@ lib
 .vscode/ipch
 ../Doc
 *.code-workspace
+
+## PlatformIO
+*.ino.cpp
+
