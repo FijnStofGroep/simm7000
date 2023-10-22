@@ -78,10 +78,10 @@ String		user_influx
 Password	pwd_influx
 Bool		send2mqtt
 String		mqtt_server
-String		mqtt_topic
 UInt		mqtt_port
 String		mqtt_user
 Password	mqtt_pwd
+String		mqtt_topic
 String		measurement_name_influx
 Bool		ssl_influx
 Bool		has_fix_ip

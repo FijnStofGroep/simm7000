@@ -59,15 +59,17 @@ bool RCWL_0516::begin(const char *serverHost, uint port)
   strcpy(m_serverHost, serverHost); // m_serverHost = serverHost;
   m_port = port;
   m_Active = true;
-  WiFiClient client;
 
-  if (!client.connect(m_serverHost, m_port))
-  {
-    lastTrigger = millis() - m_timeSeconds;
-    m_Active = false;
-  }
+  // Check connection to Server.
+  //WiFiClient client;
 
-  client.stop();
+  // if (!client.connect(m_serverHost, m_port))
+  // {
+  //   lastTrigger = millis() - m_timeSeconds;
+  //   m_Active = false;
+  // }
+
+  // client.stop();
 
   /*
       Set MotionSensor pin as interrupt, assign interrupt function and set "CHANGE" mode

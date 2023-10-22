@@ -105,8 +105,6 @@ public:
     */
     int Dequeue()
     {
-        int value;
-
         if ( IsEmpty())
         { // if queue[] is empty
             QDEBUG_PRINT("\nDequeue()::Queue is empty\n");
@@ -114,7 +112,7 @@ public:
         }
         else
         {
-            value = queue[front];
+            int element = queue[front];
 
             // Delete element, shift all the elements from index 2 till rear to the left by one.
             for (int i = 0; i < rear - 1; i++)
@@ -131,10 +129,10 @@ public:
             // decrement rear index.
             rear--;
 
-            QDEBUG_PRINT("\nDequeue(), index: %d = Element is: %d", front, value);
-        }
+            QDEBUG_PRINT("\nDequeue(), index: %d = Element is: %d", front, element);
 
-        return value;
+            return element;
+        }
     }
 
     /*

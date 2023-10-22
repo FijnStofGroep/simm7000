@@ -17,12 +17,12 @@
 #define SSID_BASENAME "airRohr-"
 #define HOSTNAME_BASE "airRohr-"
 
-#define LEN_CFG_STRING 30           //65
-#define LEN_CFG_PASSWORD 20         //65
+#define LEN_CFG_STRING 65
+#define LEN_CFG_PASSWORD 65
 
 #define LEN_WLANSSID 35				// credentials for wifi connection
 
-#define LEN_WWW_USERNAME 20			// 65 credentials for basic auth of server internal website
+#define LEN_WWW_USERNAME 65			// credentials for basic auth of server internal website
 
 #define LEN_FS_SSID 33				// credentials for sensor access point mode
 
@@ -32,16 +32,18 @@
 
 #define LEN_SENSEBOXID 30
 
-#define LEN_HOST_INFLUX 30          //100         
-#define LEN_URL_INFLUX 30           //100
-#define LEN_USER_INFLUX 20          //65
-#define LEN_PASS_INFLUX 20          //90
-#define LEN_MEASUREMENT_NAME_INFLUX 30      //100
-#define LEN_MQTT_HEADER 30          //40 
+#define LEN_HOST_INFLUX 100         
+#define LEN_URL_INFLUX 100
+#define LEN_USER_INFLUX 65
+#define LEN_PASS_INFLUX 90
+#define LEN_MEASUREMENT_NAME_INFLUX 100
 
-#define LEN_HOST_CUSTOM 20          //100
-#define LEN_URL_CUSTOM 30           //100
-#define LEN_USER_CUSTOM 20          //65
+#define LEN_MQTT_LARGE_HEADER 90 
+#define LEN_MQTT_HEADER 30
+
+#define LEN_HOST_CUSTOM 100
+#define LEN_URL_CUSTOM 100
+#define LEN_USER_CUSTOM 65
 #define MAX_PORT_DIGITS 5
 
 #define LEN_STATIC_ADRESS  16
@@ -59,7 +61,7 @@
  * Constants                                                      *
  ******************************************************************/
 constexpr unsigned long MemUseConfig  = 0;
-constexpr const unsigned long SLEEPTIME_MS = 250;
+constexpr const unsigned long SLEEPTIME_MS = 250;                                       // 250 msec.
 constexpr const unsigned long SAMPLETIME_MS = 30000;									// time between two measurements of the PPD42NS
 constexpr const unsigned long SAMPLETIME_SDS_MS = 1000;								    // time between two measurements of the SDS011, PMSx003, Honeywell PM sensor
 constexpr const unsigned long WARMUPTIME_SDS_MS = 15000;								// time needed to "warm up" the sensor before we can take the first measurement

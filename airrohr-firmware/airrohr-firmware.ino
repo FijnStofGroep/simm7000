@@ -279,7 +279,7 @@ namespace cfg
 	unsigned mqtt_port = MQTT_PORT;
 	char mqtt_user[LEN_USER_INFLUX] = MQTT_USER;
 	char mqtt_pwd[LEN_PASS_INFLUX] = MQTT_PWD;
-	char mqtt_topic[LEN_MEASUREMENT_NAME_INFLUX] = MQTT_TOPIC;
+	char mqtt_topic[LEN_MQTT_HEADER] = MQTT_TOPIC;
 
 #endif
 
@@ -321,7 +321,7 @@ namespace cfg
 //*************************************************************************************************************************************************
 
 #define JSON_BUFFER_SIZE 2900					// 2300 -> 2900	=> increase: 20-07-2023
-#define JSON_BUFFER_SIZE_SIMM7000 500			// Simm7000
+#define JSON_BUFFER_SIZE_SIMM7000 500			// Simm7000 module settings.
 
 ESP8266WiFiMulti wifiMulti;
 
@@ -342,13 +342,13 @@ ESP8266WebServer server(80);
 
 // MQTT
 #define MAX_MQTT_BUFFER_SIZE	512
-const char mqtt_lwt[LEN_MQTT_HEADER] = MQTT_LWT;
-const char mqtt_lwt_message_off[LEN_MQTT_HEADER] = MQTT_LWT_MESSAGE_OFF;
-const char mqtt_lwt_message_on[LEN_MQTT_HEADER] = MQTT_LWT_MESSAGE_ON;
+const char mqtt_lwt[5] = MQTT_LWT;
+//const char mqtt_lwt_message_off[10] = MQTT_LWT_MESSAGE_OFF;
+//const char mqtt_lwt_message_on[10] = MQTT_LWT_MESSAGE_ON;
 
 char mqtt_client_id[LEN_MQTT_HEADER] = MQTT_CLIENT_ID;
-char mqtt_header[LEN_MQTT_HEADER] = MQTT_TOPIC;
-char mqtt_lwt_header[LEN_MQTT_HEADER] = MQTT_TOPIC;
+char mqtt_header[LEN_MQTT_LARGE_HEADER] = MQTT_TOPIC;
+char mqtt_lwt_header[LEN_MQTT_LARGE_HEADER] = MQTT_TOPIC;
 
 WiFiClient  mqtt_wifi;
 PubSubClient mqtt_client(mqtt_wifi);
@@ -4261,7 +4261,7 @@ static unsigned long sendmqtt(const String &data, const char *host, const int po
 	{
 		// ++ Set-Up Topic header for MQTT Broker
 		String _header = String(cfg::mqtt_topic) + "/" + String(mqtt_client_id);
-		if( _header.length() <= LEN_MQTT_HEADER)
+		if( _header.length() <= LEN_MQTT_LARGE_HEADER)
 		{
 			strcpy(mqtt_header, _header.c_str());
 		}
@@ -4283,7 +4283,8 @@ static unsigned long sendmqtt(const String &data, const char *host, const int po
 			mqtt_client.setKeepAlive(keepAlive);
 
 			debug_outln_info(F("** MQTT connected **"));
-			debug_outln_info(F("KeepAlive  - "), keepAlive);
+			//debug_outln_info(F("KeepAlive  - "), keepAlive);
+			debug_outln_info(F("KeepAlive  - "), String(keepAlive) + F(" sec."));
 		}
 		else
 		{
@@ -4297,9 +4298,9 @@ static unsigned long sendmqtt(const String &data, const char *host, const int po
 		// data is ~ 1550 bytes, max_size for publish is MQTT_MAX_PACKET_SIZE (128)
 		// upgrading to ArduinoJson version 6.21.2.
 		DynamicJsonDocument json2data(JSON_BUFFER_SIZE);
-		DeserializationError err = deserializeJson(json2data, data);
+		DeserializationError errorJson = deserializeJson(json2data, data);
 
-		if (!err)
+		if (!errorJson)
 		{
 			String key, val, payload, header, status_header, payload_status, mqtt_error;
 	
@@ -4326,7 +4327,7 @@ static unsigned long sendmqtt(const String &data, const char *host, const int po
 			header = mqtt_header;
 			header += "/sensor";
 
-			payload.remove(payload.length() - 1, 1);	// delete last char.
+			payload.remove(payload.length() - 1, 1);	// delete last char ','.
 			payload += "}";								// set end char. Json format
 
 			debug_outln_info(F("mqtt: publishing To MQTT Broker = ... "));
@@ -4381,8 +4382,8 @@ static unsigned long sendmqtt(const String &data, const char *host, const int po
 			//debug_outln_info(F("Send online LWT"));
 			debug_outln_info(F("- LWT topic = "), mqtt_lwt_header);
 
-			String mess_on = INTL_ONLINE;
-			if( mqtt_client.publish(mqtt_lwt_header, mess_on.c_str()))
+			String payload_mess_on = INTL_ONLINE;
+			if( mqtt_client.publish(mqtt_lwt_header, payload_mess_on.c_str()))
 			{
 				debug_outln_info(F("lwt send ok..."));
 				//mqtt_error = "ok";
@@ -5998,6 +5999,7 @@ static void fetchSensorDNMS(String &s)
 {
 	static bool dnms_error = false;
 	debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_DNMS));
+
 	last_value_dnms_laeq = -1.0;
 	last_value_dnms_la_min = -1.0;
 	last_value_dnms_la_max = -1.0;
@@ -6124,6 +6126,85 @@ static __noinline void fetchSensorGPS(String &s)
 	}
 
 	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), "GPS");
+}
+
+/*****************************************************************
+ * Get SEN5X sensor values.                                      *
+ *****************************************************************/
+static void GetSen5XData()
+{
+	if ((msSince(starttime) - SEN5X_read_timer) > SEN5X_WAITING_AFTER_LAST_READ)
+	{
+		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN55));
+		debug_outln_info(FPSTR(DBG_TXT_SEP));
+
+		uint16_t error;
+		char errorMessage[256];
+
+		float massConcentrationPm1p0;
+		float massConcentrationPm2p5;
+		float massConcentrationPm4p0;
+		float massConcentrationPm10p0;
+		float numberConcentrationPm0p5;
+		float numberConcentrationPm1p0;
+		float numberConcentrationPm2p5;
+		float numberConcentrationPm4p0;
+		float numberConcentrationPm10p0;
+		float typicalParticleSize;
+		float ambientHumidity;
+		float ambientTemperature;
+		float vocIndex;
+		float noxIndex;
+
+		SEN5X_read_timer = msSince(starttime);
+
+		error = sen5x.readMeasuredPmValues(massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, massConcentrationPm10p0,
+										   numberConcentrationPm0p5, numberConcentrationPm1p0, numberConcentrationPm2p5, numberConcentrationPm4p0,
+										   numberConcentrationPm10p0, typicalParticleSize);
+		++SEN5X_read_counter;
+
+		if (error)
+		{
+			Debug.print("Error trying to execute readMeasuredPmValues(): ");
+			errorToString(error, errorMessage, 256);
+			Debug.println(errorMessage);
+		}
+		else
+		{
+			value_SEN5X_P0 += massConcentrationPm1p0;
+			value_SEN5X_P1 += massConcentrationPm10p0;
+			value_SEN5X_P2 += massConcentrationPm2p5;
+			value_SEN5X_P4 += massConcentrationPm4p0;
+			value_SEN5X_N05 += numberConcentrationPm0p5;
+			value_SEN5X_N1 += numberConcentrationPm1p0;
+			value_SEN5X_N25 += numberConcentrationPm2p5;
+			value_SEN5X_N4 += numberConcentrationPm4p0;
+			value_SEN5X_N10 += numberConcentrationPm10p0;
+			value_SEN5X_TS += typicalParticleSize;
+		}
+
+		error = sen5x.readMeasuredValues(massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, massConcentrationPm10p0,
+										 ambientHumidity, ambientTemperature, vocIndex, noxIndex);
+
+		if (error)
+		{
+			Debug.print("Error trying to execute readMeasuredValues(): ");
+			errorToString(error, errorMessage, 256);
+			Debug.println(errorMessage);
+		}
+		else
+		{
+			value_SEN5X_T += ambientTemperature;
+			value_SEN5X_H += ambientHumidity;
+			value_SEN5X_VOC += vocIndex;
+			value_SEN5X_NOX += noxIndex;
+		}
+
+		++SEN5X_measurement_count;
+
+		debug_outln_info(FPSTR(DBG_TXT_SEP));
+		debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_SEN55));
+	}
 }
 
 /*****************************************************************
@@ -8076,72 +8157,7 @@ void loop(void)
 
 	if (cfg::sen5x_read && (!is_Sen5x_init_failed))
 	{// get SEN5X sensor values.
-		if ((msSince(starttime) - SEN5X_read_timer) > SEN5X_WAITING_AFTER_LAST_READ)
-		{
-			uint16_t error;
-			char errorMessage[256];
-
-			float massConcentrationPm1p0;
-			float massConcentrationPm2p5;
-			float massConcentrationPm4p0;
-			float massConcentrationPm10p0;
-			float numberConcentrationPm0p5;
-			float numberConcentrationPm1p0;
-			float numberConcentrationPm2p5;
-			float numberConcentrationPm4p0;
-			float numberConcentrationPm10p0;
-			float typicalParticleSize;
-			float ambientHumidity;
-			float ambientTemperature;
-			float vocIndex;
-			float noxIndex;
-
-			SEN5X_read_timer = msSince(starttime);
-
-			error = sen5x.readMeasuredPmValues(massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, massConcentrationPm10p0, 
-											   numberConcentrationPm0p5, numberConcentrationPm1p0, numberConcentrationPm2p5, numberConcentrationPm4p0, 
-											   numberConcentrationPm10p0, typicalParticleSize);
-			++SEN5X_read_counter;
-
-			if (error)
-			{
-				Debug.print("Error trying to execute readMeasuredPmValues(): ");
-				errorToString(error, errorMessage, 256);
-				Debug.println(errorMessage);
-			}
-			else
-			{
-				value_SEN5X_P0 += massConcentrationPm1p0;
-				value_SEN5X_P1 += massConcentrationPm10p0;
-				value_SEN5X_P2 += massConcentrationPm2p5;
-				value_SEN5X_P4 += massConcentrationPm4p0;
-				value_SEN5X_N05 += numberConcentrationPm0p5;
-				value_SEN5X_N1 += numberConcentrationPm1p0;
-				value_SEN5X_N25 += numberConcentrationPm2p5;
-				value_SEN5X_N4 += numberConcentrationPm4p0;
-				value_SEN5X_N10 += numberConcentrationPm10p0;
-				value_SEN5X_TS += typicalParticleSize;
-			}
-
-			error = sen5x.readMeasuredValues(massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, massConcentrationPm10p0, 
-											 ambientHumidity, ambientTemperature, vocIndex, noxIndex);
-
-			if (error)
-			{
-				Debug.print("Error trying to execute readMeasuredValues(): ");
-				errorToString(error, errorMessage, 256);
-				Debug.println(errorMessage);
-			}
-			else
-			{
-				value_SEN5X_T += ambientTemperature;
-				value_SEN5X_H += ambientHumidity;
-				value_SEN5X_VOC += vocIndex;
-				value_SEN5X_NOX += noxIndex;
-			}
-
-			++SEN5X_measurement_count;
-		}
+		GetSen5XData();
 	}
 
 	if (cfg::ppd_read)
