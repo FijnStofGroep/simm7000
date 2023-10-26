@@ -114,6 +114,10 @@ enum ConfigShapeId {
 	Config_scd30_co2_correction,
 	Config_scd30_temp_correction,
 	Config_has_s7000,
+	Config_port_radar,
+	Config_host_radar,
+	Config_user_radar,
+	Config_pwd_radar,
 	Config_has_radarmotion,
 };
 
@@ -203,6 +207,10 @@ static constexpr char CFG_KEY_HAS_FIX_IP[] PROGMEM = "has_fix_ip";
 static constexpr char CFG_KEY_SCD30_CO2_CORRECTION[] PROGMEM = "scd30_co2_correction";
 static constexpr char CFG_KEY_SCD30_TEMP_CORRECTION[] PROGMEM = "scd30_temp_correction";
 static constexpr char CFG_KEY_HAS_S7000[] PROGMEM = "has_s7000";
+static constexpr char CFG_KEY_PORT_RADAR[] PROGMEM = "port_radar";
+static constexpr char CFG_KEY_HOST_RADAR[] PROGMEM = "host_radar";
+static constexpr char CFG_KEY_USER_RADAR[] PROGMEM = "user_radar";
+static constexpr char CFG_KEY_PWD_RADAR[] PROGMEM = "pwd_radar";
 static constexpr char CFG_KEY_HAS_RADARMOTION[] PROGMEM = "has_radarmotion";
 
 static constexpr ConfigShapeEntry configShape[] PROGMEM = {
@@ -292,5 +300,9 @@ static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_String, sizeof(cfg::scd30_co2_correction)-1, CFG_KEY_SCD30_CO2_CORRECTION, cfg::scd30_co2_correction },
 	{ Config_Type_String, sizeof(cfg::scd30_temp_correction)-1, CFG_KEY_SCD30_TEMP_CORRECTION, cfg::scd30_temp_correction },
 	{ Config_Type_Bool, 0, CFG_KEY_HAS_S7000, &cfg::has_s7000 },
+	{ Config_Type_UInt, 0, CFG_KEY_PORT_RADAR, &cfg::port_radar },
+	{ Config_Type_String, sizeof(cfg::host_radar)-1, CFG_KEY_HOST_RADAR, cfg::host_radar },
+	{ Config_Type_String, sizeof(cfg::user_radar)-1, CFG_KEY_USER_RADAR, cfg::user_radar },
+	{ Config_Type_Password, sizeof(cfg::pwd_radar)-1, CFG_KEY_PWD_RADAR, cfg::pwd_radar },
 	{ Config_Type_Bool, 0, CFG_KEY_HAS_RADARMOTION, &cfg::has_radarmotion },
 };

@@ -88,6 +88,10 @@ Bool		has_fix_ip
 String		scd30_co2_correction
 String		scd30_temp_correction
 Bool        has_s7000
+UInt		port_radar
+String		host_radar
+String		user_radar
+Password	pwd_radar
 Bool        has_radarmotion
 
 """

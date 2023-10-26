@@ -47,7 +47,10 @@
 #define MAX_PORT_DIGITS 5
 
 #define LEN_STATIC_ADRESS  16
-#define LEN_SIMM7000 30           
+#define LEN_SIMM7000 30
+
+// Define radar
+#define PORT_RADAR 80
 
 // define debug levels
 #define DEBUG_ERROR 1
