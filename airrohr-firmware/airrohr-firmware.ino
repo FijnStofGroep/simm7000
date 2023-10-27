@@ -8082,9 +8082,9 @@ void setup(void)
 
 		RCWL0516.init();
 
-		if(!RCWL0516.begin(cfg::host_custom, cfg::port_custom))
+		if(!RCWL0516.begin(cfg::host_radar, cfg::port_radar))
 		{
-			debug_outln_info(F("Couldn't connect to Server: "), String(cfg::host_custom) + F(":") + String(cfg::port_custom));
+			debug_outln_info(F("Couldn't connect to Server: "), String(cfg::host_radar) + F(":") + String(cfg::port_radar));
 		}		
 	}
 
