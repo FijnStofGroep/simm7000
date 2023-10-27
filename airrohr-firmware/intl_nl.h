@@ -49,6 +49,8 @@ const char INTL_BASICAUTH[] PROGMEM = "Toegang beperken";
 
 const char INTL_FS_WIFI_DESCRIPTION[] PROGMEM = "Netwerknaam en -wachtwoord van de fijnstofsensor";
 const char INTL_FS_WIFI_NAME[] PROGMEM = "Naam (SSID)";
+const char INTL_FS_WIFI_NAME_2[] PROGMEM = "Naam (SSID) 2";
+const char INTL_FS_WIFI_NAME_3[] PROGMEM = "Naam (SSID) 3";
 const char INTL_MORE_SETTINGS[] PROGMEM = "Meer instellingen";
 const char INTL_AUTO_UPDATE[] PROGMEM = "Firmware automatisch bijwerken";
 const char INTL_USE_BETA[] PROGMEM = "Installeer beta-firmwares";
@@ -139,6 +141,7 @@ const char INTL_TIME_UTC[] PROGMEM = "Tijd (UTC)";
 const char INTL_SIGNAL_STRENGTH[] PROGMEM = "Signaalsterkte";
 const char INTL_SIGNAL_QUALITY[] PROGMEM = "Signaalkwaliteit";
 #define INTL_NUMBER_OF_MEASUREMENTS "Aantal metingen"
+#define INTL_NUMBER_OF_RADARMOTION "Aantal radar motions"
 #define INTL_TIME_SENDING_MS "Tijdsduur opsturen metingen"
 #define INTL_SENSOR "Sensor"
 #define INTL_PARAMETER "Parameter"
@@ -146,7 +149,7 @@ const char INTL_SIGNAL_QUALITY[] PROGMEM = "Signaalkwaliteit";
 
 #define INTL_ENABLE_S7000 "Enable S7000 LTE"
 
-const char INTL_SIM7000[] PROGMEM = "Sim7000 LTE";
+    const char INTL_SIM7000[] PROGMEM = "Sim7000 LTE";
 const char INTL_SIM7000_DIS[] PROGMEM = "Disable";
 
 const char INTL_SIM_APN[] PROGMEM = "APN";
@@ -154,5 +157,7 @@ const char INTL_SIM_ID[] PROGMEM = "ID";
 const char INTL_SIM_GPS[] PROGMEM = "GPS";
 const char INTL_SIM_TYPE[] PROGMEM = "Type";
 const char INTL_SIM_MODE[] PROGMEM = "Mode";
+
+#define INTL_ENABLE_RCWL_0516 "Radar Motion aan (after enable reboot and insert server credentials)"
 
 #define INTL_MODE "Mode"
