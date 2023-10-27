@@ -2341,12 +2341,16 @@ static void webserver_config_send_body_get(String &page_content)
 	add_form_checkbox(Config_has_s7000, FPSTR(INTL_ENABLE_S7000));
 	page_content += FPSTR(WEB_BR_LF_B);
 	add_form_checkbox(Config_has_radarmotion, FPSTR(INTL_ENABLE_RCWL_0516));
+
+	if (cfg::has_radarmotion)
+	{
 	page_content += FPSTR(TABLE_TAG_OPEN);
 	add_form_input(page_content, Config_host_radar, FPSTR(INTL_SERVER), LEN_HOST_CUSTOM - 1);
 	add_form_input(page_content, Config_port_radar, FPSTR(INTL_PORT), MAX_PORT_DIGITS);
 	add_form_input(page_content, Config_mqtt_user, FPSTR(INTL_USER), LEN_USER_CUSTOM - 1);
 	add_form_input(page_content, Config_mqtt_pwd, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+	}
 	page_content += FPSTR(WEB_BR_LF_B);
 	add_form_checkbox(Config_has_fix_ip, FPSTR(INTL_STATIC_IP_TEXT));
 	page_content += FPSTR(TABLE_TAG_OPEN);

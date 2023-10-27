@@ -159,6 +159,6 @@ const char INTL_SIM_GPS[] PROGMEM = "GPS";
 const char INTL_SIM_TYPE[] PROGMEM = "Type";
 const char INTL_SIM_MODE[] PROGMEM = "Mode";
 
-#define INTL_ENABLE_RCWL_0516 "Enable Radar Motion"
+#define INTL_ENABLE_RCWL_0516 "Enable Radar Motion (after enable reboot and insert server credentials)"
 
 #define INTL_MODE "Mode"
