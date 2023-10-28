@@ -49,6 +49,8 @@ const char INTL_BASICAUTH[] PROGMEM = "BasicAuth aktivieren";
 
 const char INTL_FS_WIFI_DESCRIPTION[] PROGMEM = "Sensor WLAN Name im Konfigurationsmodus";
 const char INTL_FS_WIFI_NAME[] PROGMEM = "Name";
+const char INTL_FS_WIFI_NAME_2[] PROGMEM = "Name 2";
+const char INTL_FS_WIFI_NAME_3[] PROGMEM = "Name 3";
 const char INTL_MORE_SETTINGS[] PROGMEM = "Weitere Einstellungen";
 const char INTL_AUTO_UPDATE[] PROGMEM = "Auto Update";
 const char INTL_USE_BETA[] PROGMEM = "Lade Beta Versionen";
@@ -141,6 +143,7 @@ const char INTL_TIME_UTC[] PROGMEM = "Zeit (UTC)";
 const char INTL_SIGNAL_STRENGTH[] PROGMEM = "Signal";
 const char INTL_SIGNAL_QUALITY[] PROGMEM = "Qualität";
 #define INTL_NUMBER_OF_MEASUREMENTS "Anzahl Messungen"
+#define INTL_NUMBER_OF_RADARMOTION "Anzahl radar motions"
 #define INTL_TIME_SENDING_MS "Dauer Messübertragung"
 #define INTL_SENSOR "Sensor"
 #define INTL_PARAMETER "Parameter"
@@ -152,4 +155,7 @@ const char INTL_SIM_ID[] PROGMEM = "ID";
 const char INTL_SIM_GPS[] PROGMEM = "GPS";
 const char INTL_SIM_TYPE[] PROGMEM = "Type";
 const char INTL_SIM_MODE[] PROGMEM = "Mode";
+
+#define INTL_ENABLE_RCWL_0516 "Enable Radar Motion (after enable reboot and insert server credentials)"
+
 #define INTL_MODE "Mode"
