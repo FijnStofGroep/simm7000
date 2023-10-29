@@ -80,7 +80,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2023-09-B1"
+#define SOFTWARE_VERSION_STR "FWL-2023-10-B1"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -486,6 +486,7 @@ unsigned long min_micro = 1000000000;
 unsigned long max_micro = 0;
 
 bool is_SDS_running = true;
+bool is_SEN5X_running = true;
 
 enum SDS_WAITING
 {
@@ -2344,12 +2345,12 @@ static void webserver_config_send_body_get(String &page_content)
 
 	if (cfg::has_radarmotion)
 	{
-	page_content += FPSTR(TABLE_TAG_OPEN);
-	add_form_input(page_content, Config_host_radar, FPSTR(INTL_SERVER), LEN_HOST_CUSTOM - 1);
-	add_form_input(page_content, Config_port_radar, FPSTR(INTL_PORT), MAX_PORT_DIGITS);
-	add_form_input(page_content, Config_mqtt_user, FPSTR(INTL_USER), LEN_USER_CUSTOM - 1);
-	add_form_input(page_content, Config_mqtt_pwd, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
-	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+		page_content += FPSTR(TABLE_TAG_OPEN);
+		add_form_input(page_content, Config_host_radar, FPSTR(INTL_SERVER), LEN_HOST_CUSTOM - 1);
+		add_form_input(page_content, Config_port_radar, FPSTR(INTL_PORT), MAX_PORT_DIGITS);
+		add_form_input(page_content, Config_mqtt_user, FPSTR(INTL_USER), LEN_USER_CUSTOM - 1);
+		add_form_input(page_content, Config_mqtt_pwd, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
+		page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	}
 	page_content += FPSTR(WEB_BR_LF_B);
 	add_form_checkbox(Config_has_fix_ip, FPSTR(INTL_STATIC_IP_TEXT));
@@ -6147,7 +6148,16 @@ static __noinline void fetchSensorGPS(String &s)
  *****************************************************************/
 static void GetSen5XData()
 {
-	if ((msSince(starttime) - SEN5X_read_timer) > SEN5X_WAITING_AFTER_LAST_READ)
+	if (cfg::sending_intervall_ms > WARMUPTIME_SDS_MS &&
+		msSince(starttime) < (cfg::sending_intervall_ms - WARMUPTIME_SDS_MS ))
+	{
+		if (is_SEN5X_running)
+		{
+			sen5x.stopMeasurement();
+			is_SEN5X_running = false;
+		}
+	}
+	else if (is_SEN5X_running && (msSince(starttime) - SEN5X_read_timer) > SEN5X_WAITING_AFTER_LAST_READ)
 	{
 		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN55));
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
@@ -6173,8 +6183,9 @@ static void GetSen5XData()
 		SEN5X_read_timer = msSince(starttime);
 
 		error = sen5x.readMeasuredPmValues(massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, massConcentrationPm10p0,
-										   numberConcentrationPm0p5, numberConcentrationPm1p0, numberConcentrationPm2p5, numberConcentrationPm4p0,
-										   numberConcentrationPm10p0, typicalParticleSize);
+										   numberConcentrationPm0p5, numberConcentrationPm1p0, numberConcentrationPm2p5, 
+										   numberConcentrationPm4p0, numberConcentrationPm10p0, 
+										   typicalParticleSize);
 		++SEN5X_read_counter;
 
 		if (error)
@@ -6198,7 +6209,8 @@ static void GetSen5XData()
 		}
 
 		error = sen5x.readMeasuredValues(massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, massConcentrationPm10p0,
-										 ambientHumidity, ambientTemperature, vocIndex, noxIndex);
+										 ambientHumidity, ambientTemperature, 
+										 vocIndex, noxIndex);
 
 		if (error)
 		{
@@ -6214,10 +6226,18 @@ static void GetSen5XData()
 			value_SEN5X_NOX += noxIndex;
 		}
 
-		++SEN5X_measurement_count;
+		SEN5X_measurement_count++;
 
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
 		debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_SEN55));
+	}
+	else
+	{
+		if (!is_SEN5X_running)
+		{
+			sen5x.startMeasurement();
+			is_SEN5X_running = true;
+		}
 	}
 }
 
@@ -6599,6 +6619,7 @@ static void display_values()
 	String t_sensor, h_sensor, p_sensor, voc_sensor, nox_sensor;
 
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+
 	/* no diagnostic for this section till "GCC diagnostic pop" */
 	float pm001_value = -1.0;
 	float pm003_value = -1.0;
@@ -6628,6 +6649,7 @@ static void display_values()
 	float la_eq_value = -1.0;
 	float la_max_value = -1.0;
 	float la_min_value = -1.0;
+
 #pragma GCC diagnostic pop
 
 	String la_sensor;
@@ -7357,7 +7379,7 @@ static void initSEN5X()
 		errorToString(error, errorMessage, 256);
 		Debug.println(errorMessage);
 		is_Sen5x_init_failed = true;
-		return;
+		//return;
 	}
 }
 
