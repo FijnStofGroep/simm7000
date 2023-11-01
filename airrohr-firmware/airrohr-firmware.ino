@@ -121,6 +121,8 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include <ESPmDNS.h>
 #endif
 
+#include "defines.h"
+
 // includes common to ESP8266 and ESP32 (especially external libraries)
 #include "./oledfont.h" 	// avoids including the default Arial font, needs to be included before SSD1306.h
 #include <SSD1306.h>
@@ -141,6 +143,7 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include <SparkFun_SCD30_Arduino_Library.h>
 #include <SensirionI2CSen5x.h>
 #include <TinyGPS++.h>					//  Arduino library for parsing NMEA data streams provided by GPS modules. 
+#include <TinyGSM.h>
 
 // local/modified header files.
 #include "./bmx280_i2c.h"
@@ -148,7 +151,7 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include "./dnms_i2c.h"
 #include "./intl.h"
 #include "./utils.h"
-#include "defines.h"
+//#include "defines.h"
 #include "ext_def.h"
 #include "html-content.h"
 #include "./airrohr-cfg7000.h"
@@ -2334,11 +2337,8 @@ static void webserver_config_send_body_get(String &page_content)
 	}
 
 	// Add IP static (FVD)
-	page_content = FPSTR(WEB_BR_LF_B);
-
 	// add checkbox
-	server.sendContent(page_content);
-	page_content = emptyString;
+	page_content = FPSTR(WEB_BR_LF_B);
 	add_form_checkbox(Config_has_s7000, FPSTR(INTL_ENABLE_S7000));
 	page_content += FPSTR(WEB_BR_LF_B);
 	add_form_checkbox(Config_has_radarmotion, FPSTR(INTL_ENABLE_RCWL_0516));
@@ -2352,6 +2352,7 @@ static void webserver_config_send_body_get(String &page_content)
 		add_form_input(page_content, Config_mqtt_pwd, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
 		page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	}
+
 	page_content += FPSTR(WEB_BR_LF_B);
 	add_form_checkbox(Config_has_fix_ip, FPSTR(INTL_STATIC_IP_TEXT));
 	page_content += FPSTR(TABLE_TAG_OPEN);
@@ -2502,20 +2503,18 @@ static void webserver_config_send_body_get(String &page_content)
 	add_form_input(page_content, Config_user_custom, FPSTR(INTL_USER), LEN_USER_CUSTOM - 1);
 	add_form_input(page_content, Config_pwd_custom, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
-	page_content += FPSTR(BR_TAG);
+	//page_content += FPSTR(BR_TAG);
 	
 	server.sendContent(page_content);
-	
+
 	// Add MQTT
 	// Test page_content = emptyString;
-	// page_content = emptyString;
-	page_content = FPSTR(TABLE_TAG_CLOSE_BR);
+	page_content = emptyString;
 	page_content += FPSTR(BR_TAG);
 	page_content += form_checkbox(Config_send2mqtt, FPSTR(INTL_SEND_TO_MQTT), false);
 	page_content += FPSTR(BR_TAG);
 	
-	server.sendContent(page_content);
-	page_content = FPSTR(TABLE_TAG_OPEN);
+	page_content += FPSTR(TABLE_TAG_OPEN);
 	add_form_input(page_content, Config_mqtt_server, FPSTR(INTL_SERVER), LEN_HOST_CUSTOM - 1);
 	add_form_input(page_content, Config_mqtt_topic, FPSTR(INTL_TOPIC), LEN_URL_CUSTOM - 1);
 	add_form_input(page_content, Config_mqtt_port, FPSTR(INTL_PORT), MAX_PORT_DIGITS);
@@ -2551,6 +2550,7 @@ static void webserver_config_send_body_get(String &page_content)
 	}
 
 	server.sendContent(page_content);
+
 	page_content = emptyString;
 }
 
@@ -3938,7 +3938,7 @@ static void waitForMultiWiFiToConnect(int maxRetries, uint16_t connectTimeOutPer
 	// Wait for ESP8266 to scan the local area and connect with the strongest of the networks defined above
 	while ((retryCount < maxRetries) && wifiMulti.run(connectTimeOutPerAP) != WL_CONNECTED )
 	{
-		delay(500);
+		//delay(50);
 		debug_out("*", DEBUG_MIN_INFO);
 		retryCount++;
 	}
@@ -3953,7 +3953,7 @@ static void RegisterMultiWiFiNetworks(int maxRetries)
 {
 	debug_outln_info(F("Register to Multi WiFi Network."));
 
-	uint16_t connectTimeOutPerAP = 2000;					//Defines the TimeOut(ms) which will be used to try and connect with any specific Access Point.
+	uint16_t connectTimeOutPerAP = 500;						//Defines the TimeOut(ms) which will be used to try and connect with any specific Access Point.
 
 	wifiMulti.addAP(cfg::wlanssid, cfg::wlanpwd); 			// Open/Start WiFI coonection to router/modem. (default)
 
@@ -6148,8 +6148,8 @@ static __noinline void fetchSensorGPS(String &s)
  *****************************************************************/
 static void GetSen5XData()
 {
-	if (cfg::sending_intervall_ms > WARMUPTIME_SDS_MS &&
-		msSince(starttime) < (cfg::sending_intervall_ms - WARMUPTIME_SDS_MS ))
+	if (cfg::sending_intervall_ms > READINGTIME_SDS_MS &&
+		msSince(starttime) < (cfg::sending_intervall_ms - SEN5X_WAITING_AFTER_LAST_READ ))
 	{
 		if (is_SEN5X_running)
 		{
