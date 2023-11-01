@@ -3417,7 +3417,7 @@ static void webserver_s7000()
 
 	RESERVE_STRING(page_content, LARGE_STR);
 	start_html_page(page_content, FPSTR(INTL_SIM7000));
-	page_content += F("<form method='POST' action='/config' style='width:100%;'>\n");
+	page_content += F("<form method='POST' action='/S7000' style='width:100%;'>\n");
 
 //	server.sendContent(page_content);	
 //  Voor test gebruik eerdere variabele
