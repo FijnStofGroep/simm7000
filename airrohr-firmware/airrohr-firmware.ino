@@ -6148,10 +6148,10 @@ static __noinline void fetchSensorGPS(String &s)
  * include Start/Stop system.									 *
  * wait at least 25 sec. after start Measurement.				 *
  *****************************************************************/
-static void GetSen5XData()
+static void GetSen5XSensorData()
 {
-	if (cfg::sending_intervall_ms > WARMUPTIME_SDS_MS &&
-		msSince(starttime) < (cfg::sending_intervall_ms - (SEN5X_WAITING_AFTER_LAST_READ + SAMPLETIME_SDS_MS) ))
+	if (cfg::sending_intervall_ms > SEN5X_WAITING_AFTER_LAST_READ &&
+		msSince(starttime) < (cfg::sending_intervall_ms - (SEN5X_WAITING_AFTER_LAST_READ + READINGTIME_SEN5X_MS)))
 	{
 		if (is_SEN5X_running)
 		{
@@ -6165,7 +6165,7 @@ static void GetSen5XData()
 	{
 		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN55));
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
-		debug_outln_info(F("SEN555 start sensor readings. time: "), String((msSince(starttime) - SEN5X_read_timer) ));
+		debug_outln_info(F("SEN555 start sensor readings. time: "), String((msSince(starttime) - SEN5X_read_timer)) + F(" msec.") );
 
 		uint16_t error;
 		char errorMessage[256];
@@ -6185,7 +6185,6 @@ static void GetSen5XData()
 		float vocIndex;
 		float noxIndex;
 
-		SEN5X_read_timer = msSince(starttime);
 
 		error = sen5x.readMeasuredPmValues(massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, massConcentrationPm10p0,
 										   numberConcentrationPm0p5, numberConcentrationPm1p0, numberConcentrationPm2p5, 
@@ -6233,6 +6232,9 @@ static void GetSen5XData()
 
 		SEN5X_measurement_count++;
 
+		// Set sensor read time on 1 sec.
+		SEN5X_read_timer = msSince(starttime + (SEN5X_WAITING_AFTER_LAST_READ - SAMPLETIME_SEN5X_MS));
+
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
 		debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_SEN55));
 	}
@@ -6250,7 +6252,7 @@ static void GetSen5XData()
 }
 
 /*****************************************************************
- * OTAUpdate                                                     *
+ * OTA-Update                                                    *
  * client => wifi intstance									 	 *
  * url => URL command string									 *
  * ostream => File stream									 	 *
@@ -8207,7 +8209,7 @@ void loop(void)
 
 	if (cfg::sen5x_read && (!is_Sen5x_init_failed))
 	{// get SEN5X sensor values.
-		GetSen5XData();
+		GetSen5XSensorData();
 	}
 
 	if (cfg::ppd_read)
@@ -8530,7 +8532,7 @@ void loop(void)
 			last_update_attempt = act_milli;
 		}
 
-		// Resetting for next sampling
+		// Resetting for next sampling.
 		last_data_string = std::move(data);
 		lowpulseoccupancyP1 = 0;
 		lowpulseoccupancyP2 = 0;
@@ -8539,7 +8541,7 @@ void loop(void)
 		min_micro = 1000000000;
 		max_micro = 0;
 		sum_send_time = 0;
-		starttime = millis(); // store the start time
+		starttime = millis(); 					// store the start time.
 		count_sends++;
 	}
 
