@@ -38,22 +38,22 @@ class   Queue
 {
     
 private:
-    int front;
-    int rear;     // rear Store index.
-    int capacity; // Array size.
+    int front;      // First element in memory queue.
+    int rear;       // rear Store index.
+    int capacity;   // Array size.
 
-    int *queue;   // ptr to queue[] array.
+    int *m_queue;     // ptr to queue[] array.
 
 public:
     /*
-        constrctor
+        Constrctor
     */
     Queue(int _capacity)
     {
         front = -1;
         rear = -1;
         capacity = _capacity;
-        queue = new int[capacity]; // or queue = (int*)malloc(capacity);    // create queue[] on heap memory.
+        m_queue = new int[capacity]; // or queue = (int*)malloc(capacity);    // create queue[] on heap memory.
     }
 
     /*
@@ -61,7 +61,7 @@ public:
     */
     ~Queue()
     {
-        delete[] queue; // remove queue[] from heap memory.
+        delete[] m_queue; // remove queue[] from heap memory.
     }
 
     /*
@@ -81,14 +81,14 @@ public:
         else
         { // insert element at the rear index.
             rear++;
-            queue[rear] = element;
+            m_queue[rear] = element;
 
             if (front == -1)
             {
                 front = 0;
             }
 
-            QDEBUG_PRINT("\nEnqueue(); index: %d = Element: %d", rear, queue[rear]);
+            QDEBUG_PRINT("\nEnqueue(); index: %d = Element: %d", rear, m_queue[rear]);
         }
 
         return;
@@ -112,18 +112,18 @@ public:
         }
         else
         {
-            int element = queue[front];
+            int element = m_queue[front];
 
             // Delete element, shift all the elements from index 2 till rear to the left by one.
             for (int i = 0; i < rear - 1; i++)
             {
-                queue[i] = queue[i + 1];
+                m_queue[i] = m_queue[i + 1];
             }
 
             // store 0x00 at rear indicating there's no element.
             if (rear < capacity)
             {
-                queue[rear] = 0x00;
+                m_queue[rear] = 0x00;
             }
 
             // decrement rear index.
@@ -164,8 +164,8 @@ public:
             return INT32_MIN;
         }
 
-        QDEBUG_PRINT("\nPeek Element is: %d", queue[front]);
-        return queue[front];
+        QDEBUG_PRINT("\nPeek Element is: %d", m_queue[front]);
+        return m_queue[front];
     }
 
     // TODO:

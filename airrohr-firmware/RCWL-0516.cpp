@@ -42,7 +42,7 @@ bool RCWL_0516::init(int motionSensorID)
   MotionSensorID = motionSensorID;
 
   // pinMode(MotionSensorID, INPUT);
-  // PIR Motion Sensor mode INPUT_PULLUP => is more stabale signal.
+  // Radar Motion Sensor signal mode INPUT_PULLUP => is more stabale signal.
   pinMode(MotionSensorID, INPUT_PULLUP);
 
   // Create a Queue[] array of capacity 10 on the heap.
@@ -102,34 +102,30 @@ void RCWL_0516::loop()
 {
   if (RCWL0516.m_queue != NULL && !RCWL0516.m_queue->IsEmpty())
   {
-    int motionval = RCWL0516.m_queue->Dequeue();
+    int motionValue = RCWL0516.m_queue->Dequeue();
 
     // debug_outln_info(F("loop()::Radar Motion-Sensor value: "), String(motionval));
 
     // Send Radar value to Server.
-    SendToServer(motionval);
+    SendToServer(motionValue);
 
-    //if (m_Active)
+    // if (m_Active)
     {
-      if (motionval == HIGH)
+      if (motionValue == HIGH)
       { // sensor is HIGH
-        // digitalWrite(MotionLed, LEDHIGH); // turn LED ON
-
         if (motionState == LOW)
         {
-          // Serial.println("Motion detected!");
-          motionState = HIGH; // update variable state to HIGH
+          // digitalWrite(MotionLed, LEDHIGH);  // turn external LED ON
+          motionState = HIGH;                   // update variable state to HIGH
         }
       }
       else
       {
-        // digitalWrite(MotionLed, LEDLOW); // turn LED OFF
-
         if (motionState == HIGH)
         {
-          // Serial.println("***** Motion stopped *******!");
-          motionState = LOW; // update variable state to LOW
-          
+          // digitalWrite(MotionLed, LEDLOW);   // turn external LED OFF
+          motionState = LOW;                    // update variable state to LOW
+
           count_RadarMotion++;
         }
       }
@@ -165,11 +161,11 @@ void RCWL_0516::SendToServer(int val)
   if (!m_Active)
   {
     // Current time
-    now = millis();
+    currentTrigger = millis();
 
-    if ((now - lastTrigger < m_timeSeconds))
+    if ((currentTrigger - lastTrigger < m_timeSeconds))
     {
-      debug_outln_info(F("Wait for retry connect to Server = "), String((now - lastTrigger) / 1000) + F(" sec."));
+      debug_outln_info(F("Wait for retry connect to Server = "), String((currentTrigger - lastTrigger) / 1000) + F(" sec."));
       return;
     }
 
@@ -193,7 +189,8 @@ void RCWL_0516::SendToServer(int val)
   if (client.connected())
   {
     // debug_outln_info(F("[Sending a request] => Radar Motion Value: "), String(val));
-
+ 
+    // Send rader value to external Server.
     client.print(String("Radar Value: ") + String(val));
 
     client.stop();

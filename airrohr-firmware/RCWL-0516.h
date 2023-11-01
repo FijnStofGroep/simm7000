@@ -62,10 +62,10 @@ private:
   unsigned long m_timeSeconds = 30 * 1000;        // WaitTime in seconds. Every 30 sec. retry to connect to Server.
 
  // Set GPIO no. for LED indicator.
-  int MotionLedID = LED_BUILTIN;                  // blue led on board
+  int MotionLedID = LED_BUILTIN;                  // blue LED on board
 
 // Timer: Auxiliary variables
-  unsigned long now = 0;
+  unsigned long currentTrigger = 0;
   unsigned long lastTrigger = 0;
   unsigned long count_RadarMotion = 0;
 
