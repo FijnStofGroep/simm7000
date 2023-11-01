@@ -6145,14 +6145,18 @@ static __noinline void fetchSensorGPS(String &s)
 
 /*****************************************************************
  * Get SEN5X sensor values.                                      *
+ * include Start/Stop system.									 *
+ * wait at least 25 sec. after start Measurement.				 *
  *****************************************************************/
 static void GetSen5XData()
 {
-	if (cfg::sending_intervall_ms > READINGTIME_SDS_MS &&
-		msSince(starttime) < (cfg::sending_intervall_ms - SEN5X_WAITING_AFTER_LAST_READ ))
+	if (cfg::sending_intervall_ms > WARMUPTIME_SDS_MS &&
+		msSince(starttime) < (cfg::sending_intervall_ms - (SEN5X_WAITING_AFTER_LAST_READ + SAMPLETIME_SDS_MS) ))
 	{
 		if (is_SEN5X_running)
 		{
+			debug_outln_info(F("SEN555 STOP Measurement. time: "), String(msSince(starttime)));
+
 			sen5x.stopMeasurement();
 			is_SEN5X_running = false;
 		}
@@ -6161,6 +6165,7 @@ static void GetSen5XData()
 	{
 		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN55));
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
+		debug_outln_info(F("SEN555 start sensor readings. time: "), String((msSince(starttime) - SEN5X_read_timer) ));
 
 		uint16_t error;
 		char errorMessage[256];
@@ -6186,7 +6191,7 @@ static void GetSen5XData()
 										   numberConcentrationPm0p5, numberConcentrationPm1p0, numberConcentrationPm2p5, 
 										   numberConcentrationPm4p0, numberConcentrationPm10p0, 
 										   typicalParticleSize);
-		++SEN5X_read_counter;
+		SEN5X_read_counter++;
 
 		if (error)
 		{
@@ -6235,6 +6240,9 @@ static void GetSen5XData()
 	{
 		if (!is_SEN5X_running)
 		{
+			debug_outln_info(F("SEN555 START Measurement. Time: "), String(msSince(starttime)) );
+
+			SEN5X_read_timer = msSince(starttime);
 			sen5x.startMeasurement();
 			is_SEN5X_running = true;
 		}
@@ -7380,6 +7388,12 @@ static void initSEN5X()
 		Debug.println(errorMessage);
 		is_Sen5x_init_failed = true;
 		//return;
+	}
+	else
+	{
+		debug_outln(F("SEN5X sensor active. Sensor Fan Cleaning and Warm-Up for the first Measurement."), DEBUG_MIN_INFO);
+		sen5x.startFanCleaning();
+		is_SEN5X_running = false;
 	}
 }
 

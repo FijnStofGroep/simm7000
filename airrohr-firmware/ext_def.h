@@ -285,15 +285,11 @@ static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
 // Sensirion Sensirion I2C SEN5X
 #define SEN5X_READ 0                          // default: false
 #define SEN5X_API_PIN 1                       // (16) New pin nr: 1 for PM and temp, humidity, NOx.
-#define SEN5X_TH_API_PIN 17                   // (18)
-#define SEN5X_WAITING_AFTER_LAST_READ 11000   // waiting time after last reading mesurement data in ms
-#define SEN5X_AUTO_CLEANING_INTERVAL 7200     // time in seconds
+#define SEN5X_TH_API_PIN 17                   // (17)
 
 // Sensirion SPS30, the more expensive version of the particle sensor
 #define SPS30_READ 0
 #define SPS30_API_PIN 1
-#define SPS30_WAITING_AFTER_LAST_READ 11000   // waiting time after last reading mesurement data in ms
-#define SPS30_AUTO_CLEANING_INTERVAL 7200     // time in seconds
 
 // BMP180, temperature, pressure
 #define BMP_READ 0
