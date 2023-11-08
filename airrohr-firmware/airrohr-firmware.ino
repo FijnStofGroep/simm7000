@@ -3953,7 +3953,7 @@ static void RegisterMultiWiFiNetworks(int maxRetries)
 {
 	debug_outln_info(F("Register to Multi WiFi Network."));
 
-	uint16_t connectTimeOutPerAP = 500;						//Defines the TimeOut(ms) which will be used to try and connect with any specific Access Point.
+	uint16_t connectTimeOutPerAP = 1500;						//Defines the TimeOut(ms) which will be used to try and connect with any specific Access Point.
 
 	wifiMulti.addAP(cfg::wlanssid, cfg::wlanpwd); 			// Open/Start WiFI coonection to router/modem. (default)
 
