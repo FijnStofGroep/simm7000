@@ -157,6 +157,9 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include "./airrohr-cfg7000.h"
 #include "./RCWL-0516.h"
 
+// Temp langua fields
+#include "./intl_new.h"
+
 /******************************************************************
  * The variables inside the cfg namespace are persistent          *
  * configuration values. They have defaults which can be          *
@@ -188,6 +191,7 @@ namespace cfg
 	char wlanpwd_2[LEN_CFG_PASSWORD];
 	char wlanssid_3[LEN_WLANSSID];
 	char wlanpwd_3[LEN_CFG_PASSWORD];
+	bool has_morewifi=HAS_MOREWIFI;
 
 	char static_ip[LEN_STATIC_ADRESS];
 	char static_subnet[LEN_STATIC_ADRESS];
@@ -2294,12 +2298,15 @@ static void webserver_config_send_body_get(String &page_content)
 	}
 
 	page_content += FPSTR(TABLE_TAG_OPEN);
+	add_form_checkbox(Config_has_morewifi, FPSTR(INTL_ENABLE_MOREWIFI));
 	add_form_input(page_content, Config_wlanssid, FPSTR(INTL_FS_WIFI_NAME), LEN_WLANSSID - 1);
 	add_form_input(page_content, Config_wlanpwd, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
+	if (cfg::has_morewifi){
 	add_form_input(page_content, Config_wlanssid_2, FPSTR(INTL_FS_WIFI_NAME_2), LEN_WLANSSID - 1);
 	add_form_input(page_content, Config_wlanpwd_2, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
 	add_form_input(page_content, Config_wlanssid_3, FPSTR(INTL_FS_WIFI_NAME_3), LEN_WLANSSID - 1);
 	add_form_input(page_content, Config_wlanpwd_3, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
+	}
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	page_content += F("<hr/>");
 
@@ -3951,22 +3958,30 @@ static void waitForMultiWiFiToConnect(int maxRetries, uint16_t connectTimeOutPer
 ******************************************************************/
 static void RegisterMultiWiFiNetworks(int maxRetries)
 {
+	if (cfg::has_morewifi){
 	debug_outln_info(F("Register to Multi WiFi Network."));
+	}
+	else
+	{
+	debug_outln_info(F("Register to Single WiFi Network."));
+	}
 
-	uint16_t connectTimeOutPerAP = 1500;						//Defines the TimeOut(ms) which will be used to try and connect with any specific Access Point.
+	uint16_t connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS; // Defines the TimeOut(ms) which will be used to try and connect with any specific Access Point.
 
 	wifiMulti.addAP(cfg::wlanssid, cfg::wlanpwd); 			// Open/Start WiFI coonection to router/modem. (default)
 
-	if (strlen(cfg::wlanpwd_2) != 0)
+	if (strlen(cfg::wlanpwd_2) != 0 && cfg::has_morewifi)
 	{
 		wifiMulti.addAP(cfg::wlanssid_2, cfg::wlanpwd_2);
 		connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS;
+		debug_outln_info(F("Check WiFi Network 2."));
 	}
 
-	if (strlen(cfg::wlanpwd_3) != 0)
+	if (strlen(cfg::wlanpwd_3) != 0 && cfg::has_morewifi)
 	{
 		wifiMulti.addAP(cfg::wlanssid_3, cfg::wlanpwd_3);
 		connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS;
+		debug_outln_info(F("Check WiFi Network 3."));
 	}
 
 	waitForMultiWiFiToConnect( maxRetries,  connectTimeOutPerAP );

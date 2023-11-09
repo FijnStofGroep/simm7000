@@ -10,6 +10,7 @@ const char WLANPWD[] PROGMEM = "";
 const char WWW_USERNAME[] PROGMEM = "admin";
 const char WWW_PASSWORD[] PROGMEM = "";
 #define WWW_BASICAUTH_ENABLED 0
+#define HAS_MOREWIFI 0
 
 // Sensor Wifi config (config mode)
 #define FS_SSID ""
