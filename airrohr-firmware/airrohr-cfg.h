@@ -120,6 +120,7 @@ enum ConfigShapeId {
 	Config_user_radar,
 	Config_pwd_radar,
 	Config_has_radarmotion,
+	Config_has_morewifi,
 };
 
 static constexpr char CFG_KEY_CURRENT_LANG[] PROGMEM = "current_lang";
@@ -213,6 +214,7 @@ static constexpr char CFG_KEY_PORT_RADAR[] PROGMEM = "port_radar";
 static constexpr char CFG_KEY_USER_RADAR[] PROGMEM = "user_radar";
 static constexpr char CFG_KEY_PWD_RADAR[] PROGMEM = "pwd_radar";
 static constexpr char CFG_KEY_HAS_RADARMOTION[] PROGMEM = "has_radarmotion";
+static constexpr char CFG_KEY_HAS_MOREWIFI[] PROGMEM = "has_morewifi";
 
 static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_String, sizeof(cfg::current_lang)-1, CFG_KEY_CURRENT_LANG, cfg::current_lang },
@@ -306,4 +308,5 @@ static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_String, sizeof(cfg::user_radar)-1, CFG_KEY_USER_RADAR, cfg::user_radar },
 	{ Config_Type_Password, sizeof(cfg::pwd_radar)-1, CFG_KEY_PWD_RADAR, cfg::pwd_radar },
 	{ Config_Type_Bool, 0, CFG_KEY_HAS_RADARMOTION, &cfg::has_radarmotion },
+	{ Config_Type_Bool, 0, CFG_KEY_HAS_MOREWIFI, &cfg::has_morewifi },
 };

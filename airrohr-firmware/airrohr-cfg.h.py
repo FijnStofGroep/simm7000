@@ -93,6 +93,7 @@ UInt		port_radar
 String		user_radar
 Password	pwd_radar
 Bool        has_radarmotion
+Bool        has_morewifi
 
 """
 

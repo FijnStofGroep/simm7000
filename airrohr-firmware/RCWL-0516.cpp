@@ -41,9 +41,9 @@ bool RCWL_0516::init(int motionSensorID)
 
   MotionSensorID = motionSensorID;
 
-  // pinMode(MotionSensorID, INPUT);
+   pinMode(MotionSensorID, INPUT);
   // Radar Motion Sensor signal mode INPUT_PULLUP => is more stabale signal.
-  pinMode(MotionSensorID, INPUT_PULLUP);
+  //pinMode(MotionSensorID, INPUT_PULLUP);
 
   // Create a Queue[] array of capacity 10 on the heap.
   m_queue = new Queue(10);
