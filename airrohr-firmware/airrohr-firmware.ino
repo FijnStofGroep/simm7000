@@ -3872,7 +3872,7 @@ static void wifiConfig()
 	else
 	{
 		// Register multi WiFi networks
-		RegisterMultiWiFiNetworks(10);
+		RegisterMultiWiFiNetworks(WIFI_MAX_RETRY);
 	}
 
 	// debug_outln_info(FPSTR(DBG_TXT_CONNECTING_TO), cfg::wlanssid);
@@ -4075,7 +4075,7 @@ static void connectWifi()
 	else
 	{
 		// Register multi WiFi networks.
-		RegisterMultiWiFiNetworks(10);
+		RegisterMultiWiFiNetworks(WIFI_MAX_RETRY);
 	}
 #endif
 
