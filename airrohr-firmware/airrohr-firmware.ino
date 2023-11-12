@@ -49,10 +49,12 @@
  * SEN55: devided in SPS30 for PM, TS, NOx	(pin 1)						*
  * 					 SCD30 for temperature, humidity, CO2(NOx) (pin 17)	*
  * 																		*
+ * Remark: SEN5X sensor start/stop is enabled then Nox value = 0.		*
+ * startUp time = 35 sec. then 9 times read PM/NC, Temp., Hum value.	*
+ * Nox startUp time at least 60 sec. then read Nox value (F.F.U)		*
+ * 																		*
  * Wifi signal MUST be strong.											*
  * 																		*
- * Tasmota-sensors:(https://github.com/arendst/Tasmota/releases) 13 	*
- * firmware flashed														*
  * 																		*
  * 																		*
  * 2023-08-12															*
@@ -62,15 +64,18 @@
  * Add WiFiMulti used to connect to a WiFi network with strongest 		*
  * WiFi signal (RSSI). 													*
  ************************************************************************
- *
- * latest build using lib 3.1.0
- * DATA:    [====      ]  41.5% (used 34000 bytes from 81920 bytes)
- * PROGRAM: [======    ]  58.0% (used 605529 bytes from 1044464 bytes)
- *  
- * 
- * latest build using lib 3.1.0 / 2023-06-11
- * RAM:     [====      ]  44.7% (used 36648 bytes from 81920 bytes)
- * PROGRAM: [======    ]  60.5% (used 631589 bytes from 1044464 bytes)
+ * 																		*
+ * latest build using lib 3.1.0											*
+ * DATA:    [====      ]  41.5% (used 34000 bytes from 81920 bytes)		*
+ * PROGRAM: [======    ]  58.0% (used 605529 bytes from 1044464 bytes)	*
+ * 																		*
+ * latest build using lib 3.1.0 / 2023-06-11							*
+ * RAM:     [====      ]  44.7% (used 36648 bytes from 81920 bytes)		*
+ * PROGRAM: [======    ]  60.5% (used 631589 bytes from 1044464 bytes)	*
+ * 																		*
+ * latest build using lib 3.1.0 / 2023-11-13							*
+ * RAM:     [=====     ]  46.0% (used 37696 bytes from 81920 bytes)		*
+ * PROGRAM: [======    ]  61.6% (used 643167 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -3900,8 +3905,9 @@ static void wifiConfig()
 	debug_outln_info_bool(F("BMP: "), cfg::bmp_read);
 	debug_outln_info_bool(F("BMX280: "), cfg::bmx280_read);
 	debug_outln_info_bool(F("SCD30: "), cfg::scd30_read);
-	debug_outln_info_bool(F("SHT3X: "), cfg::sht3x_read);
+	debug_outln_info_bool(F("SHT3X: "), cfg::sht3x_read);			// SEN3X: Temperature, Humidity
 	debug_outln_info_bool(F("DNMS: "), cfg::dnms_read);
+	debug_outln_info_bool(F("SHT5X: "), cfg::sen5x_read);			// SEN5X: Temperature, Humidity, CO2 as NOx
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 	debug_outln_info_bool(F("SensorCommunity: "), cfg::send2dusti);
 	debug_outln_info_bool(F("Madavi: "), cfg::send2madavi);
@@ -3960,31 +3966,31 @@ static void waitForMultiWiFiToConnect(int maxRetries, uint16_t connectTimeOutPer
 ******************************************************************/
 static void RegisterMultiWiFiNetworks(int maxRetries)
 {
+	uint16_t connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS; // Defines the TimeOut(ms) which will be used to try and connect with any specific Access Point.
+
+	wifiMulti.addAP(cfg::wlanssid, cfg::wlanpwd); 			// Open/Start WiFI coonection to router/modem. (default: WiFi Network 1)
+
 	if (cfg::has_morewifi)
 	{
 		debug_outln_info(F("Register to Multi WiFi Network."));
+
+		if (strlen(cfg::wlanpwd_2) != 0)
+		{
+			wifiMulti.addAP(cfg::wlanssid_2, cfg::wlanpwd_2);
+			//connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS;
+			debug_outln_info(F("Set WiFi Network 2."));
+		}
+
+		if (strlen(cfg::wlanpwd_3) != 0)
+		{
+			wifiMulti.addAP(cfg::wlanssid_3, cfg::wlanpwd_3);
+			//connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS;
+			debug_outln_info(F("Set WiFi Network 3."));
+		}
 	}
 	else
 	{
 		debug_outln_info(F("Register to Single WiFi Network."));
-	}
-
-	uint16_t connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS; // Defines the TimeOut(ms) which will be used to try and connect with any specific Access Point.
-
-	wifiMulti.addAP(cfg::wlanssid, cfg::wlanpwd); 			// Open/Start WiFI coonection to router/modem. (default)
-
-	if (strlen(cfg::wlanpwd_2) != 0 && cfg::has_morewifi)
-	{
-		wifiMulti.addAP(cfg::wlanssid_2, cfg::wlanpwd_2);
-		connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS;
-		debug_outln_info(F("Set WiFi Network 2."));
-	}
-
-	if (strlen(cfg::wlanpwd_3) != 0 && cfg::has_morewifi)
-	{
-		wifiMulti.addAP(cfg::wlanssid_3, cfg::wlanpwd_3);
-		connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS;
-		debug_outln_info(F("Set WiFi Network 3."));
 	}
 
 	waitForMultiWiFiToConnect( maxRetries,  connectTimeOutPerAP );
@@ -6639,14 +6645,14 @@ static String displayGenerateFooter(unsigned int screen_count)
  *****************************************************************/
 static void display_values()
 {
+	#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+
 	float t_value = -128.0;
 	float h_value = -1.0;
 	float p_value = -1.0;
 	float voc_value = -1.0;
 	float nox_value = -1.0;
 	String t_sensor, h_sensor, p_sensor, voc_sensor, nox_sensor;
-
-#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 
 	/* no diagnostic for this section till "GCC diagnostic pop" */
 	float pm001_value = -1.0;
@@ -6963,6 +6969,7 @@ static void display_values()
 
 		case 3:
 			display_header = t_sensor;
+
 			if (h_sensor && t_sensor != h_sensor)
 			{
 				display_header += " / " + h_sensor;
@@ -7086,15 +7093,19 @@ static void display_values()
 			}
 			else if (memcmp(SEN5X_type, "SEN55", 6) == 0)
 			{
-				// display_lines[0] = std::move(tmpl(F("Temp.: {v} °C"), check_display_value(t_value, -128, 1, 6)));
-				display_lines[0] = std::move(tmpl(F("Humi: {v} %"), check_display_value(h_value, -1, 1, 6)));
-				display_lines[1] = std::move(tmpl(F(": {v} (index)"), check_display_value(voc_value, -1, 1, 6)));
-				display_lines[2] = std::move(tmpl(F("NO2: {v} (ppm)"), check_display_value(nox_value, -1, 1, 6)));
+				// display_lines[0] = std::move(tmpl(F("Humi: {v} %"), check_display_value(h_value, -1, 1, 6)));
+				// display_lines[1] = std::move(tmpl(F(": {v} (index)"), check_display_value(voc_value, -1, 1, 6)));
+				// display_lines[2] = std::move(tmpl(F("NO2: {v} (ppm)"), check_display_value(nox_value, -1, 1, 6)));
+
+				display_lines[0] = std::move(tmpl(F("Temp.: {v} °C"), check_display_value(t_value, -128, 1, 6)));
+				display_lines[1] = std::move(tmpl(F("Humi: {v} %"), check_display_value(h_value, -1, 1, 6)));
+				display_lines[2] = std::move(tmpl(F("VOC: {v} (index)"), check_display_value(voc_value, -1, 1, 6)));
 			}
 
 			break;
 		}
 
+		// send display data to selected OLED hardware.
 		if (oled_ssd1306)
 		{
 			oled_ssd1306->clear();
@@ -8533,7 +8544,7 @@ void loop(void)
 			}
 			else
 			{
-				waitForMultiWiFiToConnect(20, 3000);
+				waitForMultiWiFiToConnect(20, WIFI_SCAN_TIMEOUT_MS);
 			}
 		}
 
