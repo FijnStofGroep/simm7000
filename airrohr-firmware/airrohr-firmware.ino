@@ -191,7 +191,7 @@ namespace cfg
 	char wlanpwd_2[LEN_CFG_PASSWORD];
 	char wlanssid_3[LEN_WLANSSID];
 	char wlanpwd_3[LEN_CFG_PASSWORD];
-	bool has_morewifi=HAS_MOREWIFI;
+	bool has_morewifi = HAS_MOREWIFI;
 
 	char static_ip[LEN_STATIC_ADRESS];
 	char static_subnet[LEN_STATIC_ADRESS];
@@ -330,7 +330,7 @@ namespace cfg
 
 //*************************************************************************************************************************************************
 
-#define JSON_BUFFER_SIZE 2900					// 2300 -> 2900	=> increase: 20-07-2023
+#define JSON_BUFFER_SIZE 3500					// 2300 -> 3500	=> increase: 11-11-2023
 #define JSON_BUFFER_SIZE_SIMM7000 500			// Simm7000 module settings.
 
 ESP8266WiFiMulti wifiMulti;
@@ -2301,12 +2301,15 @@ static void webserver_config_send_body_get(String &page_content)
 	add_form_checkbox(Config_has_morewifi, FPSTR(INTL_ENABLE_MOREWIFI));
 	add_form_input(page_content, Config_wlanssid, FPSTR(INTL_FS_WIFI_NAME), LEN_WLANSSID - 1);
 	add_form_input(page_content, Config_wlanpwd, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
-	if (cfg::has_morewifi){
-	add_form_input(page_content, Config_wlanssid_2, FPSTR(INTL_FS_WIFI_NAME_2), LEN_WLANSSID - 1);
-	add_form_input(page_content, Config_wlanpwd_2, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
-	add_form_input(page_content, Config_wlanssid_3, FPSTR(INTL_FS_WIFI_NAME_3), LEN_WLANSSID - 1);
-	add_form_input(page_content, Config_wlanpwd_3, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
+
+	if (cfg::has_morewifi)
+	{
+		add_form_input(page_content, Config_wlanssid_2, FPSTR(INTL_FS_WIFI_NAME_2), LEN_WLANSSID - 1);
+		add_form_input(page_content, Config_wlanpwd_2, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
+		add_form_input(page_content, Config_wlanssid_3, FPSTR(INTL_FS_WIFI_NAME_3), LEN_WLANSSID - 1);
+		add_form_input(page_content, Config_wlanpwd_3, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
 	}
+
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	page_content += F("<hr/>");
 
@@ -3899,7 +3902,6 @@ static void wifiConfig()
 	debug_outln_info_bool(F("SCD30: "), cfg::scd30_read);
 	debug_outln_info_bool(F("SHT3X: "), cfg::sht3x_read);
 	debug_outln_info_bool(F("DNMS: "), cfg::dnms_read);
-	debug_outln_info_bool(F("SEN5X: "), cfg::sen5x_read);
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 	debug_outln_info_bool(F("SensorCommunity: "), cfg::send2dusti);
 	debug_outln_info_bool(F("Madavi: "), cfg::send2madavi);
@@ -3958,12 +3960,13 @@ static void waitForMultiWiFiToConnect(int maxRetries, uint16_t connectTimeOutPer
 ******************************************************************/
 static void RegisterMultiWiFiNetworks(int maxRetries)
 {
-	if (cfg::has_morewifi){
-	debug_outln_info(F("Register to Multi WiFi Network."));
+	if (cfg::has_morewifi)
+	{
+		debug_outln_info(F("Register to Multi WiFi Network."));
 	}
 	else
 	{
-	debug_outln_info(F("Register to Single WiFi Network."));
+		debug_outln_info(F("Register to Single WiFi Network."));
 	}
 
 	uint16_t connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS; // Defines the TimeOut(ms) which will be used to try and connect with any specific Access Point.
@@ -3974,14 +3977,14 @@ static void RegisterMultiWiFiNetworks(int maxRetries)
 	{
 		wifiMulti.addAP(cfg::wlanssid_2, cfg::wlanpwd_2);
 		connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS;
-		debug_outln_info(F("Check WiFi Network 2."));
+		debug_outln_info(F("Set WiFi Network 2."));
 	}
 
 	if (strlen(cfg::wlanpwd_3) != 0 && cfg::has_morewifi)
 	{
 		wifiMulti.addAP(cfg::wlanssid_3, cfg::wlanpwd_3);
 		connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS;
-		debug_outln_info(F("Check WiFi Network 3."));
+		debug_outln_info(F("Set WiFi Network 3."));
 	}
 
 	waitForMultiWiFiToConnect( maxRetries,  connectTimeOutPerAP );
@@ -3993,9 +3996,9 @@ static void RegisterMultiWiFiNetworks(int maxRetries)
 
 static WiFiEventHandler disconnectEventHandler;
 
-/*
-	connect to Wifi network. ()
-*/
+/*****************************************************************
+*	connect to Wifi network.									 *
+******************************************************************/
 static void connectWifi()
 {
 	display_debug(F("Connecting to"), String(cfg::wlanssid));
@@ -6247,9 +6250,9 @@ static void GetSen5XSensorData()
 
 		SEN5X_measurement_count++;
 
-		// Set sensor read time on 1 sec.
+		// Set sensor read time on 1 sec. => 5 reads => Nox value = 0 (start/stop)
 		SEN5X_read_timer = msSince(starttime + (SEN5X_WAITING_AFTER_LAST_READ - SAMPLETIME_SEN5X_MS));
-
+		
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
 		debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_SEN55));
 	}
