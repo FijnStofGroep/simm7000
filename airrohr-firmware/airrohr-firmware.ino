@@ -6197,7 +6197,7 @@ static void GetSen5XSensorData()
 	{
 		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN55));
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
-		debug_outln_info(F("SEN555 start sensor readings. time: "), String((msSince(starttime) - SEN5X_read_timer)) + F(" msec.") );
+		debug_outln_info(F("SEN555: Start sensor reading. time: "), String( msSince(starttime - SEN5X_read_timer)) + F(" msec.") );
 
 		uint16_t error;
 		char errorMessage[256];
