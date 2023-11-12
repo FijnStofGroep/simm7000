@@ -2316,9 +2316,10 @@ static void webserver_config_send_body_get(String &page_content)
 	}
 
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+	page_content += FPSTR(WEB_BR_LF_B);
 	page_content += F("<hr/>");
 
-	page_content += FPSTR(WEB_BR_LF_B);
+
 	page_content += FPSTR(INTL_AB_HIER_NUR_ANDERN);
 	page_content += FPSTR(WEB_B_BR);
 	page_content += FPSTR(BR_TAG);
@@ -2353,10 +2354,14 @@ static void webserver_config_send_body_get(String &page_content)
 
 	// Add IP static (FVD)
 	// add checkbox
+
 	page_content = FPSTR(WEB_BR_LF_B);
+	page_content += F("<hr/>");
+	page_content += FPSTR(WEB_BR_LF_B);
 	add_form_checkbox(Config_has_s7000, FPSTR(INTL_ENABLE_S7000));
 	page_content += FPSTR(WEB_BR_LF_B);
 	add_form_checkbox(Config_has_radarmotion, FPSTR(INTL_ENABLE_RCWL_0516));
+	//page_content += FPSTR(WEB_BR_LF_B);
 
 	if (cfg::has_radarmotion)
 	{
@@ -2367,8 +2372,9 @@ static void webserver_config_send_body_get(String &page_content)
 		add_form_input(page_content, Config_mqtt_pwd, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
 		page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	}
-
 	page_content += FPSTR(WEB_BR_LF_B);
+	page_content += F("<hr/>");
+
 	add_form_checkbox(Config_has_fix_ip, FPSTR(INTL_STATIC_IP_TEXT));
 	page_content += FPSTR(TABLE_TAG_OPEN);
 
@@ -2376,7 +2382,7 @@ static void webserver_config_send_body_get(String &page_content)
 	add_form_input(page_content, Config_static_subnet, FPSTR(INTL_STATIC_SUBNET), 15);
 	add_form_input(page_content, Config_static_gateway, FPSTR(INTL_STATIC_GATEWAY), 15);
 	add_form_input(page_content, Config_static_dns, FPSTR(INTL_STATIC_DNS), 15);
-	//page_content += FPSTR(WEB_BR_LF_B);
+
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 
 	server.sendContent(page_content);
@@ -2422,7 +2428,7 @@ static void webserver_config_send_body_get(String &page_content)
 
 	page_content += FPSTR(WEB_BR_LF_B);
 */
-	
+	page_content += F("<hr/>");
 	page_content += FPSTR(INTL_AB_HIER_NUR_ANDERN);
 	page_content += FPSTR(WEB_B_BR);
 	page_content += FPSTR(BR_TAG);
@@ -2505,6 +2511,7 @@ static void webserver_config_send_body_get(String &page_content)
 	server.sendContent(page_content);
 	page_content = FPSTR(TABLE_TAG_CLOSE_BR);
 	page_content += FPSTR(BR_TAG);
+	page_content += F("<hr/>");
 	page_content += form_checkbox(Config_send2custom, FPSTR(INTL_SEND_TO_OWN_API), false);
 	page_content += FPSTR(WEB_NBSP_NBSP_BRACE);
 	page_content += form_checkbox(Config_ssl_custom, FPSTR(WEB_HTTPS), false);
@@ -2526,6 +2533,7 @@ static void webserver_config_send_body_get(String &page_content)
 	// Test page_content = emptyString;
 	page_content = emptyString;
 	page_content += FPSTR(BR_TAG);
+	page_content += F("<hr/>");
 	page_content += form_checkbox(Config_send2mqtt, FPSTR(INTL_SEND_TO_MQTT), false);
 	page_content += FPSTR(BR_TAG);
 	
@@ -2537,7 +2545,7 @@ static void webserver_config_send_body_get(String &page_content)
 	add_form_input(page_content, Config_mqtt_pwd, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	page_content += FPSTR(BR_TAG);
-
+	page_content += F("<hr/>");
 	server.sendContent(page_content);
 	// End MQTT
 
