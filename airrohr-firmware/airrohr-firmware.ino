@@ -6182,7 +6182,7 @@ static __noinline void fetchSensorGPS(String &s)
  *****************************************************************/
 static void GetSen5XSensorData()
 {
-	if (cfg::sending_intervall_ms > SEN5X_WAITING_AFTER_LAST_READ &&
+	if (cfg::sending_intervall_ms > (SEN5X_WAITING_AFTER_LAST_READ + READINGTIME_SEN5X_MS) &&
 		msSince(starttime) < (cfg::sending_intervall_ms - (SEN5X_WAITING_AFTER_LAST_READ + READINGTIME_SEN5X_MS)))
 	{
 		if (is_SEN5X_running)
@@ -6197,7 +6197,7 @@ static void GetSen5XSensorData()
 	{
 		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN55));
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
-		debug_outln_info(F("SEN555: Start sensor reading. time: "), String( msSince(starttime - SEN5X_read_timer)) + F(" msec.") );
+		debug_outln_info(F("SEN555 START sensor reading. time: "), String((msSince(starttime) - (SEN5X_read_timer + (SEN5X_WAITING_AFTER_LAST_READ - SAMPLETIME_SEN5X_MS)))) + F(" msec.") );
 
 		uint16_t error;
 		char errorMessage[256];
