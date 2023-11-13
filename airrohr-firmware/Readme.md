@@ -162,10 +162,12 @@ For use of multiple sensors with Sensor.Community (formerly Luftdaten.info), you
 the following API pins hardcoded. These match what the Sensor.Community API expect and will be used
 by default when selecting the correct sensor model.
 
-* HPM/PMS/SDS011/SPS30 => Pin 1
+* HPM/PMS/SDS011/SPS30/SEN5x => Pin 1
 * BME280 => Pin 11
 * BMP180/BMP280 => Pin 3
 * DHT22/HTU21D/SHT3x => Pin 7
 * GPS(Neo-6M) => Pin 9
 * DS18B20 => Pin 13
-* DNMS +> Pin 15
+* DNMS => Pin 15
+* SCD30 => Pin17
+* 
