@@ -3980,8 +3980,6 @@ static void RegisterMultiWiFiNetworks(int maxRetries)
 
 	if (cfg::has_morewifi)
 	{
-		debug_outln_info(F("Register to Multi WiFi Network."));
-
 		if (strlen(cfg::wlanpwd_2) != 0)
 		{
 			wifiMulti.addAP(cfg::wlanssid_2, cfg::wlanpwd_2);
@@ -3995,6 +3993,8 @@ static void RegisterMultiWiFiNetworks(int maxRetries)
 			//connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS;
 			debug_outln_info(F("Set WiFi Network 3."));
 		}
+
+		debug_outln_info(F("Register to Multi WiFi Network."));
 	}
 	else
 	{
