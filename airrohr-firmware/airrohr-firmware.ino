@@ -6187,7 +6187,7 @@ static void GetSen5XSensorData()
 	{
 		if (is_SEN5X_running)
 		{
-			debug_outln_info(F("SEN555 STOP Measurement. time: "), String(msSince(starttime)));
+			debug_outln_info(F("SEN55 STOP Measurement. time: "), String(msSince(starttime)));
 
 			sen5x.stopMeasurement();
 			is_SEN5X_running = false;
@@ -6197,7 +6197,7 @@ static void GetSen5XSensorData()
 	{
 		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN55));
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
-		debug_outln_info(F("SEN555 START sensor reading. time: "), String((msSince(starttime) - (SEN5X_read_timer + (SEN5X_WAITING_AFTER_LAST_READ - SAMPLETIME_SEN5X_MS)))) + F(" msec.") );
+		debug_outln_info(F("SEN55 START sensor reading. time: "), String((msSince(starttime) - (SEN5X_read_timer + (SEN5X_WAITING_AFTER_LAST_READ - SAMPLETIME_SEN5X_MS)))) + F(" msec.") );
 
 		uint16_t error;
 		char errorMessage[256];
@@ -6274,7 +6274,7 @@ static void GetSen5XSensorData()
 	{
 		if (!is_SEN5X_running)
 		{
-			debug_outln_info(F("SEN555 START Measurement. Time: "), String(msSince(starttime)) );
+			debug_outln_info(F("SEN55 START Measurement. Time: "), String(msSince(starttime)) );
 
 			SEN5X_read_timer = msSince(starttime);
 			sen5x.startMeasurement();
