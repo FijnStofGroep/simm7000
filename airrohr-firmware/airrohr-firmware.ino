@@ -412,6 +412,10 @@ SoftwareSerial serialSDS;
 SoftwareSerial *serialGPS;
 SoftwareSerial serialNPM;
 SoftwareSerial serialIPS;
+
+SoftwareSerial serialSIM;
+TinyGsm        LTEmodem(serialSIM);
+//TinyGsmClient  LTEclient(LTEmodem);
 #endif
 
 #if defined(ESP32)
@@ -4177,6 +4181,52 @@ static WiFiClient *getNewLoggerWiFiClient(const LoggerEntry logger)
 	return _client;
 }
 
+/*
+	ESP8266 serial speed to SIM7000 = 115200 bps
+*/
+static boolean SIM700LTEConnect() 
+{
+	display_debug(F("SIM700 Connecting to"), String(cfg::wlanssid));
+
+	pinMode(SIM_PIN_PWR, OUTPUT);						// Set Power-On/Off SIM7000 board.
+
+	serialSIM.begin(115200, SWSERIAL_8N1, SIM_PIN_RX, SIM_PIN_TX);
+	delay(100);
+
+	// Restart takes internal quite some time.
+  	// To skip it, call init() instead of restart()
+  	LTEmodem.restart();
+  	// LTEmodem.init();
+
+	String modemInfo = LTEmodem.getModemInfo();
+  	display_debug(F("LTE Modem Info: "), modemInfo);
+
+
+	// Your GPRS credentials, if any
+	const char apn[]      = "YourAPN";
+	const char gprsUser[] = "";
+	const char gprsPass[] = "";
+
+	LTEmodem.gprsConnect(apn, gprsUser, gprsPass);
+
+	display_debug(F("Waiting for network..."),"");
+	if (!LTEmodem.waitForNetwork())
+	{
+		display_debug(F(" fail"),"");
+		delay(10000);
+		return false;
+	}
+
+	display_debug(F(" success"),"");
+
+	if (LTEmodem.isGprsConnected())
+	{
+		display_debug(F("GPRS connected."),"");
+	}
+
+	return true;
+}
+
 /*****************************************************************
  * send data to rest api => By Wifi                              *
  * return: total send time										 *
@@ -6227,7 +6277,7 @@ static void GetSen5XSensorData()
 		if (error)
 		{
 			Debug.print("Error trying to execute readMeasuredPmValues(): ");
-			errorToString(error, errorMessage, 256);
+			errorToString(error, errorMessage, sizeof(errorMessage));
 			Debug.println(errorMessage);
 		}
 		else
@@ -6250,8 +6300,8 @@ static void GetSen5XSensorData()
 
 		if (error)
 		{
-			Debug.print("Error trying to execute readMeasuredValues(): ");
-			errorToString(error, errorMessage, 256);
+			Debug.print("Error trying to execute readMeasuredTHValues(): ");
+			errorToString(error, errorMessage, sizeof(errorMessage));
 			Debug.println(errorMessage);
 		}
 		else
@@ -8106,6 +8156,11 @@ void setup(void)
 
 		strcpy(mqtt_client_id, SSID_BASENAME);
 		strcat(mqtt_client_id, esp_chipid.c_str());			// airRohr-<chipid>
+	}
+
+	if(cfg::has_s7000)
+	{
+		SIM700LTEConnect();
 	}
 
 	init_display();
