@@ -219,7 +219,8 @@ namespace cfg
 	bool ips_read = IPS_READ;
 	bool sen5x_read = SEN5X_READ;
 	bool sen5x_on = SEN5X_ON;
-	char sen5x_sym[LEN_SEN5X_SYM];
+	char sen5x_sym_pm[LEN_SEN5X_SYM];
+	char sen5x_sym_th[LEN_SEN5X_SYM];
 	bool sps30_read = SPS30_READ;
 	bool bmp_read = BMP_READ;
 	bool bmx280_read = BMX280_READ;
