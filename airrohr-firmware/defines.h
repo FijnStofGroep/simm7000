@@ -53,6 +53,7 @@
 
 #define LEN_STATIC_ADRESS  16
 #define LEN_SIMM7000 30
+#define LEN_SEN5X_SYM 10
 
 // define debug levels
 #define DEBUG_ERROR 1
