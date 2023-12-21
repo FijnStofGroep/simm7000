@@ -2362,11 +2362,11 @@ static void webserver_config_send_body_get(String &page_content)
 	// Add IP static (FVD)
 	// add checkbox
 
-	page_content = FPSTR(WEB_BR_LF_B);
+	page_content = FPSTR(WEB_BR_LF);
 	page_content += F("<hr/>");
-	page_content += FPSTR(WEB_BR_LF_B);
+	page_content += FPSTR(WEB_BR_LF);
 	add_form_checkbox(Config_has_s7000, FPSTR(INTL_ENABLE_S7000));
-	page_content += FPSTR(WEB_BR_LF_B);
+	page_content += FPSTR(WEB_BR_LF);
 	add_form_checkbox(Config_has_radarmotion, FPSTR(INTL_ENABLE_RCWL_0516));
 	//page_content += FPSTR(WEB_BR_LF_B);
 
@@ -2410,10 +2410,10 @@ static void webserver_config_send_body_get(String &page_content)
 	add_form_checkbox(Config_has_lcd2004, FPSTR(INTL_LCD2004_3F));
 	add_form_checkbox(Config_display_wifi_info, FPSTR(INTL_DISPLAY_WIFI_INFO));
 	add_form_checkbox(Config_display_device_info, FPSTR(INTL_DISPLAY_DEVICE_INFO));
-	page_content += FPSTR(WEB_BR_LF_B);
+	page_content += FPSTR(WEB_BR_LF);
 
 	server.sendContent(page_content);
-	page_content = FPSTR(WEB_BR_LF_B);
+	page_content = FPSTR(WEB_BR_LF);
 
 // Disable Firmware opties  (FvD)
 /*
@@ -2457,6 +2457,7 @@ static void webserver_config_send_body_get(String &page_content)
 	add_form_checkbox_sensor(Config_ips_read, FPSTR(INTL_IPS));
 	add_form_checkbox_sensor(Config_hpm_read, FPSTR(INTL_HPM));
 	add_form_checkbox_sensor(Config_sps30_read, FPSTR(INTL_SPS30));
+	page_content += F("<hr/>");
 	add_form_checkbox_sensor(Config_sen5x_read, FPSTR(INTL_SEN5X));
 	page_content += FPSTR(WEB_NBSP_NBSP);
 	add_form_checkbox_sensor(Config_sen5x_read, FPSTR(INTL_SEN5X_ALL_ON));

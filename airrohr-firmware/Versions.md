@@ -1,3 +1,6 @@
+FWL-2023-12-B1  (Fijnstof Werkgroep Leusden)
+* Change config web
+
 FWL-2023-11-B1  (Fijnstof Werkgroep Leusden)
 * Add multi SSID
 * WIFI retry (5)
