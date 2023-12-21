@@ -85,7 +85,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2023-11-B1"
+#define SOFTWARE_VERSION_STR "FWL-2023-12-B1"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -2460,7 +2460,7 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content += F("<hr/>");
 	add_form_checkbox_sensor(Config_sen5x_read, FPSTR(INTL_SEN5X));
 	page_content += FPSTR(WEB_NBSP_NBSP);
-	add_form_checkbox_sensor(Config_sen5x_read, FPSTR(INTL_SEN5X_ALL_ON));
+	add_form_checkbox_sensor(Config_sen5x_on, FPSTR(INTL_SEN5X_ALL_ON));
 	page_content += FPSTR(WEB_B_BR);
 	page_content += F("<hr/>");
 	page_content += FPSTR(WEB_B_BR);

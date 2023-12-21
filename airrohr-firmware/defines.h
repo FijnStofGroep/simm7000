@@ -21,7 +21,7 @@
 #define SSID_BASENAME "airRohr-"
 #define HOSTNAME_BASE "airRohr-"
 
-#define WIFI_MAX_RETRY 10
+#define WIFI_MAX_RETRY 5
 
 #define LEN_CFG_STRING 65
 #define LEN_CFG_PASSWORD 65
