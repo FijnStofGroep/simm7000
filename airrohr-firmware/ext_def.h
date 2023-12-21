@@ -91,7 +91,7 @@ static const char FW_DOWNLOAD_HOST[] PROGMEM = "firmware.sensor.community";
 
 static const char FW_2ND_LOADER_URL[] PROGMEM = OTA_BASENAME "/loader-002.bin";
 
-static const char NTP_SERVER_1[] PROGMEM = "0.pool.ntp.org";
+static const char NTP_SERVER_1[] PROGMEM = "0.pool.ntp.org";    // NTP servers operate always in UTC time.
 static const char NTP_SERVER_2[] PROGMEM = "1.pool.ntp.org";
 
 // define own API
@@ -147,6 +147,12 @@ static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
 // define serial interface pins for GPS modules
 #define GPS_SERIAL_RX D5
 #define GPS_SERIAL_TX D6
+
+// define serial interface pins for SIM7000 LTE module
+#define SIM_PIN_RX  12              // Serial RX pin no: D6 -> GPIO12  <---- TX SIM7000
+#define SIM_PIN_TX  14              // Serial TX pin no: D5 -> GPIO14  ----> RX SIM7000
+#define SIM_PIN_PWR 13              // PowerPin no:      D7 -> GPIO13  ----> SIM7000 PWRPIN
+// #define PIN_DTR 25   xx
 
 // define serial interface pins for Next PM Sensor
 #define NPM_SERIAL_RX D1
