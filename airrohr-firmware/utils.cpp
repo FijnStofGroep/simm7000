@@ -315,7 +315,8 @@ size_t LoggingSerial::write(uint8_t c)
 size_t LoggingSerial::write(const uint8_t *buffer, size_t size)
 {
 #if defined(ESP32)
-	for(int i = 0; i < size; i++) {
+	for(int i = 0; i < size; i++) 
+	{
 		xQueueSendToBack(m_buffer, ( void * ) &buffer[i], ( TickType_t ) 1);
 	}
 #endif
@@ -329,18 +330,22 @@ String LoggingSerial::popLines()
 {
 	String r;
 #if defined(ESP8266)
-	while (m_buffer->available() > 0) {
+	while (m_buffer->available() > 0) 
+	{
 		uint8_t c = m_buffer->pop();
 		r += (char) c;
 
 		if (c == '\n' && r.length() > m_buffer->available())
+		{
 			break;
+		}
 	}
 #endif
 
 #if defined(ESP32)
 	uint8_t c;
-	while (xQueueReceive(m_buffer, &(c ), (TickType_t) 1 )) {
+	while (xQueueReceive(m_buffer, &(c ), (TickType_t) 1 )) 
+	{
 		r += (char) c;
 
 		if (c == '\n' && r.length() > 10)

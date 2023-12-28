@@ -15,6 +15,7 @@
 // VS: Convert Arduino file to C++ manually.
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
+#include <PubSubClient.h>
 
 class RCWL_0516
 {
@@ -25,7 +26,7 @@ public:
   int MotionSensorID = D7;  // Radar data out. => the pin D7 = 13 that the sensor is attached to.
 
   // Auxiliary variables
-  int motionState;          // by default, no motion detected
+  int m_motionState;          // by default, no motion detected
 
   Queue* m_queue = NULL;
 
@@ -34,8 +35,10 @@ public:
   */
   RCWL_0516()
   {
-    motionState = LOW;
-    lastTrigger = millis();
+    m_motionState = LOW;
+    this->mqtt_client = nullptr;
+    mqtt_header[0] = 0x00;
+    lastTriggerEvent = millis();
   };
 
   /*
@@ -46,12 +49,15 @@ public:
     if( m_queue != NULL)
     {
       delete m_queue;         // destructor will get called here, after which it's memory is freed => remove m_queue from heap memory.
+      m_queue = NULL;
     }
   };
 
   //public function methods
-  bool init(int motionSensorID = D7);             // default: pin D7(13) that the radar sensor is attached to.
-  bool begin(const char *serverHost, uint port);  
+  bool init(unsigned long m_Wait_max_time, int motionSensorID = D7);             // default: pin D7(13) that the radar sensor is attached to.
+  bool begin(const char *serverHost, uint port);
+  bool setMQTTClient(PubSubClient& mqttclient, String _header);
+  
   void loop(void);
   void end(void);                                 // end/stop motion Event process.
   unsigned long GetMotionCount();
@@ -66,15 +72,24 @@ private:
 
 // Timer: Auxiliary variables
   unsigned long currentTrigger = 0;
-  unsigned long lastTrigger = 0;
+  unsigned long lastTriggerEvent = 0;
   unsigned long count_RadarMotion = 0;
+
+  unsigned long startTriggerEvent = 0;
+  unsigned long m_Wait_until_max_time_provided = 30 * 1000;        // Wait until max time provided. (in sec.)
 
   bool m_Active = false;
   char m_serverHost[25] = "192.168.2.105";        // server has static IPAdres.
   uint m_port = 8080;                             // 8080 default port nr.
 
+  #define LEN_MQTT_LARGE_HEADER 90
+  char mqtt_header[LEN_MQTT_LARGE_HEADER];
+  PubSubClient *mqtt_client;
+
   // private function methods
-  void SendToServer(int val);
+  void SendToServer(int val, time_t now);
+  void sendMQTT(int val, time_t now);
+  void sendMotiondata(int motionValue);
  
 };
 

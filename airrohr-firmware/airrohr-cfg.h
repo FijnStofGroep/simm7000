@@ -4,6 +4,8 @@
 // Change airrohr-cfg.h.py instead.
 // update: 28 September 2023
 // add Bool Fix IP
+// update: 28 December 2023
+// add more settings
 
 enum ConfigEntryType : unsigned short {
 	Config_Type_Bool,

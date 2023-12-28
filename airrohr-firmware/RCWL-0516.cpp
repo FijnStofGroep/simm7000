@@ -20,11 +20,11 @@ RCWL_0516 RCWL0516; // Create RCWL_0516 instance on Stack.
  */
 ICACHE_RAM_ATTR void MotionSensorChangeEvent()
 {
-  int motionValue = digitalRead(RCWL0516.MotionSensorID); // read sensor value
+  int motionValue = digitalRead(RCWL0516.MotionSensorID); // read Radar sensor value.
 
   RCWL0516.m_queue->Enqueue(motionValue);
 
-  debug_outln_info(F("MotionSensorChangeEvent()::Radar Motion/Sensor value: "), String(motionValue));
+  //debug_outln_verbose(F("MotionSensorChangeEvent()::Radar Motion/Sensor value: "), String(motionValue));
 }
 
 //**********************************************************************************************************************************
@@ -33,19 +33,22 @@ ICACHE_RAM_ATTR void MotionSensorChangeEvent()
 
 /*
     Init RCWL_0516 Instance.
-*/
-bool RCWL_0516::init(int motionSensorID)
-{
-  // Initialize the BUILTIN_LED pin as an output.
-  // pinMode(MotionLedID, OUTPUT);
 
+    Wait_max_time in sec.
+*/
+bool RCWL_0516::init(unsigned long Wait_max_time, int motionSensorID)
+{
   MotionSensorID = motionSensorID;
+
+  // send motion value only if this time has pased.
+  // start on high signal and end on low signal.
+  m_Wait_until_max_time_provided = Wait_max_time * 1000;
 
    pinMode(MotionSensorID, INPUT);
   // Radar Motion Sensor signal mode INPUT_PULLUP => is more stabale signal.
   //pinMode(MotionSensorID, INPUT_PULLUP);
 
-  // Create a Queue[] array of capacity 10 on the heap.
+  // Create a Queue[] array of 10 radar events could be stored on the heap.
   m_queue = new Queue(10);
 
   return true;
@@ -93,6 +96,24 @@ bool RCWL_0516::begin(const char *serverHost, uint port)
   return m_Active;
 }
 
+/*
+ *
+ *
+*/
+bool RCWL_0516::setMQTTClient(PubSubClient& mqttclient, String _header)
+{
+  this->mqtt_client = &mqttclient;
+
+		// ++ Set-Up Topic header for MQTT Broker
+		if( _header.length() <= LEN_MQTT_LARGE_HEADER)
+		{
+			strcpy(mqtt_header, _header.c_str());
+		}
+
+  return false;
+}
+
+
 #pragma GCC diagnostic pop
 
 /*
@@ -104,29 +125,37 @@ void RCWL_0516::loop()
   {
     int motionValue = RCWL0516.m_queue->Dequeue();
 
-    // debug_outln_info(F("loop()::Radar Motion-Sensor value: "), String(motionval));
+    // debug_outln_verbose(F("loop()::Radar Motion-Sensor value: "), String(motionval));
 
-    // Send Radar value to Server.
-    SendToServer(motionValue);
-
-    // if (m_Active)
+    if (m_Wait_until_max_time_provided == 0)
+    {// send all motion value to a external device.
+      sendMotiondata( motionValue );
+    }
+    else
     {
       if (motionValue == HIGH)
       { // sensor is HIGH
-        if (motionState == LOW)
+        if (m_motionState == LOW)
         {
-          // digitalWrite(MotionLed, LEDHIGH);  // turn external LED ON
-          motionState = HIGH;                   // update variable state to HIGH
+          startTriggerEvent = millis();
+          m_motionState = HIGH;                 // update variable state to HIGH
         }
       }
       else
       {
-        if (motionState == HIGH)
+        if (m_motionState == HIGH)
         {
-          // digitalWrite(MotionLed, LEDLOW);   // turn external LED OFF
-          motionState = LOW;                    // update variable state to LOW
-
-          count_RadarMotion++;
+          if ((millis() - startTriggerEvent) >= m_Wait_until_max_time_provided)
+          { // Inform external application there is active motion detected.
+            sendMotiondata( motionValue );
+            m_motionState = LOW; // update variable state to LOW
+            startTriggerEvent = 0;
+          }
+          else
+          {// to short time window => restart.
+            m_motionState = LOW; // update variable state to LOW
+            startTriggerEvent = 0;
+          }
         }
       }
     }
@@ -151,22 +180,37 @@ unsigned long RCWL_0516::GetMotionCount()
 
 //*************************************************************************************************************************************
 /*
- *  Send Radar motion value To a Server.
+    send Radar motion to outside world.
+*/
+void RCWL_0516::sendMotiondata(int motionValue)
+{
+      time_t now = time(nullptr);
+
+        // Send Radar value to Server.
+      SendToServer(motionValue, now);
+
+      // Send Radar value to MQTT broker.
+      sendMQTT(motionValue, now);
+
+      count_RadarMotion++;
+}
+
+/*
+ *  Send Radar motion value To a web-Server.
  *
  */
-void RCWL_0516::SendToServer(int val)
+void RCWL_0516::SendToServer(int val, time_t now)
 {
-  debug_outln_info(F("SendToServer(): Radar Motion value: "), String(val));
-  
-
+  debug_outln_verbose(F("SendToServer(): Radar Motion value: "), String(val));
+ 
   if (!m_Active)
   {
     // Current time
     currentTrigger = millis();
 
-    if ((currentTrigger - lastTrigger < m_timeSeconds))
+    if ((currentTrigger - lastTriggerEvent) < m_timeSeconds)
     {
-      debug_outln_info(F("Wait for retry connect to Server = "), String((currentTrigger - lastTrigger) / 1000) + F(" sec."));
+      debug_outln_verbose(F("Wait for retry connect to Server = "), String((currentTrigger - lastTriggerEvent) / 1000) + F(" sec."));
       return;
     }
 
@@ -175,31 +219,77 @@ void RCWL_0516::SendToServer(int val)
 
   WiFiClient client;
 
-  debug_outln_info(F("connecting to "), String(m_serverHost) + F(":") + String(m_port));
+  debug_outln_verbose(F("connecting to "), String(m_serverHost) + F(":") + String(m_port));
 
   if (!client.connect(m_serverHost, m_port))
   {
     // Serial.println("connection failed");
-    debug_outln_info(F("Connection failed to Server = "), String(m_serverHost));
+    debug_outln_verbose(F("Connection failed to Server = "), String(m_serverHost));
 
-    lastTrigger = millis();
+    lastTriggerEvent = millis();
     m_Active = false;
     return;
   }
 
   if (client.connected())
   {
-    // debug_outln_info(F("[Sending a request] => Radar Motion Value: "), String(val));
+    // debug_outln_verbose(F("[Sending a request] => Radar Motion Value: "), String(val));
  
     // Send rader value to external Server.
-    client.print(String("Radar Value: ") + String(val));
+    //client.print(String("Radar Value: ") + String(val));
+    String message = String(F("Date:")) + String(ctime(&now)) + String(F("Radar Value:")) + String(val);
+    client.print( message);
+    client.stop();                      // clean-up client resouces.
 
-    client.stop();
-
-    // debug_outln_info(F("[Sending a request] => ENDED: "));
+    // debug_outln_verbose(F("[Sending a request] => ENDED: "));
   }
   else
   {
-    debug_outln_info(F("Could Not connect to Server = "), String(m_serverHost));
+    debug_outln_verbose(F("Could Not connect to Server = "), String(m_serverHost));
   }
+}
+
+/*****************************************************************
+* send radar motion value to mqtt api                            *
+*                                                                *
+*****************************************************************/
+void RCWL_0516::sendMQTT(int val, time_t now)
+{
+	if ( mqtt_client != nullptr && mqtt_client->connected() )
+	{
+			debug_outln_verbose(F("- Radar topic = "), mqtt_header);
+
+      String status_header, payload_status;
+      status_header = mqtt_header;
+			status_header += "/radar";
+
+			payload_status = "{\"";
+      payload_status += F("Date");
+			payload_status += "\":\"";
+      payload_status += String(ctime(&now));
+			payload_status += "\":\"";
+			payload_status += F("Value");
+			payload_status += "\":\"";
+			payload_status += String(val);
+      payload_status += "\"}";
+
+			if( mqtt_client->publish(status_header.c_str(), payload_status.c_str()))
+			{
+        mqtt_client->loop();
+
+        //mqtt_client->flush();
+
+				debug_outln_verbose(F("Radar send ok..."));
+			}
+			else
+			{
+        debug_outln_verbose(F("Radar send failed, rc= "), String(mqtt_client->state()));
+			}
+	}
+  else
+  {
+			debug_outln_verbose(F("** MQTT NOT connected **"));
+  }
+
+	return;
 }
