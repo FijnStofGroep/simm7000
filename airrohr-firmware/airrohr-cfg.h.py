@@ -24,6 +24,9 @@ Bool		npm_read
 Bool        npm_fulltime
 Bool		ips_read
 Bool		sen5x_read
+Bool		sen5x_on
+String		sen5x_sym_pm
+String		sen5x_sym_th
 Bool		sps30_read
 Bool		bmp_read
 Bool		bmx280_read

@@ -153,6 +153,7 @@ const char WEB_B_BR[] PROGMEM = "</b><br/>";
 const char WEB_BR_BR[] PROGMEM = "<br/><br/>";
 const char WEB_BR_FORM[] PROGMEM = "<br/></form>";
 const char WEB_BR_LF_B[] PROGMEM = "<br/>\n<b>";
+const char WEB_BR_LF[] PROGMEM = "<br/>\n";
 const char WEB_LF_B[] PROGMEM = "\n<b>";
 const char WEB_CSV[] PROGMEM = "CSV";
 const char WEB_FEINSTAUB_APP[] PROGMEM = "<a target='_blank' href='https://chillibits.com/pmapp'>Feinstaub-App</a>";
@@ -162,6 +163,7 @@ const char WEB_MADAVI[] PROGMEM = "<a target='_blank' href='https://www.madavi.d
 const char WEB_SENSORCOMMUNITY[] PROGMEM = "<a target='_blank' href='https://archive.sensor.community/00disclamer.md'>Sensor.Community</a>";
 const char WEB_HTTPS[] PROGMEM = "HTTPS";
 const char WEB_NBSP_NBSP_BRACE[] PROGMEM = "&nbsp;&nbsp;(";
+const char WEB_NBSP_NBSP[] PROGMEM = "&nbsp;&nbsp;-";
 const char WEB_REPLN_REPLV[] PROGMEM = "\"{n}\":\"{v}\",";
 
 const char WEB_PM1[]   PROGMEM = "PM1";
