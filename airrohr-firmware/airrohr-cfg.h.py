@@ -107,12 +107,8 @@ with open("airrohr-cfg.h", "w") as h:
 // Change airrohr-cfg.h.py instead.
 // update: 29 december 2023
 // add Bool Fix IP
-<<<<<<< Updated upstream
 // update: 28 December 2023
 // add more settings
-=======
-// run python airrohr-cfg.h.py
->>>>>>> Stashed changes
 
 enum ConfigEntryType : unsigned short {
 	Config_Type_Bool,
