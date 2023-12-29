@@ -2451,16 +2451,20 @@ static void webserver_config_send_body_get(String &page_content)
 
 	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(3));
 	add_form_checkbox_sensor(Config_sds_read, FPSTR(INTL_SDS011));
-	add_form_checkbox_sensor(Config_hpm_read, FPSTR(INTL_HPM));
+	add_form_checkbox_sensor(Config_sen5x_read, FPSTR(INTL_SEN5X));
+	page_content += FPSTR(WEB_NBSP_NBSP);
+	add_form_checkbox_sensor(Config_sen5x_on, FPSTR(INTL_SEN5X_ON));
 	add_form_checkbox_sensor(Config_sps30_read, FPSTR(INTL_SPS30));
+	add_form_checkbox_sensor(Config_hpm_read, FPSTR(INTL_HPM));
+
 
 	// Paginate page after ~ 1500 Bytes
 	server.sendContent(page_content);
 	page_content = emptyString;
 
+	add_form_checkbox_sensor(Config_bmx280_read, FPSTR(INTL_BMX280));
 	add_form_checkbox_sensor(Config_dht_read, FPSTR(INTL_DHT22));
 	add_form_checkbox_sensor(Config_htu21d_read, FPSTR(INTL_HTU21D));
-	add_form_checkbox_sensor(Config_bmx280_read, FPSTR(INTL_BMX280));
 	add_form_checkbox_sensor(Config_sht3x_read, FPSTR(INTL_SHT3X));
 	add_form_checkbox_sensor(Config_scd30_read, FPSTR(INTL_SCD30));
 
@@ -2490,7 +2494,6 @@ static void webserver_config_send_body_get(String &page_content)
 	add_form_checkbox_sensor(Config_npm_read, FPSTR(INTL_NPM));
 	add_form_checkbox_sensor(Config_npm_fulltime, FPSTR(INTL_NPM_FULLTIME));
 	add_form_checkbox_sensor(Config_ips_read, FPSTR(INTL_IPS));
-	add_form_checkbox_sensor(Config_sen5x_read, FPSTR(INTL_SEN5X));
 	add_form_checkbox_sensor(Config_bmp_read, FPSTR(INTL_BMP180));
 	add_form_checkbox(Config_gps_read, FPSTR(INTL_NEO6M));
 
