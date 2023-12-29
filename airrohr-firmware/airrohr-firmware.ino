@@ -219,8 +219,8 @@ namespace cfg
 	bool ips_read = IPS_READ;
 	bool sen5x_read = SEN5X_READ;
 	bool sen5x_on = SEN5X_ON;
-	char sen5x_sym_pm[LEN_SEN5X_SYM];
-	char sen5x_sym_th[LEN_SEN5X_SYM];
+	char sen5x_sym_pm[LEN_SEN5X_SYM] = "SPS30";
+	char sen5x_sym_th[LEN_SEN5X_SYM] = "SHT31";
 	bool sps30_read = SPS30_READ;
 	bool bmp_read = BMP_READ;
 	bool bmx280_read = BMX280_READ;
@@ -2452,28 +2452,17 @@ static void webserver_config_send_body_get(String &page_content)
 
 	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(3));
 	add_form_checkbox_sensor(Config_sds_read, FPSTR(INTL_SDS011));
-	add_form_checkbox_sensor(Config_pms_read, FPSTR(INTL_PMS));
-	add_form_checkbox_sensor(Config_npm_read, FPSTR(INTL_NPM));
-	add_form_checkbox_sensor(Config_npm_fulltime, FPSTR(INTL_NPM_FULLTIME));
-	add_form_checkbox_sensor(Config_ips_read, FPSTR(INTL_IPS));
 	add_form_checkbox_sensor(Config_hpm_read, FPSTR(INTL_HPM));
 	add_form_checkbox_sensor(Config_sps30_read, FPSTR(INTL_SPS30));
-
-	server.sendContent(page_content);
-	//page_content = emptyString;
-	page_content = F("<hr/>");
-	add_form_checkbox_sensor(Config_sen5x_read, FPSTR(INTL_SEN5X));
-	page_content += FPSTR(WEB_NBSP_NBSP);
-  // add_form_checkbox_sensor(Config_sen5x_on, FPSTR(INTL_SEN5X_ALL_ON));
-	// add_form_checkbox_sensor(Config_sen5x_read, FPSTR(INTL_SEN5X));
-	page_content += FPSTR(WEB_B_BR);
-	page_content += F("<hr/>");
-	page_content += FPSTR(WEB_B_BR);
 
 	// Paginate page after ~ 1500 Bytes
 	server.sendContent(page_content);
 	page_content = emptyString;
 
+	add_form_checkbox_sensor(Config_dht_read, FPSTR(INTL_DHT22));
+	add_form_checkbox_sensor(Config_htu21d_read, FPSTR(INTL_HTU21D));
+	add_form_checkbox_sensor(Config_bmx280_read, FPSTR(INTL_BMX280));
+	add_form_checkbox_sensor(Config_sht3x_read, FPSTR(INTL_SHT3X));
 	add_form_checkbox_sensor(Config_scd30_read, FPSTR(INTL_SCD30));
 
 	page_content += FPSTR(TABLE_TAG_OPEN);
@@ -2493,25 +2482,22 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 
 	page_content += FPSTR(WEB_BR_LF_B);
-	page_content += FPSTR(INTL_MORE_TEMP_SENSORS);
+	page_content += FPSTR(INTL_MORE_SENSORS);
 	page_content += FPSTR(WEB_B_BR);
 
-	page_content += F("<hr/>");
-	page_content += FPSTR(WEB_B_BR);
-
-	// More Temp Sensors on web page:
+	// More Sensors on web page:
 	add_form_checkbox_sensor(Config_ds18b20_read, FPSTR(INTL_DS18B20));
-	add_form_checkbox_sensor(Config_dht_read, FPSTR(INTL_DHT22));
-	add_form_checkbox_sensor(Config_htu21d_read, FPSTR(INTL_HTU21D));
-	add_form_checkbox_sensor(Config_bmx280_read, FPSTR(INTL_BMX280));
-	add_form_checkbox_sensor(Config_sht3x_read, FPSTR(INTL_SHT3X));
+	add_form_checkbox_sensor(Config_pms_read, FPSTR(INTL_PMS));
+	add_form_checkbox_sensor(Config_npm_read, FPSTR(INTL_NPM));
+	add_form_checkbox_sensor(Config_npm_fulltime, FPSTR(INTL_NPM_FULLTIME));
+	add_form_checkbox_sensor(Config_ips_read, FPSTR(INTL_IPS));
+	add_form_checkbox_sensor(Config_sen5x_read, FPSTR(INTL_SEN5X));
 	add_form_checkbox_sensor(Config_bmp_read, FPSTR(INTL_BMP180));
-	page_content += FPSTR(WEB_B_BR);
-	page_content += F("<hr/>");
 	add_form_checkbox(Config_gps_read, FPSTR(INTL_NEO6M));
 
 	// Paginate page after ~ 1500 Bytes
 	server.sendContent(page_content);
+
 	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(4));
 
 	page_content += tmpl(FPSTR(INTL_SEND_TO), F("APIs"));
@@ -6257,9 +6243,10 @@ static void GetSen5XSensorData()
 		if (is_SEN5X_running)
 		{
 			debug_outln_info(F("SEN55 STOP Measurement. time: "), String(msSince(starttime)));
-
+	
 			sen5x.stopMeasurement();
 			is_SEN5X_running = false;
+
 		}
 	}
 	else if (is_SEN5X_running && (msSince(starttime) - SEN5X_read_timer) > SEN5X_WAITING_AFTER_LAST_READ)
@@ -7451,7 +7438,7 @@ static void initSEN5X()
 		Debug.print("SEN5X_DeviceReset() return Error: ");
 		errorToString(error, errorMessage, 256);
 		Debug.println(errorMessage);
-		debug_outln_error(F("Check SEN5x sensor is connected!"));
+		debug_outln_error(F("Check SEN5x sensor is connected!-klopt niet altijd"));
 
 		is_Sen5x_init_failed = true;
 		return;
@@ -7898,7 +7885,7 @@ static void logEnabledAPIs()
 
 	if (cfg::auto_update)
 	{
-	//	debug_outln_info(F("Auto-Update active..."));
+		debug_outln_info(F("Auto-Update active..."));
 	}
 }
 
