@@ -2490,11 +2490,11 @@ static void webserver_config_send_body_get(String &page_content)
 
 	// More Sensors on web page:
 	add_form_checkbox_sensor(Config_ds18b20_read, FPSTR(INTL_DS18B20));
+	add_form_checkbox_sensor(Config_bmp_read, FPSTR(INTL_BMP180));
 	add_form_checkbox_sensor(Config_pms_read, FPSTR(INTL_PMS));
 	add_form_checkbox_sensor(Config_npm_read, FPSTR(INTL_NPM));
 	add_form_checkbox_sensor(Config_npm_fulltime, FPSTR(INTL_NPM_FULLTIME));
 	add_form_checkbox_sensor(Config_ips_read, FPSTR(INTL_IPS));
-	add_form_checkbox_sensor(Config_bmp_read, FPSTR(INTL_BMP180));
 	add_form_checkbox(Config_gps_read, FPSTR(INTL_NEO6M));
 
 	// Paginate page after ~ 1500 Bytes
@@ -6244,18 +6244,20 @@ static void GetSen5XSensorData()
 	{
 		if (is_SEN5X_running)
 		{
-			debug_outln_info(F("SEN55 STOP Measurement. time: "), String(msSince(starttime)));
+			if (!cfg::sen5x_on)
+			{
+			debug_outln_info(F("SEN5X STOP Measurement. time: "), String(msSince(starttime)));
 	
 			sen5x.stopMeasurement();
 			is_SEN5X_running = false;
-
+			}
 		}
 	}
 	else if (is_SEN5X_running && (msSince(starttime) - SEN5X_read_timer) > SEN5X_WAITING_AFTER_LAST_READ)
 	{
 		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN55));
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
-		debug_outln_info(F("SEN55 START sensor reading. time: "), String((msSince(starttime) - (SEN5X_read_timer + (SEN5X_WAITING_AFTER_LAST_READ - SAMPLETIME_SEN5X_MS)))) + F(" msec.") );
+		debug_outln_info(F("SEN5X START sensor reading. time: "), String((msSince(starttime) - (SEN5X_read_timer + (SEN5X_WAITING_AFTER_LAST_READ - SAMPLETIME_SEN5X_MS)))) + F(" msec.") );
 
 		uint16_t error;
 		char errorMessage[256];
@@ -6332,7 +6334,7 @@ static void GetSen5XSensorData()
 	{
 		if (!is_SEN5X_running)
 		{
-			debug_outln_info(F("SEN55 START Measurement. Time: "), String(msSince(starttime)) );
+			debug_outln_info(F("SEN5X START Measurement. Time: "), String(msSince(starttime)) );
 
 			SEN5X_read_timer = msSince(starttime);
 			sen5x.startMeasurement();
