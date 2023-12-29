@@ -2177,7 +2177,6 @@ static void add_warning_first_cycle(String &page_content)
 static void add_age_last_values(String &sourceStr)
 {
 	sourceStr += "<b>";
-	
 	unsigned int time_since_last = msSince(starttime);
 	if (time_since_last > cfg::sending_intervall_ms)
 	{
@@ -4350,9 +4349,9 @@ static unsigned long sendSensorCommunity(const String &data, const int pin, cons
 }
 
 /*****************************************************************
- * send data to mqtt api                                         *
- * return: total working/send time.								 *
-/*****************************************************************/
+* send data to mqtt api                                          *
+* return: total working/send time.								 *
+******************************************************************/
 static unsigned long sendmqtt(const String &data, const char *host, const int port)
 {
 #if defined(ESP8266)
@@ -8054,12 +8053,12 @@ static unsigned long sendDataToOptionalApis(const String &data)
 	}
 
 #if defined(ESP8266)
-	// MQTT send process.
-	if (cfg::send2mqtt)
-	{
-		debug_out(String(DBG_TXT_SENDING_TO) + String("mqtt: "), DEBUG_MIN_INFO);
-		sum_send_time += sendmqtt(data, cfg::mqtt_server, cfg::mqtt_port);
-	}
+		// MQTT send process.
+		if ( cfg::send2mqtt )
+		{
+			debug_out( String( DBG_TXT_SENDING_TO) + String("mqtt: "), DEBUG_MIN_INFO);
+			sum_send_time += sendmqtt(data, cfg::mqtt_server, cfg::mqtt_port);
+		}
 #endif
 
 	return sum_send_time;
@@ -8216,7 +8215,7 @@ void setup(void)
 	{
 		debug_outln_info(F("Start to Initialize Radar motion sensor (RCWL_0516)."));
 
-		RCWL0516.init( (unsigned long)readCorrectionOffset(cfg::dnms_correction));		// TEST TEST => use for wait max time value. in sec.
+		RCWL0516.init((unsigned long)readCorrectionOffset(cfg::dnms_correction)); // TEST TEST => use for wait max time value. in sec.
 
 		if(!RCWL0516.begin(cfg::host_radar, cfg::port_radar))
 		{
