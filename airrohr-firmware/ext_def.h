@@ -294,6 +294,8 @@ static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
 #define SEN5X_API_PIN 1                       // (16) New pin nr: 1 for PM and temp, humidity, NOx.
 #define SEN5X_TH_API_PIN 17
 #define SEN5X_ON 0
+#define SEN5X_SYM_TH "SHT3X"
+#define SEN5X_SYM_PM "SPS30"
 
 // Sensirion SPS30, the more expensive version of the particle sensor
 #define SPS30_READ 0
@@ -369,8 +371,8 @@ static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
 // Show device info on displays
 #define DISPLAY_DEVICE_INFO 1
 
-// RCWL-0516 sensor => Radar Motion.
-static const char HOST_RADAR[] PROGMEM = "192.168.10.10";
+    // RCWL-0516 sensor => Radar Motion.
+    static const char HOST_RADAR[] PROGMEM = "192.168.10.10";
 #define HAS_RADARMOTION 0
 #define USER_RADAR "ftp"
 #define PWD_RADAR "secret"
