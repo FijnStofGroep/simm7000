@@ -2477,6 +2477,7 @@ static void webserver_config_send_body_get(String &page_content)
 	add_form_checkbox_sensor(Config_npm_read, FPSTR(INTL_NPM));
 	add_form_checkbox_sensor(Config_npm_fulltime, FPSTR(INTL_NPM_FULLTIME));
 	add_form_checkbox_sensor(Config_ips_read, FPSTR(INTL_IPS));
+	page_content += FPSTR(WEB_BR_LF);
 	page_content += F("<hr/>");
 	page_content += FPSTR(WEB_BR_LF);
 	add_form_checkbox_sensor(Config_scd30_read, FPSTR(INTL_SCD30));
@@ -2489,13 +2490,15 @@ static void webserver_config_send_body_get(String &page_content)
 	// Paginate page after ~ 1500 Bytes
 	server.sendContent(page_content);
 	page_content = emptyString;
-
+	page_content += FPSTR(WEB_BR_LF);
 	add_form_checkbox_sensor(Config_dnms_read, FPSTR(INTL_DNMS));
 	page_content += FPSTR(TABLE_TAG_OPEN);
 	add_form_input(page_content, Config_dnms_correction, FPSTR(INTL_DNMS_CORRECTION), LEN_DNMS_CORRECTION - 1);
 	add_form_input(page_content, Config_temp_correction, FPSTR(INTL_TEMP_CORRECTION), LEN_TEMP_CORRECTION - 1);
 	add_form_input(page_content, Config_height_above_sealevel, FPSTR(INTL_HEIGHT_ABOVE_SEALEVEL), LEN_HEIGHT_ABOVE_SEALEVEL - 1);
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+	page_content += FPSTR(WEB_BR_LF);
+	add_form_checkbox(Config_gps_read, FPSTR(INTL_NEO6M));
 
 	page_content += FPSTR(WEB_BR_LF_B);
 	page_content += FPSTR(INTL_MORE_TEMP_SENSORS);
@@ -2509,9 +2512,7 @@ static void webserver_config_send_body_get(String &page_content)
 	add_form_checkbox_sensor(Config_dht_read, FPSTR(INTL_DHT22));
 	add_form_checkbox_sensor(Config_htu21d_read, FPSTR(INTL_HTU21D));
 	add_form_checkbox_sensor(Config_sht3x_read, FPSTR(INTL_SHT3X));
-	page_content += F("<hr/>");
-	page_content += FPSTR(WEB_BR_LF);
-	add_form_checkbox(Config_gps_read, FPSTR(INTL_NEO6M));
+
 
 	// Paginate page after ~ 1500 Bytes
 	server.sendContent(page_content);
