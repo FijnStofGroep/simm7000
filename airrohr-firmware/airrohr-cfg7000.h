@@ -59,7 +59,7 @@ static String form_select_mode7()		// mode SIMM7000
 	String s = F("<tr>"
 				 "<td>" INTL_MODE ":&nbsp;</td>"
 				 "<td>"
-				 "<select id='current_lang' name='current_lang'>"
+				 "<select id='s7000_mode2' name='s7000_mode2'>"
 				 "<option value='1'>Mode 1</option>"
 				 "<option value='2'>Mode 2</option>"
 				 "<option value='3'>Mode 3</option>"
