@@ -7903,11 +7903,12 @@ static void logEnabledAPIs()
 	}
 
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
-
+/*
 	if (cfg::auto_update)
 	{
 		debug_outln_info(F("Auto-Update active..."));
 	}
+*/
 }
 
 /*
@@ -7967,13 +7968,16 @@ static unsigned long sendDataToOptionalApis(const String &data)
 	if (cfg::send2madavi)
 	{
 		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("madavi.de: "));
+		debug_outln_info(F("Emulate SEN55:"));
+		debug_outln_info(F("TH - "), FPSTR(cfg::sen5x_sym_th));
+		debug_outln_info(F("PM - "), FPSTR(cfg::sen5x_sym_pm));
 
 		if (cfg::sen5x_read && (!is_Sen5x_init_failed))
 		{
 			RESERVE_STRING(data_sensemap, LARGE_STR);
 			data_sensemap = data;
-			data_sensemap.replace("SEN55_", "SPS30_"); // set PM sensor Name.
-			data_sensemap.replace("SEN5X_", "SCD30_"); // set temp/hummidity/NOx sensor Name.
+			data_sensemap.replace("SEN55_", cfg::sen5x_sym_pm); // set PM sensor Name.
+			data_sensemap.replace("SEN5X_", cfg::sen5x_sym_th); // set temp/hummidity/NOx sensor Name.
 													   // "signal" = Wifi signal info.
 
 			sum_send_time += sendData(LoggerMadavi, data_sensemap, 0, HOST_MADAVI, URL_MADAVI);
@@ -8004,12 +8008,17 @@ static unsigned long sendDataToOptionalApis(const String &data)
 
 			RESERVE_STRING(data_sensemap, LARGE_STR);
 			data_sensemap = data;
-			data_sensemap.replace("SEN55_", "SPS30_");						// set PM sensor Name
-			data_sensemap.replace("SEN5X_", "SCD30_");						// set temp/hummidity/NOx sensor Name
+			data_sensemap.replace("SEN55", cfg::sen5x_sym_pm); // set PM sensor Name
+			// data_sensemap.replace("SEN5X_", "SCD30_");						// set temp/hummidity/NOx sensor Name
+			data_sensemap.replace("SEN5X", cfg::sen5x_sym_th);				// set temp/hummidity/NOx sensor Name
 			data_sensemap.replace("signal", "wifi_signal");					// Wifi signal info
-			// end
+			
+				// end
 
-			debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("opensensemap: "));
+				debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("opensensemap: "));
+			debug_outln_info(F("Emulate SEN55 -"));
+			debug_outln_info(F("TH - "), FPSTR(cfg::sen5x_sym_th));
+			debug_outln_info(F("PM - "), FPSTR(cfg::sen5x_sym_pm));
 
 			String sensemap_path(tmpl(FPSTR(URL_SENSEMAP), cfg::senseboxid));
 			sum_send_time += sendData(LoggerSensemap, data_sensemap, 0, HOST_SENSEMAP, sensemap_path.c_str());
