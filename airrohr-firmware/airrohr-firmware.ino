@@ -2459,9 +2459,9 @@ static void webserver_config_send_body_get(String &page_content)
 
 	page_content += form_select_mode_SEN5PM();
 	page_content += form_select_mode_SEN5TH();
-	add_form_input(page_content, Config_sen5x_sym_th, FPSTR(INTL_SEN5X_TH) ,8 - 1);
 
-	add_form_input(page_content, Config_sen5x_sym_pm, FPSTR(INTL_SEN5X_PM), 8 - 1);
+	// add_form_input(page_content, Config_sen5x_sym_th, FPSTR(INTL_SEN5X_TH) ,8 - 1);
+	//add_form_input(page_content, Config_sen5x_sym_pm, FPSTR(INTL_SEN5X_PM), 8 - 1);
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	page_content += F("<hr/>");
 	page_content += FPSTR(WEB_BR_LF);
