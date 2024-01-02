@@ -76,7 +76,9 @@ input[type=submit]:hover{background:#167908}\
 .radio{display:none}.panel{display:none}\
 .canvas{min-height:118px;background:#055d52;margin-bottom:20px;}\
 #r4:checked~.panels>#panel4,#r1:checked~.panels>#panel1,#r3:checked~.panels>#panel3,#r2:checked~.panels>#panel2{display:block}\
-#r4:checked~.tabs>#tab4,#r1:checked~.tabs>#tab1,#r3:checked~.tabs>#tab3,#r2:checked~.tabs>#tab2{background:#055d52;color:#fff}";
+#r4:checked~.tabs>#tab4,#r1:checked~.tabs>#tab1,#r3:checked~.tabs>#tab3,#r2:checked~.tabs>#tab2{background:#055d52;color:#fff}\
+#sen5x_sym_pm{background:#055d52;color:#fff}\
+#sen5x_sym_th{background:#055d52;color:#fff}";
 
 #define STATIC_PREFIX "/" INTL_LANG "_s1"
 

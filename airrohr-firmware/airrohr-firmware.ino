@@ -85,7 +85,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2023-12-B1"
+#define SOFTWARE_VERSION_STR "FWL-2024-01-B1"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -8195,10 +8195,12 @@ void setup(void)
 		strcat(mqtt_client_id, esp_chipid.c_str());			// airRohr-<chipid>
 	}
 
+/*	Debug -Tijdelijk verplaatst naar regel 8212 ivm Wifi start langzaam/actief ... 5 minuten..?
 	if(cfg::has_s7000)
 	{
 		SIM700LTEConnect();
 	}
+*/
 
 	init_display();
 	setupNetworkTime();			// set Callback function ptr into NTPSERVER function callback table.
@@ -8208,6 +8210,12 @@ void setup(void)
 
 	debug_outln_info(F("\nChipId: "), esp_chipid);
 	debug_outln_info(F("\nMAC Id: "), esp_mac_id);
+
+	if (cfg::has_s7000)
+	{
+		debug_outln_info(F("\nSim7000 try connect "));
+		SIM700LTEConnect();
+	}
 
 	if (cfg::gps_read)
 	{
