@@ -89,7 +89,7 @@ private:
   // private function methods
   void SendToServer(int val, time_t now);
   void sendMQTT(int val, time_t now);
-  void sendMotiondata(int motionValue);
+  void sendMotionValue(int motionValue);
  
 };
 

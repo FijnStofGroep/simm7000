@@ -291,11 +291,11 @@ static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
 
 // Sensirion Sensirion I2C SEN5X
 #define SEN5X_READ 0                          // default: false
-#define SEN5X_API_PIN 1                       // (16) New pin nr: 1 for PM and temp, humidity, NOx.
-#define SEN5X_TH_API_PIN 17
-#define SEN5X_ON 0
-static const char SEN5X_SYM_PM[] PROGMEM = "SPS30";
-static const char SEN5X_SYM_TH[] PROGMEM = "SHT35";
+#define SEN5X_PM_API_PIN 1                    // proposal: Pin 16 New pin for SEN5X-PM (for now use PIN 1)
+#define SEN5X_TH_API_PIN 17                   // temp, humidity, NOx.
+#define SEN5X_ON 0                            // Fan motor start/stop
+#define SEN5X_SYM_PM    "SPS30"               // SEN5X-PM indicator change into SPS30 indicator.
+#define SEN5X_SYM_TH    "SHT35"               // SEN5X-TH indicator change into SHT30 indicator.
 
 // Sensirion SPS30, the more expensive version of the particle sensor
 #define SPS30_READ 0
