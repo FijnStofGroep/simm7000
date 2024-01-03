@@ -85,7 +85,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2023-12-B1"
+#define SOFTWARE_VERSION_STR "FWL-2024-01-B1"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -382,7 +382,9 @@ const uint8_t default_ip_second_octet = 168;
 const uint8_t default_ip_third_octet = 4;
 const uint8_t default_ip_fourth_octet = 1;
 
+#include "./sen5x_html.h"
 #include "./airrohr-cfg.h"
+
 
 /*****************************************************************
  * Variables for Noise Measurement DNMS                          *
@@ -2177,7 +2179,6 @@ static void add_warning_first_cycle(String &page_content)
 static void add_age_last_values(String &sourceStr)
 {
 	sourceStr += "<b>";
-	
 	unsigned int time_since_last = msSince(starttime);
 	if (time_since_last > cfg::sending_intervall_ms)
 	{
@@ -2461,20 +2462,30 @@ static void webserver_config_send_body_get(String &page_content)
 
 	server.sendContent(page_content);
 	//page_content = emptyString;
-
 	page_content = F("<hr/>");
 	add_form_checkbox_sensor(Config_sen5x_read, FPSTR(INTL_SEN5X));
 	page_content += FPSTR(WEB_NBSP_NBSP);
-  	// add_form_checkbox_sensor(Config_sen5x_on, FPSTR(INTL_SEN5X_ALL_ON));
+  // add_form_checkbox_sensor(Config_sen5x_on, FPSTR(INTL_SEN5X_ALL_ON));
 	// add_form_checkbox_sensor(Config_sen5x_read, FPSTR(INTL_SEN5X));
 	page_content += FPSTR(WEB_B_BR);
 	page_content += F("<hr/>");
-	page_content += FPSTR(WEB_B_BR);
+	page_content += FPSTR(WEB_BR_LF);
+
+	add_form_checkbox_sensor(Config_sds_read, FPSTR(INTL_SDS011));
+	add_form_checkbox_sensor(Config_sps30_read, FPSTR(INTL_SPS30));
+	add_form_checkbox_sensor(Config_hpm_read, FPSTR(INTL_HPM));
+
 
 	// Paginate page after ~ 1500 Bytes
 	server.sendContent(page_content);
 	page_content = emptyString;
-
+	add_form_checkbox_sensor(Config_pms_read, FPSTR(INTL_PMS));
+	add_form_checkbox_sensor(Config_npm_read, FPSTR(INTL_NPM));
+	add_form_checkbox_sensor(Config_npm_fulltime, FPSTR(INTL_NPM_FULLTIME));
+	add_form_checkbox_sensor(Config_ips_read, FPSTR(INTL_IPS));
+	page_content += FPSTR(WEB_BR_LF);
+	page_content += F("<hr/>");
+	page_content += FPSTR(WEB_BR_LF);
 	add_form_checkbox_sensor(Config_scd30_read, FPSTR(INTL_SCD30));
 
 	page_content += FPSTR(TABLE_TAG_OPEN);
@@ -2485,34 +2496,33 @@ static void webserver_config_send_body_get(String &page_content)
 	// Paginate page after ~ 1500 Bytes
 	server.sendContent(page_content);
 	page_content = emptyString;
-
+	page_content += FPSTR(WEB_BR_LF);
 	add_form_checkbox_sensor(Config_dnms_read, FPSTR(INTL_DNMS));
 	page_content += FPSTR(TABLE_TAG_OPEN);
 	add_form_input(page_content, Config_dnms_correction, FPSTR(INTL_DNMS_CORRECTION), LEN_DNMS_CORRECTION - 1);
 	add_form_input(page_content, Config_temp_correction, FPSTR(INTL_TEMP_CORRECTION), LEN_TEMP_CORRECTION - 1);
 	add_form_input(page_content, Config_height_above_sealevel, FPSTR(INTL_HEIGHT_ABOVE_SEALEVEL), LEN_HEIGHT_ABOVE_SEALEVEL - 1);
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+	page_content += FPSTR(WEB_BR_LF);
+	add_form_checkbox(Config_gps_read, FPSTR(INTL_NEO6M));
 
 	page_content += FPSTR(WEB_BR_LF_B);
 	page_content += FPSTR(INTL_MORE_TEMP_SENSORS);
-	page_content += FPSTR(WEB_B_BR);
-
 	page_content += F("<hr/>");
 	page_content += FPSTR(WEB_B_BR);
 
-	// More Temp Sensors on web page:
+	// More Sensors on web page:
+	add_form_checkbox_sensor(Config_bmx280_read, FPSTR(INTL_BMX280));
 	add_form_checkbox_sensor(Config_ds18b20_read, FPSTR(INTL_DS18B20));
+	add_form_checkbox_sensor(Config_bmp_read, FPSTR(INTL_BMP180));
 	add_form_checkbox_sensor(Config_dht_read, FPSTR(INTL_DHT22));
 	add_form_checkbox_sensor(Config_htu21d_read, FPSTR(INTL_HTU21D));
-	add_form_checkbox_sensor(Config_bmx280_read, FPSTR(INTL_BMX280));
 	add_form_checkbox_sensor(Config_sht3x_read, FPSTR(INTL_SHT3X));
-	add_form_checkbox_sensor(Config_bmp_read, FPSTR(INTL_BMP180));
-	page_content += FPSTR(WEB_B_BR);
-	page_content += F("<hr/>");
-	add_form_checkbox(Config_gps_read, FPSTR(INTL_NEO6M));
+
 
 	// Paginate page after ~ 1500 Bytes
 	server.sendContent(page_content);
+
 	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(4));
 
 	page_content += tmpl(FPSTR(INTL_SEND_TO), F("APIs"));
@@ -4376,7 +4386,7 @@ static unsigned long sendSensorCommunity(const String &data, const int pin, cons
 /*****************************************************************
  * send data to mqtt api                                         *
  * return: total working/send time.								 *
- *****************************************************************/
+/*****************************************************************/
 static unsigned long sendmqtt(const String &data, const char *host, const int port)
 {
 #if defined(ESP8266)
@@ -6264,23 +6274,20 @@ static void GetSen5XSensorData()
 	if (cfg::sending_intervall_ms > (SEN5X_WAITING_AFTER_LAST_READ + READINGTIME_SEN5X_MS) &&
 		msSince(starttime) < (cfg::sending_intervall_ms - (SEN5X_WAITING_AFTER_LAST_READ + READINGTIME_SEN5X_MS)))
 	{
-		if (is_SEN5X_running )
+		if (is_SEN5X_running)
 		{
-			if(!cfg::sen5x_on)
-			{
-				debug_outln_info(F("SEN55 STOP Measurement. time: "), String(msSince(starttime)));
+			debug_outln_info(F("SEN55 STOP Measurement. time: "), String(msSince(starttime)));
 
-				sen5x.stopMeasurement();
-			}
-
+			sen5x.stopMeasurement();
 			is_SEN5X_running = false;
+			}
 		}
 	}
 	else if (is_SEN5X_running && (msSince(starttime) - SEN5X_read_timer) > SEN5X_WAITING_AFTER_LAST_READ)
 	{
 		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN55));
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
-		debug_outln_info(F("SEN55 START sensor reading. time: "), String((msSince(starttime) - (SEN5X_read_timer + (SEN5X_WAITING_AFTER_LAST_READ - SAMPLETIME_SEN5X_MS)))) + F(" msec.") );
+		debug_outln_info(F("SEN5X START sensor reading. time: "), String((msSince(starttime) - (SEN5X_read_timer + (SEN5X_WAITING_AFTER_LAST_READ - SAMPLETIME_SEN5X_MS)))) + F(" msec.") );
 
 		uint16_t error;
 		char errorMessage[256];
@@ -6357,7 +6364,7 @@ static void GetSen5XSensorData()
 	{
 		if (!is_SEN5X_running)
 		{
-			debug_outln_info(F("SEN55 START Measurement. Time: "), String(msSince(starttime)) );
+			debug_outln_info(F("SEN5X START Measurement. Time: "), String(msSince(starttime)) );
 
 			SEN5X_read_timer = msSince(starttime);
 			sen5x.startMeasurement();
@@ -7465,7 +7472,7 @@ static void initSEN5X()
 		Debug.print("SEN5X_DeviceReset() return Error: ");
 		errorToString(error, errorMessage, 256);
 		Debug.println(errorMessage);
-		debug_outln_error(F("Check SEN5x sensor is connected!"));
+		debug_outln_error(F("Check SEN5x sensor is connected!-klopt niet altijd"));
 
 		is_Sen5x_init_failed = true;
 		return;
@@ -7909,11 +7916,12 @@ static void logEnabledAPIs()
 	}
 
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
-
+/*
 	if (cfg::auto_update)
 	{
-	//	debug_outln_info(F("Auto-Update active..."));
+		debug_outln_info(F("Auto-Update active..."));
 	}
+*/
 }
 
 /*
@@ -7973,13 +7981,16 @@ static unsigned long sendDataToOptionalApis(const String &data)
 	if (cfg::send2madavi)
 	{
 		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("madavi.de: "));
+		debug_outln_info(F("Emulate SEN55:"));
+		debug_outln_info(F("TH - "), FPSTR(cfg::sen5x_sym_th));
+		debug_outln_info(F("PM - "), FPSTR(cfg::sen5x_sym_pm));
 
 		if (cfg::sen5x_read && (!is_Sen5x_init_failed))
 		{
 			RESERVE_STRING(data_sensemap, LARGE_STR);
 			data_sensemap = data;
-			data_sensemap.replace("SEN55_", "SPS30_"); // set PM sensor Name.
-			data_sensemap.replace("SEN5X_", "SCD30_"); // set temp/hummidity/NOx sensor Name.
+			data_sensemap.replace("SEN55_", cfg::sen5x_sym_pm); // set PM sensor Name.
+			data_sensemap.replace("SEN5X_", cfg::sen5x_sym_th); // set temp/hummidity/NOx sensor Name.
 													   // "signal" = Wifi signal info.
 
 			sum_send_time += sendData(LoggerMadavi, data_sensemap, 0, HOST_MADAVI, URL_MADAVI);
@@ -8010,12 +8021,17 @@ static unsigned long sendDataToOptionalApis(const String &data)
 
 			RESERVE_STRING(data_sensemap, LARGE_STR);
 			data_sensemap = data;
-			data_sensemap.replace("SEN55_", "SPS30_");						// set PM sensor Name
-			data_sensemap.replace("SEN5X_", "SCD30_");						// set temp/hummidity/NOx sensor Name
+			data_sensemap.replace("SEN55", cfg::sen5x_sym_pm); // set PM sensor Name
+			// data_sensemap.replace("SEN5X_", "SCD30_");						// set temp/hummidity/NOx sensor Name
+			data_sensemap.replace("SEN5X", cfg::sen5x_sym_th);				// set temp/hummidity/NOx sensor Name
 			data_sensemap.replace("signal", "wifi_signal");					// Wifi signal info
-			// end
+			
+				// end
 
-			debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("opensensemap: "));
+				debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("opensensemap: "));
+			debug_outln_info(F("Emulate SEN55 -"));
+			debug_outln_info(F("TH - "), FPSTR(cfg::sen5x_sym_th));
+			debug_outln_info(F("PM - "), FPSTR(cfg::sen5x_sym_pm));
 
 			String sensemap_path(tmpl(FPSTR(URL_SENSEMAP), cfg::senseboxid));
 			sum_send_time += sendData(LoggerSensemap, data_sensemap, 0, HOST_SENSEMAP, sensemap_path.c_str());
@@ -8081,12 +8097,12 @@ static unsigned long sendDataToOptionalApis(const String &data)
 	}
 
 #if defined(ESP8266)
-	// MQTT send process.
-	if (cfg::send2mqtt)
-	{
-		debug_out(String(DBG_TXT_SENDING_TO) + String("mqtt: "), DEBUG_MIN_INFO);
-		sum_send_time += sendmqtt(data, cfg::mqtt_server, cfg::mqtt_port);
-	}
+		// MQTT send process.
+		if ( cfg::send2mqtt )
+		{
+			debug_out( String( DBG_TXT_SENDING_TO) + String("mqtt: "), DEBUG_MIN_INFO);
+			sum_send_time += sendmqtt(data, cfg::mqtt_server, cfg::mqtt_port);
+		}
 #endif
 
 	return sum_send_time;
@@ -8191,10 +8207,12 @@ void setup(void)
 		strcat(mqtt_client_id, esp_chipid.c_str());			// airRohr-<chipid>
 	}
 
+/*	Debug -Tijdelijk verplaatst naar regel 8212 ivm Wifi start langzaam/actief ... 5 minuten..?
 	if(cfg::has_s7000)
 	{
 		SIM700LTEConnect();
 	}
+*/
 
 	init_display();
 	setupNetworkTime();			// set Callback function ptr into NTPSERVER function callback table.
@@ -8204,6 +8222,12 @@ void setup(void)
 
 	debug_outln_info(F("\nChipId: "), esp_chipid);
 	debug_outln_info(F("\nMAC Id: "), esp_mac_id);
+
+	if (cfg::has_s7000)
+	{
+		debug_outln_info(F("\nSim7000 try connect "));
+		SIM700LTEConnect();
+	}
 
 	if (cfg::gps_read)
 	{
@@ -8243,7 +8267,7 @@ void setup(void)
 	{
 		debug_outln_info(F("Start to Initialize Radar motion sensor (RCWL_0516)."));
 
-		RCWL0516.init( (unsigned long)readCorrectionOffset(cfg::dnms_correction));		// TEST TEST => use for wait max time value. in sec.
+		RCWL0516.init((unsigned long)readCorrectionOffset(cfg::dnms_correction)); // TEST TEST => use for wait max time value. in sec.
 
 		if(!RCWL0516.begin(cfg::host_radar, cfg::port_radar))
 		{

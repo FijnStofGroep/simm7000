@@ -2,7 +2,7 @@
 
 // This file is generated, please do not edit.
 // Change airrohr-cfg.h.py instead.
-// update: 28 September 2023
+// update: 29 december 2023
 // add Bool Fix IP
 // update: 28 December 2023
 // add more settings

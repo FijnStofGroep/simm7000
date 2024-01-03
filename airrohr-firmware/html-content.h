@@ -76,7 +76,9 @@ input[type=submit]:hover{background:#167908}\
 .radio{display:none}.panel{display:none}\
 .canvas{min-height:118px;background:#055d52;margin-bottom:20px;}\
 #r4:checked~.panels>#panel4,#r1:checked~.panels>#panel1,#r3:checked~.panels>#panel3,#r2:checked~.panels>#panel2{display:block}\
-#r4:checked~.tabs>#tab4,#r1:checked~.tabs>#tab1,#r3:checked~.tabs>#tab3,#r2:checked~.tabs>#tab2{background:#055d52;color:#fff}";
+#r4:checked~.tabs>#tab4,#r1:checked~.tabs>#tab1,#r3:checked~.tabs>#tab3,#r2:checked~.tabs>#tab2{background:#055d52;color:#fff}\
+#sen5x_sym_pm{background:#055d52;color:#fff}\
+#sen5x_sym_th{background:#055d52;color:#fff}";
 
 #define STATIC_PREFIX "/" INTL_LANG "_s1"
 
@@ -163,7 +165,7 @@ const char WEB_MADAVI[] PROGMEM = "<a target='_blank' href='https://www.madavi.d
 const char WEB_SENSORCOMMUNITY[] PROGMEM = "<a target='_blank' href='https://archive.sensor.community/00disclamer.md'>Sensor.Community</a>";
 const char WEB_HTTPS[] PROGMEM = "HTTPS";
 const char WEB_NBSP_NBSP_BRACE[] PROGMEM = "&nbsp;&nbsp;(";
-const char WEB_NBSP_NBSP[] PROGMEM = "&nbsp;&nbsp;-";
+const char WEB_NBSP_NBSP[] PROGMEM = "&nbsp;&nbsp;-&nbsp;";
 const char WEB_REPLN_REPLV[] PROGMEM = "\"{n}\":\"{v}\",";
 
 const char WEB_PM1[]   PROGMEM = "PM1";
