@@ -11,6 +11,7 @@
 #if defined(ESP8266)
 #define SENSOR_BASENAME "esp8266-"
 #define OTA_BASENAME "/airrohr"
+#define MY_TZ "CET-1CEST,M3.5.0/02,M10.5.0/03"  // Europe/Amsterdam, see Timezone: https://leo.leung.xyz/wiki/Timezone
 #endif
 
 #if defined(ESP32)
@@ -54,7 +55,7 @@
 
 #define LEN_STATIC_ADRESS  16
 #define LEN_SIMM7000 30
-#define LEN_SEN5X_SYM 5
+#define LEN_SEN5X_SYM 6
 
 // define debug levels
 #define DEBUG_ERROR 1

@@ -2,10 +2,11 @@
 
 // This file is generated, please do not edit.
 // Change airrohr-cfg.h.py instead.
-// update: 29 december 2023
+// update: 29 juli 2023
 // add Bool Fix IP
 // update: 28 December 2023
 // add more settings
+// run python airrohr-cfg.h.py
 
 enum ConfigEntryType : unsigned short {
 	Config_Type_Bool,

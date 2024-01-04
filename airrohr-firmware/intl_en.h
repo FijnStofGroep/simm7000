@@ -150,7 +150,7 @@ const char INTL_SIGNAL_QUALITY[] PROGMEM = "signal quality";
 
 #define INTL_ENABLE_S7000 "Enable S7000 LTE"
 
-const char INTL_SIM7000[] PROGMEM = "Sim7000 LTE";
+const char INTL_SIM7000_CONFIGURATION[] PROGMEM = "Sim7000 LTE";
 const char INTL_SIM7000_DIS[] PROGMEM = "Disable";
 const char INTL_SIM_APN[] PROGMEM = "APN";
 const char INTL_SIM_ID[] PROGMEM = "ID";

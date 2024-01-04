@@ -308,7 +308,7 @@ namespace cfg
 
 #endif
 
-	//
+	// init: set default values to options.
 	void initNonTrivials(const char *id)
 	{
 		strcpy(cfg::current_lang, CURRENT_LANG);
@@ -332,6 +332,8 @@ namespace cfg
 		strcpy_P(cfg::static_subnet, STATIC_SUBNET);
 		strcpy_P(cfg::static_gateway, STATIC_GATEWAY);
 		strcpy_P(cfg::static_dns, STATIC_DNS);
+
+		strcpy_P(cfg::host_radar, HOST_RADAR);
 
 		if (!*cfg::fs_ssid)
 		{
@@ -2225,13 +2227,17 @@ static bool webserver_request_auth()
 	return true;
 }
 
+/************************************
+ * resend http page again to client *
+*************************************/
 static void sendHttpRedirect() 
 {
 	const IPAddress defaultIP(
-		default_ip_first_octet, 
-		default_ip_second_octet, 
-		default_ip_third_octet, 
-		default_ip_fourth_octet);
+								default_ip_first_octet, 
+								default_ip_second_octet, 
+								default_ip_third_octet, 
+								default_ip_fourth_octet
+							 );
 
 	String defaultAddress = F("http://") + defaultIP.toString() + F("/config");
 	server.sendHeader(F("Location"), defaultAddress);
@@ -2271,7 +2277,7 @@ static void webserver_root()
 		page_content.replace(F("{t}"), FPSTR(INTL_CURRENT_DATA));
 		page_content.replace(F("{s}"), FPSTR(INTL_DEVICE_STATUS));
 		page_content.replace(F("{conf}"), FPSTR(INTL_CONFIGURATION));
-		page_content.replace(F("{s7000}"), FPSTR(INTL_SIM7000));
+		page_content.replace(F("{s7000}"), FPSTR(INTL_SIM7000_CONFIGURATION));
 		page_content.replace(F("{restart}"), FPSTR(INTL_RESTART_SENSOR));
 		page_content.replace(F("{debug}"), FPSTR(INTL_DEBUG_LEVEL));
 		
@@ -2615,7 +2621,7 @@ static void webserver_config_send_body_get(String &page_content)
 }
 
 /*****************************************************************************
- * Webserver config: post the canged page to config file and restart appl.   *
+ * Webserver config: post the changed page to config file and restart appl.   *
  *****************************************************************************/
 static void webserver_config_send_body_post(String &page_content)
 {
@@ -2668,8 +2674,49 @@ static void webserver_config_send_body_post(String &page_content)
 	page_content = emptyString;
 }
 
+/*****************************************************************
+ * Webserver sim7000 config: show sim7000 config page            *
+ *****************************************************************/
+static void webserver_config_send_body_get7(String &page_content)
+{
+	// auto add_form_checkbox7 = [&page_content](const ConfigShape7Id cfgid, const String &info)
+	// {
+	// 	page_content += form_checkbox7(cfgid, info, true);
+	// };
 
-	static void webserver_config_send_body_post7(String &page_content)
+	// auto add_form_checkbox_sensor7 = [&add_form_checkbox7](const ConfigShape7Id cfgid, __const __FlashStringHelper *info)
+	// {
+	// 	add_form_checkbox7(cfgid, add_sensor_type(info));
+	// };
+
+	debug_outln_info(F("begin webserver_simm7000_body_get ..."));
+	debug_outln_info(F("SIM7000 enable: "), cfg::has_s7000);
+
+	page_content += F("<form method='POST' action='/s7000' style='width:100%;'>\n");
+	page_content += FPSTR(WEB_BR_BR);
+	page_content += FPSTR(TABLE_TAG_OPEN);
+	// add_form_input7(page_content, Config7000_mode, FPSTR(INTL_SIM_MODE), LEN_SIMM7000 - 1);
+	add_form_input7(page_content, Config7000_apn, FPSTR(INTL_SIM_APN), LEN_SIMM7000 - 1);
+	add_form_input7(page_content, Config7000_type, FPSTR(INTL_SIM_TYPE), LEN_SIMM7000 - 1);
+	page_content += form_select_mode7();
+	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+	page_content += FPSTR(WEB_BR_BR);
+	page_content += form_checkbox7(Config7000_has_gps, FPSTR(INTL_SIM_GPS), false);
+	page_content += F("</div></div>");
+	page_content += form_submit(FPSTR(INTL_SAVE_AND_RESTART));
+	page_content += FPSTR(WEB_BR_FORM);
+
+	debug_outln_info(F("End webserver_simm7000 ..."));
+
+	server.sendContent(page_content);
+
+	page_content = emptyString;
+}
+
+/*********************************************************************************************
+ * Webserver sim7000 config: post the changed page to sim7000 config file and restart appl.  *
+ *********************************************************************************************/
+static void webserver_config_send_body_post7(String &page_content)
 {
 	String masked_pwd;
 
@@ -2717,9 +2764,10 @@ static void webserver_config_send_body_post(String &page_content)
 	server.sendContent(page_content);
 	page_content = emptyString;
 }
-/*
-	Write webside settings into Config file. 
-*/
+
+/****************************************************
+ *	Write webside settings into Config file. 		*
+*****************************************************/
 static void webserver_config()
 {
 	if (!webserver_request_auth())
@@ -2806,13 +2854,13 @@ static void webserver_config7()
 
 	if (server.method() == HTTP_GET)
 	{
-		debug_outln_info(F("HTTP_GET "));
+		debug_outln_info(F("HTTP_GET"));
 		webserver_config_send_body_get7(page_content);
 
 	}
 	else
 	{
-		debug_outln_info(F("HTTP_POST7 "));
+		debug_outln_info(F("HTTP_POST7"));
 		webserver_config_send_body_post7(page_content);
 	}
 
@@ -3572,75 +3620,33 @@ static void webserver_debug_level()
 
 	end_html_page(page_content);
 }
+
 /*****************************************************************
- * Webserver sim7000 config                                      *
+ * Webserver remove config                                       *
  *****************************************************************/
-//static void webserver_s7000()
-
-static void webserver_config_send_body_get7(String &page_content)
+static void webserver_removeConfig()
 {
-	auto add_form_checkbox7 = [&page_content](const ConfigShape7Id cfgid, const String &info)
+	if (!webserver_request_auth())
 	{
-		page_content += form_checkbox7(cfgid, info, true);
-	};
-
-	auto add_form_checkbox_sensor7 = [&add_form_checkbox7](const ConfigShape7Id cfgid, __const __FlashStringHelper *info)
-	{
-		add_form_checkbox7(cfgid, add_sensor_type(info));
-	};
-
-
-		debug_outln_info(F("begin webserver_simm7000_body_get ..."));
-		debug_outln_info(F("SIM7000 enable: "), cfg::has_s7000);
-
-		page_content += F("<form method='POST' action='/s7000' style='width:100%;'>\n");
-		page_content += FPSTR(WEB_BR_BR);
-		page_content += FPSTR(TABLE_TAG_OPEN);
-		// add_form_input7(page_content, Config7000_mode, FPSTR(INTL_SIM_MODE), LEN_SIMM7000 - 1);
-		add_form_input7(page_content, Config7000_apn, FPSTR(INTL_SIM_APN), LEN_SIMM7000 - 1);
-		add_form_input7(page_content, Config7000_type, FPSTR(INTL_SIM_TYPE), LEN_SIMM7000 - 1);
-		page_content += form_select_mode7();
-		page_content += FPSTR(TABLE_TAG_CLOSE_BR);
-		page_content += FPSTR(WEB_BR_BR);
-		page_content += form_checkbox7(Config7000_has_gps, FPSTR(INTL_SIM_GPS), false);
-		page_content += F("</div></div>");
-		page_content += form_submit(FPSTR(INTL_SAVE_AND_RESTART));
-		page_content += FPSTR(WEB_BR_FORM);
-
-		debug_outln_info(F("End webserver_simm7000 ..."));
-		
-		server.sendContent(page_content);
-
-		page_content = emptyString;
-
+		return;
 	}
 
-	/*****************************************************************
-	 * Webserver remove config                                       *
-	 *****************************************************************/
-	static void webserver_removeConfig()
+	RESERVE_STRING(page_content, LARGE_STR);
+	start_html_page(page_content, FPSTR(INTL_DELETE_CONFIG));
+	debug_outln_info(F("ws: removeConfig ..."));
+
+	if (server.method() == HTTP_GET)
 	{
-		if (!webserver_request_auth())
-		{
-			return;
-		}
-
-		RESERVE_STRING(page_content, LARGE_STR);
-		start_html_page(page_content, FPSTR(INTL_DELETE_CONFIG));
-		debug_outln_info(F("ws: removeConfig ..."));
-
-		if (server.method() == HTTP_GET)
-		{
-			page_content += FPSTR(WEB_REMOVE_CONFIG_CONTENT);
-		}
-		else
-		{
+		page_content += FPSTR(WEB_REMOVE_CONFIG_CONTENT);
+	}
+	else
+	{
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 		// Silently remove the desaster backup
 		SPIFFS.remove(F("/config.json.old"));
 		if (SPIFFS.exists(F("/config.json")))
-		{ //file exists
+		{ // file exists
 			debug_outln_info(F("removing current config.json..."));
 
 			if (SPIFFS.remove(F("/config.json")))
@@ -4335,7 +4341,7 @@ static WiFiClient *getNewLoggerWiFiClient(const LoggerEntry logger)
 
 static boolean SIM700LTEConnect() 
 {
-	debug_outln_info(F("SIM700 Connecting to"), String(cfg::wlanssid));
+	debug_outln_info(F("SIM700 Connecting to "), String(cfg::wlanssid));	// ???
 
 	pinMode(SIM_PIN_PWR, OUTPUT);						// Set Power-On/Off SIM7000 board.
 
@@ -4364,7 +4370,7 @@ static boolean SIM700LTEConnect()
 	if (!LTEmodem.waitForNetwork())
 	{
 		display_debug(F(" fail"),"");
-		delay(10000);
+		//delay(10000);
 		return false;
 	}
 
@@ -8084,7 +8090,9 @@ static void setupNetworkTime()
 
 	strcpy_P(ntpServer1, NTP_SERVER_1);
 	strcpy_P(ntpServer2, NTP_SERVER_2);
-	configTime(0, 0, ntpServer1, ntpServer2);
+	//configTime(0, 0, ntpServer1, ntpServer2);
+
+	configTime(MY_TZ, 0, ntpServer1, ntpServer2);	// set Daylight Saving => NTP with auto-switching between summer/winter time.
 }
 
 /*
@@ -8340,7 +8348,7 @@ void setup(void)
 
 	if (cfg::has_s7000)
 	{
-		debug_outln_info(F("\nSim7000 try connect "));
+		debug_outln_info(F("\nSim7000 try to connect."));
 		SIM700LTEConnect();
 	}
 

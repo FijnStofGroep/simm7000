@@ -54,9 +54,9 @@ bool RCWL_0516::init(unsigned long Wait_max_time, int motionSensorID)
   return true;
 }
 
-/*
- *
- */
+/******************************************************************
+ *                                                                *
+ ******************************************************************/
 bool RCWL_0516::begin(const char *serverHost, uint port)
 {
   strcpy(m_serverHost, serverHost); // m_serverHost = serverHost;
@@ -206,8 +206,22 @@ void RCWL_0516::sendMotionValue(int motionValue)
  */
 void RCWL_0516::SendToServer(int val, time_t now)
 {
-  debug_outln_verbose(F("SendToServer(): Radar Motion value: "), String(val));
- 
+  char time_buffer[10];
+  struct tm *timeinfo;
+  timeinfo = localtime(&now);
+  // if (timeinfo->tm_isdst == 1)                   // Daylight Saving Time flag
+  // {
+  //   timeinfo->tm_hour = timeinfo->tm_hour + 2;   // summer time
+  // }
+  // else
+  // {
+  //   timeinfo->tm_hour = timeinfo->tm_hour + 1;
+  // }
+
+  strftime(time_buffer, 10, "%H-%M-%S", timeinfo);
+  String dspmessage = String(F("Date: ")) + String(time_buffer) + String(F(" Radar Motion value: ")) + String(val);
+  debug_outln_verbose(F("SendToServer(), "), dspmessage);
+
   if (!m_Active)
   {
     // Current time
@@ -242,7 +256,8 @@ void RCWL_0516::SendToServer(int val, time_t now)
  
     // Send rader value to external Server.
     //client.print(String("Radar Value: ") + String(val));
-    String message = String(F("Date:")) + String(ctime(&now)) + String(F("Radar Value:")) + String(val);
+
+    String message = String(F("Date:")) + String(time_buffer) + String(F("Radar Value:")) + String(val);
     client.print( message);
     client.stop();                      // clean-up client resouces.
 
@@ -262,7 +277,12 @@ void RCWL_0516::sendMQTT(int val, time_t now)
 {
 	if ( mqtt_client != nullptr && mqtt_client->connected() )
 	{
-			debug_outln_verbose(F("- Radar topic = "), mqtt_header);
+			debug_outln_verbose(F("Radar topic = "), mqtt_header);
+
+      char time_buffer[10];
+      struct tm *timeinfo;
+      timeinfo = localtime(&now);
+      strftime(time_buffer, 10, "%H-%M-%S", timeinfo);
 
       String status_header, payload_status;
       status_header = mqtt_header;
@@ -271,7 +291,7 @@ void RCWL_0516::sendMQTT(int val, time_t now)
 			payload_status = "{\"";
       payload_status += F("Date");
 			payload_status += "\":\"";
-      payload_status += String(ctime(&now));
+      payload_status += String(time_buffer);
 			payload_status += "\":\"";
 			payload_status += F("Value");
 			payload_status += "\":\"";
@@ -293,7 +313,7 @@ void RCWL_0516::sendMQTT(int val, time_t now)
 	}
   else
   {
-			debug_outln_verbose(F("** MQTT NOT connected **"));
+			debug_outln_verbose(F("** MQTT Broker NOT connected **"));
   }
 
 	return;
