@@ -2660,6 +2660,55 @@ static void webserver_config_send_body_post(String &page_content)
 	page_content = emptyString;
 }
 
+
+	static void webserver_config_send_body_post7(String &page_content)
+{
+	String masked_pwd;
+
+	for (unsigned e = 0; e < sizeof(configShape7) / sizeof(configShape7[0]); ++e)
+	{
+		Config7000ShapeEntry c;
+		memcpy_P(&c, &configShape7[e], sizeof(Config7000ShapeEntry));
+		const String s_param(c.cfg_key());
+
+		if (!server.hasArg(s_param))
+		{
+			continue;
+		}
+
+		const String server_arg(server.arg(s_param));
+
+		switch (c.cfg_type)
+		{
+		case Config7_Type_UInt:
+			*(c.cfg_val.as_uint) = server_arg.toInt();
+			break;
+
+		case Config7_Type_Bool:
+			*(c.cfg_val.as_bool) = (server_arg == "1");
+			break;
+
+		case Config7_Type_String:
+			strncpy(c.cfg_val.as_str, server_arg.c_str(), c.cfg_len);
+			c.cfg_val.as_str[c.cfg_len] = '\0';
+			break;
+
+	/*	case Config7_Type_Password:
+			if (server_arg.length())
+			{
+				server_arg.toCharArray(c.cfg_val.as_str, LEN_CFG_PASSWORD);
+			}
+			break;
+	*/
+		}
+
+	}
+
+	page_content += FPSTR(INTL_SENSOR_IS_REBOOTING);
+
+	server.sendContent(page_content);
+	page_content = emptyString;
+}
 /*
 	Write webside settings into Config file. 
 */
@@ -2720,6 +2769,68 @@ static void webserver_config()
 	}
 }
 
+/*
+	Write webside settings into ConfigS7000 file.
+*/
+static void webserver_config7()
+{
+	if (!webserver_request_auth())
+	{
+		return;
+	}
+
+	debug_outln_info(F("ws: config page S7000..."));
+
+	server.sendHeader(F("Cache-Control"), F("no-cache, no-store, must-revalidate"));
+	server.sendHeader(F("Pragma"), F("no-cache"));
+	server.sendHeader(F("Expires"), F("0"));
+	// Enable Pagination (Chunked Transfer)
+	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+
+	RESERVE_STRING(page_content, XLARGE_STR);
+
+	start_html_page(page_content, FPSTR(INTL_CONFIGURATION));
+
+	if (wificonfig_loop)
+	{ // scan for wlan ssids
+		page_content += FPSTR(WEB_CONFIG_SCRIPT);
+	}
+
+	if (server.method() == HTTP_GET)
+	{
+		debug_outln_info(F("HTTP_GET "));
+		webserver_config_send_body_get7(page_content);
+
+	}
+	else
+	{
+		debug_outln_info(F("HTTP_POST7 "));
+		webserver_config_send_body_post7(page_content);
+	}
+
+	end_html_page(page_content);
+
+	if (server.method() == HTTP_POST)
+	{
+		display_debug(F("Writing config"), emptyString);
+
+		if (cfg::has_radarmotion)
+		{
+			debug_outln_info(F("STOP Radar motion sensor (RCWL_0516) process."));
+			RCWL0516.end();
+		}
+
+		if (writeConfig())
+		{ // TODO: devide in two section to know which writeconfig has a error.
+			display_debug(F("Writing config"), F("and restarting"));
+			sensor_restart();
+		}
+		else
+		{
+			display_debug(F("ERROR Writing config"), F("For restart Power OFF/ON"));
+		}
+	}
+}
 /*
 
 */
@@ -3456,67 +3567,66 @@ static void webserver_debug_level()
 /*****************************************************************
  * Webserver sim7000 config                                      *
  *****************************************************************/
-static void webserver_s7000()
+//static void webserver_s7000()
+
+static void webserver_config_send_body_get7(String &page_content)
 {
-	if (!webserver_request_auth())
+	auto add_form_checkbox7 = [&page_content](const ConfigShape7Id cfgid, const String &info)
 	{
-		return;
+		page_content += form_checkbox7(cfgid, info, true);
+	};
+
+	auto add_form_checkbox_sensor7 = [&add_form_checkbox7](const ConfigShape7Id cfgid, __const __FlashStringHelper *info)
+	{
+		add_form_checkbox7(cfgid, add_sensor_type(info));
+	};
+
+
+		debug_outln_info(F("begin webserver_simm7000_body_get ..."));
+		debug_outln_info(F("SIM7000 enable: "), cfg::has_s7000);
+
+		page_content += F("<form method='POST' action='/s7000' style='width:100%;'>\n");
+		page_content += FPSTR(WEB_BR_BR);
+		page_content += FPSTR(TABLE_TAG_OPEN);
+		// add_form_input7(page_content, Config7000_mode, FPSTR(INTL_SIM_MODE), LEN_SIMM7000 - 1);
+		add_form_input7(page_content, Config7000_apn, FPSTR(INTL_SIM_APN), LEN_SIMM7000 - 1);
+		add_form_input7(page_content, Config7000_type, FPSTR(INTL_SIM_TYPE), LEN_SIMM7000 - 1);
+		page_content += form_select_mode7();
+		page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+		page_content += FPSTR(WEB_BR_BR);
+		page_content += form_checkbox7(Config7000_has_gps, FPSTR(INTL_SIM_GPS), false);
+		page_content += F("</div></div>");
+		page_content += form_submit(FPSTR(INTL_SAVE_AND_RESTART));
+		page_content += FPSTR(WEB_BR_FORM);
+
+		debug_outln_info(F("End webserver_simm7000 ..."));
+		
+		server.sendContent(page_content);
+
+		page_content = emptyString;
+
 	}
 
-//	if (cfg::has_s7000)
-	debug_outln_info(F("begin webserver_simm7000_body_get ..."));
-	debug_outln_info(F("SIM7000 enable: "), cfg::has_s7000);
-
-	RESERVE_STRING(page_content, LARGE_STR);
-	start_html_page(page_content, FPSTR(INTL_SIM7000));
-	page_content += F("<form method='POST' action='/config' style='width:100%;'>\n");
-
-//	server.sendContent(page_content);	
-//  Voor test gebruik eerdere variabele
-//	page_content = emptyString;
-	page_content += FPSTR(BR_TAG);
-	page_content += form_checkbox7(Config7000_has_gps, FPSTR(INTL_SIM_GPS), false);
-	page_content += FPSTR(WEB_BR_BR);
-	page_content += FPSTR(TABLE_TAG_OPEN);
-	add_form_input7(page_content, Config7000_mode, FPSTR(INTL_SIM_MODE), LEN_SIMM7000 - 1);
-	add_form_input7(page_content, Config7000_apn, FPSTR(INTL_SIM_APN), LEN_SIMM7000 - 1);
-	add_form_input7(page_content, Config7000_type, FPSTR(INTL_SIM_TYPE), LEN_SIMM7000 - 1);
-	// regel 1820 select mode
-	page_content += form_select_mode7();
-	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
-	page_content += FPSTR(WEB_BR_BR);
-	page_content += F("</div></div>");
-	page_content += form_submit(FPSTR(INTL_SAVE_AND_RESTART));
-	page_content += FPSTR(WEB_BR_FORM);
-
-	
-	// Paginate page after ~ 1500 Bytes
-	//server.sendContent(page_content);
-
-	end_html_page(page_content);                                                                                            
-
-}
-
-/*****************************************************************
- * Webserver remove config                                       *
- *****************************************************************/
-static void webserver_removeConfig()
-{
-	if (!webserver_request_auth())
+	/*****************************************************************
+	 * Webserver remove config                                       *
+	 *****************************************************************/
+	static void webserver_removeConfig()
 	{
-		return;
-	}
+		if (!webserver_request_auth())
+		{
+			return;
+		}
 
-	RESERVE_STRING(page_content, LARGE_STR);
-	start_html_page(page_content, FPSTR(INTL_DELETE_CONFIG));
-	debug_outln_info(F("ws: removeConfig ..."));
+		RESERVE_STRING(page_content, LARGE_STR);
+		start_html_page(page_content, FPSTR(INTL_DELETE_CONFIG));
+		debug_outln_info(F("ws: removeConfig ..."));
 
-	if (server.method() == HTTP_GET)
-	{
-		page_content += FPSTR(WEB_REMOVE_CONFIG_CONTENT);
-	}
-	else
-	{
+		if (server.method() == HTTP_GET)
+		{
+			page_content += FPSTR(WEB_REMOVE_CONFIG_CONTENT);
+		}
+		else
+		{
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 		// Silently remove the desaster backup
@@ -3725,7 +3835,7 @@ static void setup_webserver()
 {
 	server.on("/", webserver_root);
 	server.on(F("/config"), webserver_config);
-	server.on(F("/s7000"), webserver_s7000);
+	server.on(F("/s7000"), webserver_config7);
 	server.on(F("/wifi"), webserver_wifi);
 	server.on(F("/values"), webserver_values);
 	server.on(F("/status"), webserver_status);
