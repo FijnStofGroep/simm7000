@@ -129,25 +129,25 @@ void RCWL_0516::loop()
 
     if (m_Wait_until_max_time_provided == 0)
     {// send all motion value to a external device.
-      sendMotiondata( motionValue );
+      sendMotionValue( motionValue );
     }
     else
     {
       if (motionValue == HIGH)
-      { // sensor is HIGH
+      { // sensor is HIGH => radar motion detected it.
         if (m_motionState == LOW)
         {
-          startTriggerEvent = millis();
+          startTriggerEvent = millis();         // set start time value.
           m_motionState = HIGH;                 // update variable state to HIGH
         }
       }
       else
-      {
+      {// sensor is LOW => radar motion detection ended.
         if (m_motionState == HIGH)
         {
           if ((millis() - startTriggerEvent) >= m_Wait_until_max_time_provided)
           { // Inform external application there is active motion detected.
-            sendMotiondata( motionValue );
+            sendMotionValue( 2 );
             m_motionState = LOW; // update variable state to LOW
             startTriggerEvent = 0;
           }
@@ -180,13 +180,18 @@ unsigned long RCWL_0516::GetMotionCount()
 
 //*************************************************************************************************************************************
 /*
-    send Radar motion to outside world.
+ * Send Radar motion to outside world.
+ *  Input:
+ *         motionValue: 0 => signal down.(end detect motion)
+ *                      1 => signal up.  (begin detect motion)
+ *                      2 => one motion cycle.
+ *
 */
-void RCWL_0516::sendMotiondata(int motionValue)
+void RCWL_0516::sendMotionValue(int motionValue)
 {
-      time_t now = time(nullptr);
+      time_t now = time(nullptr);       // Get time stamp.
 
-        // Send Radar value to Server.
+      // Send Radar value to Server.
       SendToServer(motionValue, now);
 
       // Send Radar value to MQTT broker.

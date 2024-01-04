@@ -2452,17 +2452,22 @@ static void webserver_config_send_body_get(String &page_content)
 	server.sendContent(page_content);
 
 	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(3));
+	add_form_checkbox_sensor(Config_sds_read, FPSTR(INTL_SDS011));
+	add_form_checkbox_sensor(Config_pms_read, FPSTR(INTL_PMS));
+	add_form_checkbox_sensor(Config_npm_read, FPSTR(INTL_NPM));
+	add_form_checkbox_sensor(Config_npm_fulltime, FPSTR(INTL_NPM_FULLTIME));
+	add_form_checkbox_sensor(Config_ips_read, FPSTR(INTL_IPS));
+	add_form_checkbox_sensor(Config_hpm_read, FPSTR(INTL_HPM));
+	add_form_checkbox_sensor(Config_sps30_read, FPSTR(INTL_SPS30));
+
+	server.sendContent(page_content);
+	//page_content = emptyString;
+	page_content = F("<hr/>");
 	add_form_checkbox_sensor(Config_sen5x_read, FPSTR(INTL_SEN5X));
 	page_content += FPSTR(WEB_NBSP_NBSP);
-	add_form_checkbox_sensor(Config_sen5x_on, FPSTR(INTL_SEN5X_ON));
-	page_content += FPSTR(TABLE_TAG_OPEN);
-
-	page_content += form_select_mode_SEN5PM();
-	page_content += form_select_mode_SEN5TH();
-
-	// add_form_input(page_content, Config_sen5x_sym_th, FPSTR(INTL_SEN5X_TH) ,8 - 1);
-	//add_form_input(page_content, Config_sen5x_sym_pm, FPSTR(INTL_SEN5X_PM), 8 - 1);
-	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+  // add_form_checkbox_sensor(Config_sen5x_on, FPSTR(INTL_SEN5X_ALL_ON));
+	// add_form_checkbox_sensor(Config_sen5x_read, FPSTR(INTL_SEN5X));
+	page_content += FPSTR(WEB_B_BR);
 	page_content += F("<hr/>");
 	page_content += FPSTR(WEB_BR_LF);
 
@@ -3465,14 +3470,15 @@ static void webserver_status()
 		{
 			add_table_row_from_value(page_content, F(INTL_TIME_SENDING_MS), String(sending_time), "ms");
 		}
-	}
 
-	if (cfg::has_radarmotion)
-	{
-		add_table_row_from_value(page_content, F(INTL_NUMBER_OF_RADARMOTION), String(RCWL0516.GetMotionCount()));
+		if (cfg::has_radarmotion)
+		{
+			add_table_row_from_value(page_content, F(INTL_NUMBER_OF_RADARMOTION), String(RCWL0516.GetMotionCount()));
+		}
 	}
 
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+
 	end_html_page(page_content);
 
 	debug_outln_info(F("ws: status => webpage send too ..."));
@@ -4317,25 +4323,33 @@ static WiFiClient *getNewLoggerWiFiClient(const LoggerEntry logger)
 }
 
 /*
-	ESP8266 serial speed to SIM7000 = 115200 bps
+	ESP8266 serial speed to SIM7000 = Default baud rate is 115200 bps
+
+	NOTE: Software serial is not reliable on 115200 baud and therefore changes it to a lower value. 
+		  9600 works well in almost all applications, but 115200 works great with Hardware serial.
 */
+#define LTEMODEM_BAUD	9600
+#define SERIALSIM_BAUD	115200
+
 static boolean SIM700LTEConnect() 
 {
-	display_debug(F("SIM700 Connecting to"), String(cfg::wlanssid));
+	debug_outln_info(F("SIM700 Connecting to"), String(cfg::wlanssid));
 
 	pinMode(SIM_PIN_PWR, OUTPUT);						// Set Power-On/Off SIM7000 board.
 
-	serialSIM.begin(115200, SWSERIAL_8N1, SIM_PIN_RX, SIM_PIN_TX);
+	serialSIM.begin(SERIALSIM_BAUD, SWSERIAL_8N1, SIM_PIN_RX, SIM_PIN_TX);	// start with default SIM7000 shield baud rate.
 	delay(100);
+	LTEmodem.setBaud(LTEMODEM_BAUD);					// Set LTEmodem baud rate to lower value.
+	delay(100);
+	serialSIM.begin(LTEMODEM_BAUD, SWSERIAL_8N1);		// set same baud value for SIM7000 shield.
 
 	// Restart takes internal quite some time.
+	//LTEmodem.restart();
   	// To skip it, call init() instead of restart()
-  	LTEmodem.restart();
-  	// LTEmodem.init();
+  	LTEmodem.init();
 
 	String modemInfo = LTEmodem.getModemInfo();
-  	display_debug(F("LTE Modem Info: "), modemInfo);
-
+  	debug_outln_info(F("LTE Modem Info: "), modemInfo);
 
 	// Your GPRS credentials, if any
 	const char apn[]      = "YourAPN";
@@ -4344,7 +4358,7 @@ static boolean SIM700LTEConnect()
 
 	LTEmodem.gprsConnect(apn, gprsUser, gprsPass);
 
-	display_debug(F("Waiting for network..."),"");
+	debug_outln_info(F("Waiting for network..."),"");
 	if (!LTEmodem.waitForNetwork())
 	{
 		display_debug(F(" fail"),"");
@@ -4352,11 +4366,11 @@ static boolean SIM700LTEConnect()
 		return false;
 	}
 
-	display_debug(F(" success"),"");
+	debug_outln_info(F(" success"),"");
 
 	if (LTEmodem.isGprsConnected())
 	{
-		display_debug(F("GPRS connected."),"");
+		debug_outln_info(F("GPRS connected."),"");
 	}
 
 	return true;
@@ -4480,9 +4494,9 @@ static unsigned long sendSensorCommunity(const String &data, const int pin, cons
 }
 
 /*****************************************************************
-* send data to mqtt api                                          *
-* return: total working/send time.								 *
-******************************************************************/
+ * send data to mqtt api                                         *
+ * return: total working/send time.								 *
+/*****************************************************************/
 static unsigned long sendmqtt(const String &data, const char *host, const int port)
 {
 #if defined(ESP8266)
@@ -6372,10 +6386,8 @@ static void GetSen5XSensorData()
 	{
 		if (is_SEN5X_running)
 		{
-			if (!cfg::sen5x_on)
-			{
-			debug_outln_info(F("SEN5X STOP Measurement. time: "), String(msSince(starttime)));
-	
+			debug_outln_info(F("SEN55 STOP Measurement. time: "), String(msSince(starttime)));
+
 			sen5x.stopMeasurement();
 			is_SEN5X_running = false;
 			}
@@ -8580,16 +8592,17 @@ void loop(void)
 
 			if (memcmp(SEN5X_type, "SEN50", 6) == 0)
 			{
-				sum_send_time += sendSensorCommunity(result, SEN5X_API_PIN, FPSTR(SENSORS_SEN50), "SEN50_");
+				sum_send_time += sendSensorCommunity(result, SEN5X_PM_API_PIN, FPSTR(SENSORS_SEN50), "SEN50_");
 			}
 
 			if (memcmp(SEN5X_type, "SEN54", 6) == 0)
 			{
-				sum_send_time += sendSensorCommunity(result, SEN5X_API_PIN, FPSTR(SENSORS_SEN54), "SEN54_");
+				sum_send_time += sendSensorCommunity(result, SEN5X_PM_API_PIN, FPSTR(SENSORS_SEN54), "SEN54_");
 			}
+
 			if (memcmp(SEN5X_type, "SEN55", 6) == 0)
 			{
-				sum_send_time += sendSensorCommunity(result, SEN5X_API_PIN, FPSTR(SENSORS_SEN55), "SEN55_");
+				sum_send_time += sendSensorCommunity(result, SEN5X_PM_API_PIN, FPSTR(SENSORS_SEN55), "SEN55_");
 			}
 
 			result = emptyString;

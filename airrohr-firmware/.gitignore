@@ -9,7 +9,10 @@ lib
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
-../Doc
+
+## folders
+..\Doc\*
+
 *.code-workspace
 
 ## PlatformIO
