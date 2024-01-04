@@ -78,7 +78,9 @@ input[type=submit]:hover{background:#167908}\
 #r4:checked~.panels>#panel4,#r1:checked~.panels>#panel1,#r3:checked~.panels>#panel3,#r2:checked~.panels>#panel2{display:block}\
 #r4:checked~.tabs>#tab4,#r1:checked~.tabs>#tab1,#r3:checked~.tabs>#tab3,#r2:checked~.tabs>#tab2{background:#055d52;color:#fff}\
 #sen5x_sym_pm{background:#055d52;color:#fff}\
-#sen5x_sym_th{background:#055d52;color:#fff}";
+#sen5x_sym_th{background:#055d52;color:#fff}\
+#s7000_mode{background:#055d52;color:#fff}\
+element{accent-color: rgb(255, 255, 128);}";
 
 #define STATIC_PREFIX "/" INTL_LANG "_s1"
 
