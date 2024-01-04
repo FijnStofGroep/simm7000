@@ -48,6 +48,8 @@
  * 2023-03-13: RD														*
  * SEN55: devided in SPS30 for PM, TS, NOx	(pin 1)						*
  * 					 SCD30 for temperature, humidity, CO2(NOx) (pin 17)	*
+ * 			Change to													*
+ * 					 SHT30 for temperature, humidity (pin 7)			*
  * 																		*
  * Remark: SEN5X sensor start/stop is enabled then Nox value = 0.		*
  * startUp time = 35 sec. then 9 times read PM/NC, Temp., Hum value.	*
@@ -56,13 +58,13 @@
  * Wifi signal MUST be strong.											*
  * 																		*
  * 																		*
- * 																		*
  * 2023-08-12															*
  * Add MQTT	RD/FvD														*
  * 2023-09-17															*
  * Add Simm7000 Webservice												*
  * Add WiFiMulti used to connect to a WiFi network with strongest 		*
  * WiFi signal (RSSI). 													*
+ * 																		*
  ************************************************************************
  * 																		*
  * latest build using lib 3.1.0											*
@@ -76,6 +78,11 @@
  * latest build using lib 3.1.0 / 2023-11-13							*
  * RAM:     [=====     ]  46.0% (used 37696 bytes from 81920 bytes)		*
  * PROGRAM: [======    ]  61.6% (used 643167 bytes from 1044464 bytes)	*
+ * 																		*
+ * latest build 2024-01-13												*
+ * PLATFORM: Espressif 8266 (3.1.0) > NodeMCU 1.0 (ESP-12E Module)		*
+ * RAM:     [=====     ]  47.0% (used 38488 bytes from 81920 bytes)		*
+ * PROGRAM: [======    ]  62.3% (used 650991 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -2452,22 +2459,18 @@ static void webserver_config_send_body_get(String &page_content)
 	server.sendContent(page_content);
 
 	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(3));
-	add_form_checkbox_sensor(Config_sds_read, FPSTR(INTL_SDS011));
-	add_form_checkbox_sensor(Config_pms_read, FPSTR(INTL_PMS));
-	add_form_checkbox_sensor(Config_npm_read, FPSTR(INTL_NPM));
-	add_form_checkbox_sensor(Config_npm_fulltime, FPSTR(INTL_NPM_FULLTIME));
-	add_form_checkbox_sensor(Config_ips_read, FPSTR(INTL_IPS));
-	add_form_checkbox_sensor(Config_hpm_read, FPSTR(INTL_HPM));
-	add_form_checkbox_sensor(Config_sps30_read, FPSTR(INTL_SPS30));
 
-	server.sendContent(page_content);
-	//page_content = emptyString;
-	page_content = F("<hr/>");
 	add_form_checkbox_sensor(Config_sen5x_read, FPSTR(INTL_SEN5X));
 	page_content += FPSTR(WEB_NBSP_NBSP);
-  // add_form_checkbox_sensor(Config_sen5x_on, FPSTR(INTL_SEN5X_ALL_ON));
-	// add_form_checkbox_sensor(Config_sen5x_read, FPSTR(INTL_SEN5X));
-	page_content += FPSTR(WEB_B_BR);
+	add_form_checkbox_sensor(Config_sen5x_on, FPSTR(INTL_SEN5X_ON));
+	page_content += FPSTR(TABLE_TAG_OPEN);
+
+	page_content += form_select_mode_SEN5PM();
+	page_content += form_select_mode_SEN5TH();
+
+	// add_form_input(page_content, Config_sen5x_sym_th, FPSTR(INTL_SEN5X_TH) ,8 - 1);
+	//add_form_input(page_content, Config_sen5x_sym_pm, FPSTR(INTL_SEN5X_PM), 8 - 1);
+	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	page_content += F("<hr/>");
 	page_content += FPSTR(WEB_BR_LF);
 
@@ -3367,7 +3370,6 @@ static void webserver_status()
 	}
 
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
-
 	end_html_page(page_content);
 
 	debug_outln_info(F("ws: status => webpage send too ..."));
@@ -6276,10 +6278,12 @@ static void GetSen5XSensorData()
 	{
 		if (is_SEN5X_running)
 		{
-			debug_outln_info(F("SEN55 STOP Measurement. time: "), String(msSince(starttime)));
-
-			sen5x.stopMeasurement();
-			is_SEN5X_running = false;
+			if (!cfg::sen5x_on)
+			{
+				debug_outln_info(F("SEN5X STOP Measurement. time: "), String(msSince(starttime)));
+	
+				sen5x.stopMeasurement();
+				is_SEN5X_running = false;
 			}
 		}
 	}
@@ -6287,7 +6291,7 @@ static void GetSen5XSensorData()
 	{
 		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN55));
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
-		debug_outln_info(F("SEN5X START sensor reading. time: "), String((msSince(starttime) - (SEN5X_read_timer + (SEN5X_WAITING_AFTER_LAST_READ - SAMPLETIME_SEN5X_MS)))) + F(" msec.") );
+		debug_outln_info(F("SEN55 START sensor reading. time: "), String((msSince(starttime) - (SEN5X_read_timer + (SEN5X_WAITING_AFTER_LAST_READ - SAMPLETIME_SEN5X_MS)))) + F(" msec.") );
 
 		uint16_t error;
 		char errorMessage[256];
@@ -6364,7 +6368,7 @@ static void GetSen5XSensorData()
 	{
 		if (!is_SEN5X_running)
 		{
-			debug_outln_info(F("SEN5X START Measurement. Time: "), String(msSince(starttime)) );
+			debug_outln_info(F("SEN55 START Measurement. Time: "), String(msSince(starttime)) );
 
 			SEN5X_read_timer = msSince(starttime);
 			sen5x.startMeasurement();
@@ -7472,7 +7476,7 @@ static void initSEN5X()
 		Debug.print("SEN5X_DeviceReset() return Error: ");
 		errorToString(error, errorMessage, 256);
 		Debug.println(errorMessage);
-		debug_outln_error(F("Check SEN5x sensor is connected!-klopt niet altijd"));
+		debug_outln_error(F("Check SEN5x sensor is NOT connected!"));
 
 		is_Sen5x_init_failed = true;
 		return;
@@ -7916,12 +7920,14 @@ static void logEnabledAPIs()
 	}
 
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
+
 /*
 	if (cfg::auto_update)
 	{
 		debug_outln_info(F("Auto-Update active..."));
 	}
 */
+
 }
 
 /*
@@ -7989,9 +7995,8 @@ static unsigned long sendDataToOptionalApis(const String &data)
 		{
 			RESERVE_STRING(data_sensemap, LARGE_STR);
 			data_sensemap = data;
-			data_sensemap.replace("SEN55_", cfg::sen5x_sym_pm); // set PM sensor Name.
-			data_sensemap.replace("SEN5X_", cfg::sen5x_sym_th); // set temp/hummidity/NOx sensor Name.
-													   // "signal" = Wifi signal info.
+			data_sensemap.replace("SEN55", cfg::sen5x_sym_pm);	// set PM sensor Name.
+			data_sensemap.replace("SEN5X", cfg::sen5x_sym_th);	// set temp/hummidity/NOx sensor Name.
 
 			sum_send_time += sendData(LoggerMadavi, data_sensemap, 0, HOST_MADAVI, URL_MADAVI);
 		}
@@ -8021,17 +8026,17 @@ static unsigned long sendDataToOptionalApis(const String &data)
 
 			RESERVE_STRING(data_sensemap, LARGE_STR);
 			data_sensemap = data;
-			data_sensemap.replace("SEN55", cfg::sen5x_sym_pm); // set PM sensor Name
-			// data_sensemap.replace("SEN5X_", "SCD30_");						// set temp/hummidity/NOx sensor Name
+			data_sensemap.replace("SEN55", cfg::sen5x_sym_pm); 				// set PM sensor Name
 			data_sensemap.replace("SEN5X", cfg::sen5x_sym_th);				// set temp/hummidity/NOx sensor Name
+
 			data_sensemap.replace("signal", "wifi_signal");					// Wifi signal info
 			
 				// end
 
-				debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("opensensemap: "));
-			debug_outln_info(F("Emulate SEN55 -"));
-			debug_outln_info(F("TH - "), FPSTR(cfg::sen5x_sym_th));
-			debug_outln_info(F("PM - "), FPSTR(cfg::sen5x_sym_pm));
+			debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("opensensemap: "));
+			// debug_outln_info(F("Emulate SEN55 -"));
+			// debug_outln_info(F("TH - "), FPSTR(cfg::sen5x_sym_th));
+			// debug_outln_info(F("PM - "), FPSTR(cfg::sen5x_sym_pm));
 
 			String sensemap_path(tmpl(FPSTR(URL_SENSEMAP), cfg::senseboxid));
 			sum_send_time += sendData(LoggerSensemap, data_sensemap, 0, HOST_SENSEMAP, sensemap_path.c_str());
@@ -8097,12 +8102,12 @@ static unsigned long sendDataToOptionalApis(const String &data)
 	}
 
 #if defined(ESP8266)
-		// MQTT send process.
-		if ( cfg::send2mqtt )
-		{
-			debug_out( String( DBG_TXT_SENDING_TO) + String("mqtt: "), DEBUG_MIN_INFO);
-			sum_send_time += sendmqtt(data, cfg::mqtt_server, cfg::mqtt_port);
-		}
+	// MQTT send process.
+	if (cfg::send2mqtt)
+	{
+		debug_out(String(DBG_TXT_SENDING_TO) + String("mqtt: "), DEBUG_MIN_INFO);
+		sum_send_time += sendmqtt(data, cfg::mqtt_server, cfg::mqtt_port);
+	}
 #endif
 
 	return sum_send_time;
@@ -8502,8 +8507,10 @@ void loop(void)
 
 			fetchSensorSEN5X_THN(result);
 
+			int pin = memcmp(cfg::sen5x_sym_th, "SCD30", 6) == 0 ? SEN5X_SCD30_TH_API_PIN : SEN5X_SHT35_TH_API_PIN;
+
 			data += result;
-			sum_send_time += sendSensorCommunity(result, SEN5X_TH_API_PIN, FPSTR(SENSORS_SEN5X_HT), "SEN5X_");
+			sum_send_time += sendSensorCommunity(result, pin, FPSTR(SENSORS_SEN5X_TH), "SEN5X_");
 
 			result = emptyString;
 
