@@ -120,14 +120,18 @@ public:
                 m_queue[i] = m_queue[i + 1];
             }
 
-            // store 0x00 at rear indicating there's no element.
+            // store INT32_MIN at rear indicating there's no element.
             if (rear < capacity)
             {
-                m_queue[rear] = 0x00;
+                m_queue[rear] = INT32_MIN;
             }
 
             // decrement rear index.
-            rear--;
+            // rear--;
+            if( --rear == -1)
+            {
+                front = -1;
+            }
 
             QDEBUG_PRINT("\nDequeue(), index: %d = Element is: %d", front, element);
 
@@ -136,11 +140,12 @@ public:
     }
 
     /*
-        isEmpty(): This operation indicates whether the queue[] is empty or not.
+        isEmpty(): Check if the queue[] is empty.
+
+        return: true = empty.
     */
     bool IsEmpty()
     {
-        // if queue is empty
         if (front == -1 || rear == -1)
         {
             // Queue[] is empty.

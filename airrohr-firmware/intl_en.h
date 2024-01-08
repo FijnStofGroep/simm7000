@@ -88,6 +88,7 @@ const char INTL_SEND_TO_OWN_API[] PROGMEM = "Send data to custom API";
 const char INTL_SERVER[] PROGMEM = "Server";
 const char INTL_PATH[] PROGMEM = "Path";
 const char INTL_PORT[] PROGMEM = "Port";
+const char INTL_MOTION_WAIT_TIME[] PROGMEM = "Motion wait time";
 const char INTL_USER[] PROGMEM = "User";
 const char INTL_PASSWORD[] PROGMEM = "Password";
 const char INTL_MEASUREMENT[] PROGMEM = "Measurement";

@@ -373,8 +373,8 @@ static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
 #define DISPLAY_DEVICE_INFO 1
 
 // RCWL-0516 sensor => Radar Motion.
-static const char HOST_RADAR[] PROGMEM = "192.168.10.10";
-#define PORT_RADAR 21
+static const char HOST_RADAR[] PROGMEM = "192.168.10.13";
+#define PORT_RADAR 21                                           // 443
 #define HAS_RADARMOTION 0
 #define USER_RADAR "ftp"
 #define PWD_RADAR "secret"

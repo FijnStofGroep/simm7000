@@ -93,6 +93,7 @@ String		scd30_temp_correction
 Bool        has_s7000
 String		host_radar
 UInt		port_radar
+UInt		motion_wait_time
 String		user_radar
 Password	pwd_radar
 Bool        has_radarmotion
@@ -109,7 +110,9 @@ with open("airrohr-cfg.h", "w") as h:
 // add Bool Fix IP
 // update: 28 December 2023
 // add more settings
+//
 // run python airrohr-cfg.h.py
+//
 
 enum ConfigEntryType : unsigned short {
 	Config_Type_Bool,

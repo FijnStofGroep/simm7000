@@ -169,7 +169,7 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include "./airrohr-cfg7000.h"
 #include "./RCWL-0516.h"
 
-// Temp langua fields
+// Temp language fields
 #include "./intl_new.h"
 
 /******************************************************************
@@ -295,6 +295,7 @@ namespace cfg
 	bool has_radarmotion = HAS_RADARMOTION;
 	char host_radar[LEN_HOST_CUSTOM];
 	unsigned  port_radar = PORT_RADAR;
+	unsigned  motion_wait_time = 15;					// default wait 15 sec. before sent to MQTT broker.
 	char user_radar[LEN_USER_CUSTOM] = USER_RADAR;
 	char pwd_radar[LEN_CFG_PASSWORD] = PWD_RADAR;
 
@@ -2390,10 +2391,12 @@ static void webserver_config_send_body_get(String &page_content)
 		page_content += FPSTR(TABLE_TAG_OPEN);
 		add_form_input(page_content, Config_host_radar, FPSTR(INTL_SERVER), LEN_HOST_CUSTOM - 1);
 		add_form_input(page_content, Config_port_radar, FPSTR(INTL_PORT), MAX_PORT_DIGITS);
-		add_form_input(page_content, Config_mqtt_user, FPSTR(INTL_USER), LEN_USER_CUSTOM - 1);
-		add_form_input(page_content, Config_mqtt_pwd, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
+		add_form_input(page_content, Config_motion_wait_time, FPSTR(INTL_MOTION_WAIT_TIME), MAX_PORT_DIGITS);
+		add_form_input(page_content, Config_user_radar, FPSTR(INTL_USER), LEN_USER_CUSTOM - 1);
+		add_form_input(page_content, Config_pwd_radar,  FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
 		page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	}
+
 	page_content += FPSTR(WEB_BR_LF_B);
 	page_content += F("<hr/>");
 
@@ -2430,26 +2433,6 @@ static void webserver_config_send_body_get(String &page_content)
 	server.sendContent(page_content);
 	page_content = FPSTR(WEB_BR_LF);
 
-// Disable Firmware opties  (FvD)
-/*
-	page_content += F(INTL_FIRMWARE);
-	page_content += FPSTR(WEB_B_BR);
-	add_form_checkbox(Config_auto_update, FPSTR(INTL_AUTO_UPDATE));
-	add_form_checkbox(Config_use_beta, FPSTR(INTL_USE_BETA));
-
-	page_content += FPSTR(TABLE_TAG_OPEN);
-	page_content += form_select_lang();
-	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
-
-	page_content += F("<script>"
-					  "var $ = function(e) { return document.getElementById(e); };"
-					  "function updateOTAOptions() { "
-					  "$('current_lang').disabled = $('use_beta').disabled = !$('auto_update').checked; "
-					  "}; updateOTAOptions(); $('auto_update').onchange = updateOTAOptions;"
-					  "</script>");
-
-	page_content += FPSTR(WEB_BR_LF_B);
-*/
 	page_content += F("<hr/>");
 	page_content += FPSTR(INTL_AB_HIER_NUR_ANDERN);
 	page_content += FPSTR(WEB_B_BR);
@@ -2474,8 +2457,6 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content += form_select_mode_SEN5PM();
 	page_content += form_select_mode_SEN5TH();
 
-	// add_form_input(page_content, Config_sen5x_sym_th, FPSTR(INTL_SEN5X_TH) ,8 - 1);
-	//add_form_input(page_content, Config_sen5x_sym_pm, FPSTR(INTL_SEN5X_PM), 8 - 1);
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	page_content += F("<hr/>");
 	page_content += FPSTR(WEB_BR_LF);
@@ -2495,8 +2476,8 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content += FPSTR(WEB_BR_LF);
 	page_content += F("<hr/>");
 	page_content += FPSTR(WEB_BR_LF);
-	add_form_checkbox_sensor(Config_scd30_read, FPSTR(INTL_SCD30));
 
+	add_form_checkbox_sensor(Config_scd30_read, FPSTR(INTL_SCD30));
 	page_content += FPSTR(TABLE_TAG_OPEN);
 	add_form_input(page_content, ConfigShapeId::Config_scd30_temp_correction, FPSTR(INTL_TEMP_CORRECTION), LEN_TEMP_CORRECTION - 1);
 	add_form_input(page_content, ConfigShapeId::Config_scd30_co2_correction, FPSTR(INTL_SCD30_CO2_CORRECTION), LEN_DNMS_CORRECTION - 1);
@@ -3873,6 +3854,61 @@ static void setup_webserver()
 }
 
 /*
+	Set Up connection to a MQTT broker.
+	like Mosquitto.
+*/
+static void setup_mqtt_broker(const char *host, const int port)
+{
+#if defined(ESP8266)
+	if (cfg::send2mqtt && !mqtt_client.connected())
+	{
+		debug_outln_info(F("\n** Start Initialize MQTT Broker connection **"));
+
+		// ++ Set-Up Topic header for MQTT Broker
+		String _header = String(cfg::mqtt_topic) + "/" + String(mqtt_client_id);
+		if (_header.length() <= LEN_MQTT_LARGE_HEADER)
+		{
+			strcpy(mqtt_header, _header.c_str());
+		}
+
+		_header += "/" + String(mqtt_lwt);
+		strcpy(mqtt_lwt_header, _header.c_str());
+		// -- Set-Up Topic header for MQTT Broker
+
+		mqtt_client.setServer(host, port);
+
+		String mess_off = INTL_OFFLINE;
+
+		if (mqtt_client.connect(mqtt_client_id, cfg::mqtt_user, cfg::mqtt_pwd, mqtt_lwt_header, 1, 1, mess_off.c_str(), 1))
+		{
+			// Set keep Alive setKeepAlive() default 15 seconds
+			// cfg::sending_intervall_ms delen door 1000 * 2 = eepalive
+			int16_t keepAlive = cfg::sending_intervall_ms * 0.002;
+			mqtt_client.setBufferSize(MAX_MQTT_BUFFER_SIZE);
+			mqtt_client.setKeepAlive(keepAlive);
+
+			for(int cnt = 5;cnt > 0;cnt--)
+			{
+				if( mqtt_client.connected())
+				{
+					break;
+				}
+
+				debug_outln_info(F("** Not connected to MQTT Broker, wait ** state: "), String(mqtt_client.state()));
+				delay(500);
+			}
+
+			debug_outln_info(F("KeepAlive  - "), String(keepAlive) + F(" sec."));
+			debug_outln_info(F("** MQTT Broker connected ** C_flag: "), String(mqtt_client.connected()));
+		}
+		else
+		{
+			debug_outln_info(F("MQTT Broker connecting failed, rc= "), String(mqtt_client.state()));
+		}
+	}
+#endif
+}
+/*
 	select Channel For App.
 	return channel nr: 1 or 6 or 11
 */
@@ -4505,7 +4541,7 @@ static unsigned long sendSensorCommunity(const String &data, const int pin, cons
  * send data to mqtt api                                         *
  * return: total working/send time.								 *
 /*****************************************************************/
-static unsigned long sendmqtt(const String &data, const char *host, const int port)
+static unsigned long sendmqtt(const String &data)
 {
 #if defined(ESP8266)
 
@@ -4513,38 +4549,7 @@ static unsigned long sendmqtt(const String &data, const char *host, const int po
 
 	if ( !mqtt_client.connected())
 	{
-		// ++ Set-Up Topic header for MQTT Broker
-		String _header = String(cfg::mqtt_topic) + "/" + String(mqtt_client_id);
-		if( _header.length() <= LEN_MQTT_LARGE_HEADER)
-		{
-			strcpy(mqtt_header, _header.c_str());
-		}
-
-		_header += "/" + String(mqtt_lwt);
-		strcpy(mqtt_lwt_header, _header.c_str());
-		// -- Set-Up Topic header for MQTT Broker
-
-		mqtt_client.setServer(host, port);
-
-		String mess_off = INTL_OFFLINE ;
-
-		if (mqtt_client.connect(mqtt_client_id, cfg::mqtt_user, cfg::mqtt_pwd, mqtt_lwt_header, 1, 1, mess_off.c_str(), 1))
-		{
-			// Set keep Alive setKeepAlive() default 15 seconds
-			// cfg::sending_intervall_ms delen door 1000 * 2 = eepalive
-			int16_t keepAlive = cfg::sending_intervall_ms * 0.002;
-			mqtt_client.setBufferSize(MAX_MQTT_BUFFER_SIZE);
-			mqtt_client.setKeepAlive(keepAlive);
-
-			debug_outln_info(F("** MQTT connected **"));
-			//debug_outln_info(F("KeepAlive  - "), keepAlive);
-			debug_outln_info(F("KeepAlive  - "), String(keepAlive) + F(" sec."));
-		}
-		else
-		{
-			debug_outln_info(F("connecting failed, rc= "), String(mqtt_client.state()));
-			//debug_outln_info( String(mqtt_client.state()) );
-		}
+		setup_mqtt_broker( cfg::mqtt_server, cfg::mqtt_port);
 	}
 
 	if (mqtt_client.connected())
@@ -4584,7 +4589,7 @@ static unsigned long sendmqtt(const String &data, const char *host, const int po
 			payload.remove(payload.length() - 1, 1);	// delete last char ','.
 			payload += "}";								// set end char. Json format
 
-			debug_outln_info(F("mqtt: publishing To MQTT Broker = ... "));
+			debug_outln_info(F("\npublishing To MQTT Broker = ... "));
 			debug_outln_info(F("- topic = "), (String &)header);
 			debug_outln_info(F("- payload = "), (String &)payload);
 
@@ -6400,7 +6405,7 @@ static void GetSen5XSensorData()
 	
 				sen5x.stopMeasurement();
 			}
-			
+
 				is_SEN5X_running = false;
 		}
 	}
@@ -6408,7 +6413,7 @@ static void GetSen5XSensorData()
 	{
 		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN55));
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
-		debug_outln_info(F("SEN55 START sensor reading. time: "), String((msSince(starttime) - (SEN5X_read_timer + (SEN5X_WAITING_AFTER_LAST_READ - SAMPLETIME_SEN5X_MS)))) + F(" msec.") );
+		debug_outln_info(F("SEN5X START sensor readings. time: "), String((msSince(starttime) - (SEN5X_read_timer + (SEN5X_WAITING_AFTER_LAST_READ - SAMPLETIME_SEN5X_MS)))) + F(" msec.") );
 
 		uint16_t error;
 		char errorMessage[256];
@@ -6485,10 +6490,13 @@ static void GetSen5XSensorData()
 	{
 		if (!is_SEN5X_running)
 		{
-			debug_outln_info(F("SEN55 START Measurement. Time: "), String(msSince(starttime)) );
+			if (!cfg::sen5x_on)
+			{
+				debug_outln_info(F("SEN5X START Measurement. Time: "), String(msSince(starttime)));
+				sen5x.startMeasurement();
+			}
 
 			SEN5X_read_timer = msSince(starttime);
-			sen5x.startMeasurement();
 			is_SEN5X_running = true;
 		}
 	}
@@ -8225,7 +8233,7 @@ static unsigned long sendDataToOptionalApis(const String &data)
 	if (cfg::send2mqtt)
 	{
 		debug_out(String(DBG_TXT_SENDING_TO) + String("mqtt: "), DEBUG_MIN_INFO);
-		sum_send_time += sendmqtt(data, cfg::mqtt_server, cfg::mqtt_port);
+		sum_send_time += sendmqtt(data);
 	}
 #endif
 
@@ -8323,14 +8331,6 @@ void setup(void)
 	digitalWrite(RST_OLED, HIGH);
 #endif
 
-	if(cfg::send2mqtt)
-	{// MQTT => set Client_id
-		debug_outln_info(F("MQTT => set Client_id"));
-
-		strcpy(mqtt_client_id, SSID_BASENAME);
-		strcat(mqtt_client_id, esp_chipid.c_str());			// airRohr-<chipid>
-	}
-
 /*	Debug -Tijdelijk verplaatst naar regel 8212 ivm Wifi start langzaam/actief ... 5 minuten..?
 	if(cfg::has_s7000)
 	{
@@ -8346,6 +8346,23 @@ void setup(void)
 
 	debug_outln_info(F("\nChipId: "), esp_chipid);
 	debug_outln_info(F("\nMAC Id: "), esp_mac_id);
+
+#if defined(ESP8266)
+	if(cfg::send2mqtt)
+	{// MQTT => set Client_id.
+		strcpy(mqtt_client_id, SSID_BASENAME);
+		strcat(mqtt_client_id, esp_chipid.c_str());			// airRohr-<chipid>
+		debug_outln_info(F("MQTT Client_id = ") + String(mqtt_client_id));
+
+		if (cfg::has_radarmotion)
+		{
+			// implementation of MQTT communication.
+			setup_mqtt_broker( cfg::mqtt_server, cfg::mqtt_port);
+			RCWL0516.setMQTTClient(mqtt_client, mqtt_header);
+			debug_outln_info(F("RCWL_0516 => set MQTT Client instance."));
+		}
+	}
+#endif
 
 	if (cfg::has_s7000)
 	{
@@ -8391,12 +8408,16 @@ void setup(void)
 	{
 		debug_outln_info(F("Start to Initialize Radar motion sensor (RCWL_0516)."));
 
-		RCWL0516.init((unsigned long)readCorrectionOffset(cfg::dnms_correction)); // TEST TEST => use for wait max time value. in sec.
+		RCWL0516.init(cfg::motion_wait_time); // set wait max time value. in sec.
 
 		if(!RCWL0516.begin(cfg::host_radar, cfg::port_radar))
 		{
-			debug_outln_info(F("Couldn't connect to Server: "), String(cfg::host_radar) + F(":") + String(cfg::port_radar));
-		}		
+			debug_outln_info(F("Couldn't connected to Motion Server: "), String(cfg::host_radar) + F(":") + String(cfg::port_radar));
+		}
+		else
+		{
+			debug_outln_info(F("RCWL_0516 => Radar motion driver started."));
+		}
 	}
 
 } // end setup()
@@ -8748,9 +8769,6 @@ void loop(void)
 			data.remove(data.length() - 1);
 		}
 
-		// TODO: set radar motion value into data.
-
-
 		data += "]}";						// set JSON end chars.
 
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
@@ -8832,15 +8850,19 @@ void loop(void)
 		serialSDS.perform_work();
 	}
 
-#endif
-
 	if (cfg::has_radarmotion)
 	{
-		// TODO: if needed implementation of MQTT communication.
+		if( cfg::send2mqtt && !mqtt_client.connected())
+		{// Radar motion loop => after x time MQTT connection will be lost. but why ????
+			debug_outln_info(F("** RCWL0516 => MQTT Broker connection lost.\nRetry......"));
+			//debug_outln_info(F("MQTT Broker connecting failed, state = "), String(mqtt_client.state()));
 
-		// Radar motion loop
+			setup_mqtt_broker( cfg::mqtt_server, cfg::mqtt_port);
+		}
+
 		RCWL0516.loop();
 	}
+#endif
 
 	// Sleep if all of the tasks have an event in the future. The chip can then
 	// enter a lower power mode.

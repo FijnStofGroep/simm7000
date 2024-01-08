@@ -54,7 +54,7 @@ public:
   };
 
   //public function methods
-  bool init(unsigned long m_Wait_max_time, int motionSensorID = D7);             // default: pin D7(13) that the radar sensor is attached to.
+  bool init(unsigned int m_Wait_max_time, int motionSensorID = D7);             // default: pin D7(13) that the radar sensor is attached to.
   bool begin(const char *serverHost, uint port);
   bool setMQTTClient(PubSubClient& mqttclient, String _header);
   
@@ -68,19 +68,19 @@ private:
   unsigned long m_timeSeconds = 30 * 1000;        // WaitTime in seconds. Every 30 sec. retry to connect to Server.
 
  // Set GPIO no. for LED indicator.
-  int MotionLedID = LED_BUILTIN;                  // blue LED on board
+  int MotionLedID = LED_BUILTIN;                    // blue LED on board
 
 // Timer: Auxiliary variables
   unsigned long currentTrigger = 0;
   unsigned long lastTriggerEvent = 0;
   unsigned long count_RadarMotion = 0;
 
-  unsigned long startTriggerEvent = 0;
-  unsigned long m_Wait_until_max_time_provided = 30 * 1000;        // Wait until max time provided. (in sec.)
+  unsigned long m_startTriggerEvent = 0;
+  unsigned long m_Wait_until_max_time_provided = 0; // Wait until max time provided. (in sec.)
 
   bool m_Active = false;
-  char m_serverHost[25] = "192.168.2.105";        // server has static IPAdres.
-  uint m_port = 8080;                             // 8080 default port nr.
+  char m_serverHost[25] = "192.168.2.105";          // server has static IPAdres.
+  uint m_port = 8080;                               // 8080 default port nr.
 
   #define LEN_MQTT_LARGE_HEADER 90
   char mqtt_header[LEN_MQTT_LARGE_HEADER];

@@ -6,7 +6,9 @@
 // add Bool Fix IP
 // update: 28 December 2023
 // add more settings
+//
 // run python airrohr-cfg.h.py
+//
 
 enum ConfigEntryType : unsigned short {
 	Config_Type_Bool,
@@ -123,6 +125,7 @@ enum ConfigShapeId {
 	Config_has_s7000,
 	Config_host_radar,
 	Config_port_radar,
+	Config_motion_wait_time,
 	Config_user_radar,
 	Config_pwd_radar,
 	Config_has_radarmotion,
@@ -220,6 +223,7 @@ static constexpr char CFG_KEY_SCD30_TEMP_CORRECTION[] PROGMEM = "scd30_temp_corr
 static constexpr char CFG_KEY_HAS_S7000[] PROGMEM = "has_s7000";
 static constexpr char CFG_KEY_HOST_RADAR[] PROGMEM = "host_radar";
 static constexpr char CFG_KEY_PORT_RADAR[] PROGMEM = "port_radar";
+static constexpr char CFG_KEY_MOTION_WAIT_TIME[] PROGMEM = "motion_wait_time";
 static constexpr char CFG_KEY_USER_RADAR[] PROGMEM = "user_radar";
 static constexpr char CFG_KEY_PWD_RADAR[] PROGMEM = "pwd_radar";
 static constexpr char CFG_KEY_HAS_RADARMOTION[] PROGMEM = "has_radarmotion";
@@ -317,6 +321,7 @@ static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_Bool, 0, CFG_KEY_HAS_S7000, &cfg::has_s7000 },
 	{ Config_Type_String, sizeof(cfg::host_radar)-1, CFG_KEY_HOST_RADAR, cfg::host_radar },
 	{ Config_Type_UInt, 0, CFG_KEY_PORT_RADAR, &cfg::port_radar },
+	{ Config_Type_UInt, 0, CFG_KEY_MOTION_WAIT_TIME, &cfg::motion_wait_time },
 	{ Config_Type_String, sizeof(cfg::user_radar)-1, CFG_KEY_USER_RADAR, cfg::user_radar },
 	{ Config_Type_Password, sizeof(cfg::pwd_radar)-1, CFG_KEY_PWD_RADAR, cfg::pwd_radar },
 	{ Config_Type_Bool, 0, CFG_KEY_HAS_RADARMOTION, &cfg::has_radarmotion },
