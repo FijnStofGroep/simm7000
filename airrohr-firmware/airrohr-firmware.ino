@@ -2277,7 +2277,7 @@ static void webserver_root()
 		page_content.replace(F("{t}"), FPSTR(INTL_CURRENT_DATA));
 		page_content.replace(F("{s}"), FPSTR(INTL_DEVICE_STATUS));
 		page_content.replace(F("{conf}"), FPSTR(INTL_CONFIGURATION));
-		page_content.replace(F("{s7000}"), FPSTR(INTL_SIM7000_CONFIGURATION));
+		page_content.replace(F("{s7000}"), FPSTR(INTL_SIM7000));
 		page_content.replace(F("{restart}"), FPSTR(INTL_RESTART_SENSOR));
 		page_content.replace(F("{debug}"), FPSTR(INTL_DEBUG_LEVEL));
 		
@@ -6403,7 +6403,7 @@ static void GetSen5XSensorData()
 
 			is_SEN5X_running = false;
 		}
-	}
+	// }
 	else if (is_SEN5X_running && (msSince(starttime) - SEN5X_read_timer) > SEN5X_WAITING_AFTER_LAST_READ)
 	{
 		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN55));
@@ -8626,7 +8626,7 @@ void loop(void)
 
 			fetchSensorSEN5X_THN(result);
 
-			int pin = memcmp(cfg::sen5x_sym_th, "SCD30", 6) == 0 ? SEN5X_SCD30_TH_API_PIN : SEN5X_SHT35_TH_API_PIN;
+			int pin = memcmp(cfg::sen5x_sym_th, "SCD30", 6) == 0 ? SEN5X_SCD30_TH_API_PIN : SEN5X_TH_API_PIN;
 
 			data += result;
 			sum_send_time += sendSensorCommunity(result, pin, FPSTR(SENSORS_SEN5X_TH), "SEN5X_");

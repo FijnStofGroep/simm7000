@@ -80,7 +80,7 @@ input[type=submit]:hover{background:#167908}\
 #sen5x_sym_pm{background:#055d52;color:#fff}\
 #sen5x_sym_th{background:#055d52;color:#fff}\
 #s7000_mode{background:#055d52;color:#fff}\
-element{accent-color: rgb(255, 255, 128);}";
+input[type=checkbox]{accent-color: rgb(255, 255, 128);}";
 
 #define STATIC_PREFIX "/" INTL_LANG "_s1"
 
