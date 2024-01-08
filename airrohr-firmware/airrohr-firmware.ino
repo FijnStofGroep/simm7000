@@ -4548,7 +4548,7 @@ static unsigned long sendmqtt(const String &data)
 	starttime_MQTT = millis();
 
 	if ( !mqtt_client.connected())
-	{
+	{// after x time MQTT connection will be lost wifi connection.... but why ????
 		setup_mqtt_broker( cfg::mqtt_server, cfg::mqtt_port);
 	}
 
@@ -8853,7 +8853,7 @@ void loop(void)
 	if (cfg::has_radarmotion)
 	{
 		if( cfg::send2mqtt && !mqtt_client.connected())
-		{// Radar motion loop => after x time MQTT connection will be lost. but why ????
+		{// Radar motion loop => after x time MQTT connection will be lost wifi connection.... but why ????
 			debug_outln_info(F("** RCWL0516 => MQTT Broker connection lost.\nRetry......"));
 			//debug_outln_info(F("MQTT Broker connecting failed, state = "), String(mqtt_client.state()));
 
