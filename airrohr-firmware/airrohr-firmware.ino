@@ -6399,8 +6399,9 @@ static void GetSen5XSensorData()
 				debug_outln_info(F("SEN5X STOP Measurement. time: "), String(msSince(starttime)));
 	
 				sen5x.stopMeasurement();
-				is_SEN5X_running = false;
 			}
+
+			is_SEN5X_running = false;
 		}
 	}
 	else if (is_SEN5X_running && (msSince(starttime) - SEN5X_read_timer) > SEN5X_WAITING_AFTER_LAST_READ)
