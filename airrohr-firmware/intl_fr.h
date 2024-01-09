@@ -89,6 +89,7 @@ const char INTL_PATH[] PROGMEM = "Chemin";
 const char INTL_PORT[] PROGMEM = "Port";
 const char INTL_USER[] PROGMEM = "Utilisateur";
 const char INTL_PASSWORD[] PROGMEM = "Mot de passe";
+const char INTL_MOTION_WAIT_TIME[] PROGMEM = "Motion wait time";
 const char INTL_MEASUREMENT[] PROGMEM = "Mesure";
 const char INTL_SEND_TO[] PROGMEM = "Envoyer à {v}";
 const char INTL_READ_FROM[] PROGMEM = "Lire {v}";
@@ -149,6 +150,7 @@ const char INTL_SIGNAL_QUALITY[] PROGMEM = "Qualité du signal";
 
 #define INTL_ENABLE_S7000 "Enable S7000 LTE"
 
+const char INTL_SIM7000_CONFIGURATION[] PROGMEM = "Sim7000 LTE";
 const char INTL_SIM7000[] PROGMEM = "Sim7000 LTE";
 const char INTL_SIM7000_DIS[] PROGMEM = "Disable";
 

@@ -88,6 +88,7 @@ const char INTL_MORE_APIS[] PROGMEM = "Weitere APIs";
 const char INTL_SEND_TO_OWN_API[] PROGMEM = "An eigene API senden";
 const char INTL_SERVER[] PROGMEM = "Server";
 const char INTL_PATH[] PROGMEM = "Pfad";
+const char INTL_MOTION_WAIT_TIME[] PROGMEM = "Motion wait time";
 const char INTL_PORT[] PROGMEM = "Port";
 const char INTL_USER[] PROGMEM = "Benutzer";
 const char INTL_PASSWORD[] PROGMEM = "Passwort";
@@ -149,6 +150,7 @@ const char INTL_SIGNAL_QUALITY[] PROGMEM = "Qualität";
 #define INTL_VALUE "Wert"
 
 #include "./airrohr-logo-common.h"
+const char INTL_SIM7000_CONFIGURATION[] PROGMEM = "Sim7000 LTE";
 const char INTL_SIM_APN[] PROGMEM = "APN";
 const char INTL_SIM_ID[] PROGMEM = "ID";
 const char INTL_SIM_GPS[] PROGMEM = "GPS";
