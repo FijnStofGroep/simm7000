@@ -8114,12 +8114,13 @@ static unsigned long sendDataToOptionalApis(const String &data)
 	if (cfg::send2madavi)
 	{
 		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("madavi.de: "));
-		debug_outln_info(F("Emulate SEN55:"));
-		debug_outln_info(F("TH - "), FPSTR(cfg::sen5x_sym_th));
-		debug_outln_info(F("PM - "), FPSTR(cfg::sen5x_sym_pm));
 
 		if (cfg::sen5x_read && (!is_Sen5x_init_failed))
 		{
+			debug_outln_info(F("Emulate SEN55:"));
+			debug_outln_info(F("TH - "), FPSTR(cfg::sen5x_sym_th));
+			debug_outln_info(F("PM - "), FPSTR(cfg::sen5x_sym_pm));
+
 			RESERVE_STRING(data_sensemap, LARGE_STR);
 			data_sensemap = data;
 			data_sensemap.replace("SEN55", cfg::sen5x_sym_pm);	// set PM sensor Name.
@@ -8136,7 +8137,7 @@ static unsigned long sendDataToOptionalApis(const String &data)
 	if (cfg::send2sensemap && (cfg::senseboxid[0] != '\0'))
 	{
 		if (cfg::sen5x_read && (!is_Sen5x_init_failed))
-		{// OpenSenseMap
+		{	// OpenSenseMap
 			// RESERVE_STRING(data_sensemap, MED_STR);			// LARGE_STR
 			// data_sensemap = FPSTR( (String("{ \"") + String(JSON_SENSOR_DATA_VALUES) + String("\":[")).c_str() );	//FPSTR(data_first_part);
 			// this works
