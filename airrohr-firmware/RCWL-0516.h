@@ -56,7 +56,7 @@ public:
   //public function methods
   bool init(unsigned int m_Wait_max_time, int motionSensorID = D7);             // default: pin D7(13) that the radar sensor is attached to.
   bool begin(const char *serverHost, uint port);
-  bool setMQTTClient(PubSubClient& mqttclient, String _header);
+  bool setMQTTClient(PubSubClient& mqttclient, String _header, String _lwt_header);
   
   void loop(void);
   void end(void);                                 // end/stop motion Event process.
@@ -75,6 +75,7 @@ private:
   unsigned long lastTriggerEvent = 0;
   unsigned long count_RadarMotion = 0;
 
+  unsigned long m_currentwaitTime = 0;
   unsigned long m_startTriggerEvent = 0;
   unsigned long m_Wait_until_max_time_provided = 0; // Wait until max time provided. (in sec.)
 
@@ -84,6 +85,7 @@ private:
 
   #define LEN_MQTT_LARGE_HEADER 90
   char mqtt_header[LEN_MQTT_LARGE_HEADER];
+  char mqtt_lwt_header[LEN_MQTT_LARGE_HEADER];
   PubSubClient *mqtt_client;
 
   // private function methods
@@ -94,6 +96,8 @@ private:
 };
 
 // external declaration of RCWL0516 instances.
+const char INTL_LWT_ONLINE[] PROGMEM = "Online";
+
 extern RCWL_0516 RCWL0516;
 
 #endif
