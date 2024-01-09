@@ -3879,7 +3879,7 @@ static void setup_mqtt_broker(const char *host, const int port)
 
 		String mess_off = INTL_OFFLINE;
 
-		if (mqtt_client.connect(mqtt_client_id, cfg::mqtt_user, cfg::mqtt_pwd, mqtt_lwt_header, 1, 1, mess_off.c_str(), 1))
+		if (mqtt_client.connect(mqtt_client_id, cfg::mqtt_user, cfg::mqtt_pwd, mqtt_lwt_header, 1, true, mess_off.c_str(), true))
 		{
 			// Set keep Alive setKeepAlive() default 15 seconds
 			// cfg::sending_intervall_ms delen door 1000 * 2 = eepalive
@@ -8114,12 +8114,13 @@ static unsigned long sendDataToOptionalApis(const String &data)
 	if (cfg::send2madavi)
 	{
 		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("madavi.de: "));
-		debug_outln_info(F("Emulate SEN55:"));
-		debug_outln_info(F("TH - "), FPSTR(cfg::sen5x_sym_th));
-		debug_outln_info(F("PM - "), FPSTR(cfg::sen5x_sym_pm));
 
 		if (cfg::sen5x_read && (!is_Sen5x_init_failed))
 		{
+			debug_outln_info(F("Emulate SEN55:"));
+			debug_outln_info(F("TH - "), FPSTR(cfg::sen5x_sym_th));
+			debug_outln_info(F("PM - "), FPSTR(cfg::sen5x_sym_pm));
+
 			RESERVE_STRING(data_sensemap, LARGE_STR);
 			data_sensemap = data;
 			data_sensemap.replace("SEN55", cfg::sen5x_sym_pm);	// set PM sensor Name.
@@ -8136,7 +8137,7 @@ static unsigned long sendDataToOptionalApis(const String &data)
 	if (cfg::send2sensemap && (cfg::senseboxid[0] != '\0'))
 	{
 		if (cfg::sen5x_read && (!is_Sen5x_init_failed))
-		{// OpenSenseMap
+		{	// OpenSenseMap
 			// RESERVE_STRING(data_sensemap, MED_STR);			// LARGE_STR
 			// data_sensemap = FPSTR( (String("{ \"") + String(JSON_SENSOR_DATA_VALUES) + String("\":[")).c_str() );	//FPSTR(data_first_part);
 			// this works
@@ -8358,7 +8359,7 @@ void setup(void)
 		{
 			// implementation of MQTT communication.
 			setup_mqtt_broker( cfg::mqtt_server, cfg::mqtt_port);
-			RCWL0516.setMQTTClient(mqtt_client, mqtt_header);
+			RCWL0516.setMQTTClient(mqtt_client, mqtt_header, mqtt_lwt_header);
 			debug_outln_info(F("RCWL_0516 => set MQTT Client instance."));
 		}
 	}
@@ -8850,10 +8851,10 @@ void loop(void)
 		serialSDS.perform_work();
 	}
 
-	if (cfg::has_radarmotion)
+	if (cfg::has_radarmotion && sntp_time_set > 0)
 	{
 		if( cfg::send2mqtt && !mqtt_client.connected())
-		{// Radar motion loop => after x time MQTT connection will be lost wifi connection.... but why ????
+		{// after x time MQTT connection will be lost wifi connection.... but why ????
 			debug_outln_info(F("** RCWL0516 => MQTT Broker connection lost.\nRetry......"));
 			//debug_outln_info(F("MQTT Broker connecting failed, state = "), String(mqtt_client.state()));
 

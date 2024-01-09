@@ -101,7 +101,7 @@ bool RCWL_0516::begin(const char *serverHost, uint port)
  *
  *
 */
-bool RCWL_0516::setMQTTClient(PubSubClient& mqttclient, String _header)
+bool RCWL_0516::setMQTTClient(PubSubClient& mqttclient, String _header, String _lwt_header)
 {
   this->mqtt_client = &mqttclient;
 
@@ -109,6 +109,11 @@ bool RCWL_0516::setMQTTClient(PubSubClient& mqttclient, String _header)
 		if( _header.length() <= LEN_MQTT_LARGE_HEADER)
 		{
 			strcpy(mqtt_header, _header.c_str());
+		}
+
+    if( _lwt_header.length() <= LEN_MQTT_LARGE_HEADER)
+		{
+			strcpy(mqtt_lwt_header, _lwt_header.c_str());
 		}
 
   return true;
@@ -126,12 +131,7 @@ void RCWL_0516::loop()
   {
     int motionValue = RCWL0516.m_queue->Dequeue();
 
-    if( motionValue == INT32_MIN)
-    {// Queue is empty.
-      return;
-    }
-
-    // debug_outln_verbose(F("loop()::Radar Motion-Sensor value: "), String(motionval));
+    // debug_outln_verbose(F("loop()::Radar Motion-Sensor value: "), String(motionValue));
 
     if (m_Wait_until_max_time_provided == 0)
     { // send all motion value to a external device.
@@ -166,22 +166,22 @@ void RCWL_0516::loop()
       {// sensor is LOW => radar motion detection ended.
         if (m_motionState == HIGH)
         {
-          unsigned long currentwaitTime = millis() - m_startTriggerEvent;
+          m_currentwaitTime = millis() - m_startTriggerEvent;
 
-          if (currentwaitTime >= m_Wait_until_max_time_provided)
+          if (m_currentwaitTime >= m_Wait_until_max_time_provided)
           { // Inform external application there is active motion detected.
             sendMotionValue( 2 );
             m_motionState = LOW; // update variable state to LOW
             m_startTriggerEvent = 0;
 
-            debug_outln_verbose( F("End, wait time = "), String( currentwaitTime / 1000) + F(" sec."));
+            debug_outln_verbose( F("End, wait time = "), String( m_currentwaitTime / 1000) + F(" sec."));
           }
           else
           {// to short time window => restart.
             m_motionState = LOW; // update variable state to LOW
             m_startTriggerEvent = 0;
 
-            debug_outln_verbose( F("No action, to short wait time = "), String( currentwaitTime / 1000) + F(" sec."));
+            debug_outln_verbose( F("No action, to short wait time = "), String( m_currentwaitTime / 1000) + F(" sec."));
           }
         }
       }
@@ -236,17 +236,9 @@ void RCWL_0516::SendToServer(int val, time_t now)
   char time_buffer[10];
   struct tm *timeinfo;
   timeinfo = localtime(&now);
-  // if (timeinfo->tm_isdst == 1)                   // Daylight Saving Time flag
-  // {
-  //   timeinfo->tm_hour = timeinfo->tm_hour + 2;   // summer time
-  // }
-  // else
-  // {
-  //   timeinfo->tm_hour = timeinfo->tm_hour + 1;
-  // }
 
   strftime(time_buffer, 10, "%H:%M:%S", timeinfo);
-  String message = String(F("Date:")) + String(time_buffer) + String(F(",Radar Motion value:")) + String(val);
+  String message = String(F("Time:")) + String(time_buffer) +  F(",Attention Time:") + String(m_currentwaitTime / 1000) + String(F(",Radar Motion value:")) + String(val);
   debug_outln_verbose(F("SendToServer(), "), message);
 
   if (!m_Active)
@@ -304,21 +296,31 @@ void RCWL_0516::sendMQTT(int val, time_t now)
 {
 	if ( this->mqtt_client != nullptr && this->mqtt_client->connected() )
 	{
-      char time_buffer[10];
+      char time_buffer[10] = {0};
+      char date_buffer[13] = {0};
       struct tm *timeinfo;
       timeinfo = localtime(&now);
       strftime(time_buffer, 10, "%H:%M:%S", timeinfo);
+      strftime(date_buffer, 12, "%Y-%m-%d", timeinfo);
 
       String status_header, payload_messages;
       status_header = mqtt_header;
 			status_header += "/radar";
 
-      debug_outln_verbose(F("Radar topic = "), status_header);
+      debug_outln_verbose(F("- Radar topic = "), status_header);
 
 			payload_messages = "{\"";
       payload_messages += F("Date");
 			payload_messages += "\":\"";
+      payload_messages += String(date_buffer);
+			payload_messages += "\",\"";                          // field seperator char.
+      payload_messages += F("Time");
+			payload_messages += "\":\"";
       payload_messages += String(time_buffer);
+			payload_messages += "\",\"";                          // field seperator char.
+      payload_messages += F("Attention Time");
+			payload_messages += "\":\"";
+      payload_messages += String(m_currentwaitTime / 1000);
 			payload_messages += "\",\"";                          // field seperator char.
 			payload_messages += F("Value");
 			payload_messages += "\":\"";
@@ -327,11 +329,15 @@ void RCWL_0516::sendMQTT(int val, time_t now)
 
 			if( this->mqtt_client->publish( status_header.c_str(), payload_messages.c_str()))
 			{
+			  debug_outln_info(F("- LWT topic = "), mqtt_lwt_header);
+			  String payload_mess_on = INTL_LWT_ONLINE;
+			  this->mqtt_client->publish(mqtt_lwt_header, payload_mess_on.c_str());
+
         this->mqtt_client->loop();
 
         //this->mqtt_client->flush();
-
-				debug_outln_verbose(F("Radar send ok... Radar payload = "), payload_messages);
+        debug_outln_verbose(F("- Radar payload = "), payload_messages);
+				debug_outln_verbose(F("Radar send ok..."));
 			}
 			else
 			{
