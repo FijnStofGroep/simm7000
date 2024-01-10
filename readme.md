@@ -10,8 +10,9 @@ The maintained main firmware for the Luftdaten.Info Sensor.
 * Not working (is on development)
 
 ## New Sensors
-* SEN5X
-* CO2 on SCD30
+* SEN5X => PM1.0,PM2.5,PM4,PM10,Relative Humidity,Temperature,VOC Index,NOx Index
+* SCD30 => CO2 
+* RCWL 516
 
 ## Plugins
 * MQTT
