@@ -1,3 +1,13 @@
+/*
+    sen5x_html_h.h
+
+
+
+
+*/
+
+#ifndef __sen5x_html_h
+#define __sen5x_html_h
 
 /*****************************************************************
  * add html helper functions SEN5X PMs, TS, NOx	(pin 1)	   		 *
@@ -40,3 +50,5 @@ String form_select_mode_SEN5TH()
 	s2.replace("'" + String(cfg::sen5x_sym_th) + "'>", "'" + String(cfg::sen5x_sym_th) + "'" + s_select2 + ">");
 	return s2;
 }
+
+#endif // __sen5x_html

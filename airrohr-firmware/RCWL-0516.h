@@ -81,7 +81,7 @@ private:
 
   bool m_Active = false;
   char m_serverHost[25] = "192.168.2.105";          // server has static IPAdres.
-  uint m_port = 8080;                               // 8080 default port nr.
+  uint m_port = 0;                                  // -1 = No communcation, 8080 default port nr.
 
   #define LEN_MQTT_LARGE_HEADER 90
   char mqtt_header[LEN_MQTT_LARGE_HEADER];

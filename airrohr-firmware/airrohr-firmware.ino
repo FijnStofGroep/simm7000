@@ -167,6 +167,7 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include "ext_def.h"
 #include "html-content.h"
 #include "./airrohr-cfg7000.h"
+#include "./sim7000_html.h"
 #include "./RCWL-0516.h"
 
 // Temp language fields
@@ -3853,14 +3854,17 @@ static void setup_webserver()
 	server.begin();
 }
 
-/*
-	Set Up connection to a MQTT broker.
-	like Mosquitto.
-*/
+/// @brief
+///
+///	Set Up connection to a MQTT broker.
+///	like Mosquitto.
+///
+/// @param host 
+/// @param port 
 static void setup_mqtt_broker(const char *host, const int port)
 {
 #if defined(ESP8266)
-	if (cfg::send2mqtt && !mqtt_client.connected())
+	if ( !mqtt_client.connected())
 	{
 		debug_outln_info(F("\n** Start Initialize MQTT Broker connection **"));
 
@@ -3876,6 +3880,7 @@ static void setup_mqtt_broker(const char *host, const int port)
 		// -- Set-Up Topic header for MQTT Broker
 
 		mqtt_client.setServer(host, port);
+		//mqtt_client.setCallback(mqttCallback);				// setup callback method.
 
 		String mess_off = INTL_OFFLINE;
 
@@ -3908,6 +3913,26 @@ static void setup_mqtt_broker(const char *host, const int port)
 	}
 #endif
 }
+
+/*
+	MQTT Callback methode.
+
+	only for test, maybe FFU
+*/
+// void mqttCallback(char *topic, uint8_t *payload, unsigned int len)
+// {
+// 	String topicmesg = String(mqtt_header) + String("/radar");
+// 	if (String(topic) == topicmesg)
+// 	{
+// 		debug_outln_info(F("MQTT Callback: Message arrived ["));
+// 		debug_out(String(topic),DEBUG_MIN_INFO);
+// 		debug_out(F("]:\npayload: "),DEBUG_MIN_INFO);
+// 		Debug.write(payload, len);
+// 		debug_out(F(" ,payload lenght: "),DEBUG_MIN_INFO);
+// 		debug_outln_info(String(len));
+// 	}
+// }
+
 /*
 	select Channel For App.
 	return channel nr: 1 or 6 or 11
@@ -4589,7 +4614,7 @@ static unsigned long sendmqtt(const String &data)
 			payload.remove(payload.length() - 1, 1);	// delete last char ','.
 			payload += "}";								// set end char. Json format
 
-			debug_outln_info(F("\npublishing To MQTT Broker = ... "));
+			debug_outln_info(F("\npublish a message To MQTT Broker = ... "));
 			debug_outln_info(F("- topic = "), (String &)header);
 			debug_outln_info(F("- payload = "), (String &)payload);
 
@@ -8855,10 +8880,21 @@ void loop(void)
 	{
 		if( cfg::send2mqtt && !mqtt_client.connected())
 		{// after x time MQTT connection will be lost wifi connection.... but why ????
-			debug_outln_info(F("** RCWL0516 => MQTT Broker connection lost.\nRetry......"));
-			//debug_outln_info(F("MQTT Broker connecting failed, state = "), String(mqtt_client.state()));
+			debug_outln_info(F("** RCWL0516 => MQTT Broker lost WIFI connection. **\nRetry......"));
 
 			setup_mqtt_broker( cfg::mqtt_server, cfg::mqtt_port);
+
+			// only for test, maybe FFU
+			// abonneer op MQTT broker via topic name: "LeusdenCentrum/airRohr-xxxxxxx/radar"
+			// if( mqtt_client.subscribe( (String(mqtt_header) + String("/radar")).c_str()))
+			// {
+			// 	String mesg = String(mqtt_header) + String("/radar");
+			// 	debug_outln_info(F("subscribe => OKAY, "),mesg);
+			// }
+			// else
+			// {
+			// 	debug_outln_info(F("subscribe => ERROR"));
+			// }
 		}
 
 		RCWL0516.loop();

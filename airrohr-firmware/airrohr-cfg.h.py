@@ -114,6 +114,9 @@ with open("airrohr-cfg.h", "w") as h:
 // run python airrohr-cfg.h.py
 //
 
+#ifndef __airrohr_cfg_h
+#define __airrohr_cfg_h
+          
 enum ConfigEntryType : unsigned short {
 	Config_Type_Bool,
 	Config_Type_UInt,
@@ -163,3 +166,5 @@ enum ConfigShapeId {""", file=h )
                 "cfg::", cfgkey, " },", sep='', file=h)
         
     print("};", file=h)
+
+    print("\n#endif\n", file=h)

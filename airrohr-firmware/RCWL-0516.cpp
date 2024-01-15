@@ -123,7 +123,7 @@ bool RCWL_0516::setMQTTClient(PubSubClient& mqttclient, String _header, String _
 #pragma GCC diagnostic pop
 
 /*
- * Motion -Sensor Message loop()
+ * Radar Motion - Message loop()
  */
 void RCWL_0516::loop()
 {
@@ -137,7 +137,9 @@ void RCWL_0516::loop()
     { // send all motion value to a external device.
       if (motionValue == HIGH)
       { // update variable state to HIGH.
-          m_motionState++; 
+          m_motionState++;
+          m_startTriggerEvent = millis();         // set start time value.
+          m_currentwaitTime = 0;
       }
       else if (m_motionState == LOW)
       {
@@ -145,7 +147,8 @@ void RCWL_0516::loop()
       }
       else
       { // update variable state to LOW.
-        m_motionState--; 
+        m_motionState--;
+        m_currentwaitTime = millis() - m_startTriggerEvent;
       }
 
       sendMotionValue(motionValue);
@@ -157,7 +160,7 @@ void RCWL_0516::loop()
         if (m_motionState == LOW)
         {
           m_startTriggerEvent = millis();         // set start time value.
-          m_motionState = HIGH;                 // update variable state to HIGH
+          m_motionState = HIGH;                   // update variable state to HIGH
 
           debug_outln_verbose( F("Set wait time = "), String( (m_startTriggerEvent / 1000) % 60) + F(" sec."));
          }
@@ -171,14 +174,14 @@ void RCWL_0516::loop()
           if (m_currentwaitTime >= m_Wait_until_max_time_provided)
           { // Inform external application there is active motion detected.
             sendMotionValue( 2 );
-            m_motionState = LOW; // update variable state to LOW
+            m_motionState = LOW; // update variable state to LOW.
             m_startTriggerEvent = 0;
 
             debug_outln_verbose( F("End, wait time = "), String( m_currentwaitTime / 1000) + F(" sec."));
           }
           else
           {// to short time window => restart.
-            m_motionState = LOW; // update variable state to LOW
+            m_motionState = LOW; // update variable state to LOW.
             m_startTriggerEvent = 0;
 
             debug_outln_verbose( F("No action, to short wait time = "), String( m_currentwaitTime / 1000) + F(" sec."));
@@ -227,13 +230,20 @@ void RCWL_0516::sendMotionValue(int motionValue)
       count_RadarMotion++;
 }
 
-/*
- *  Send Radar motion value To a web-Server.
- *
- */
+/// @brief 
+///
+///  Send Radar motion value To a web-Server.
+///
+/// @param val 
+/// @param now => current time value.
 void RCWL_0516::SendToServer(int val, time_t now)
 {
-  char time_buffer[10];
+  if(m_port == 0)
+  {// No communication with a external Server.
+    return;
+  }
+
+  char time_buffer[10] = {0};
   struct tm *timeinfo;
   timeinfo = localtime(&now);
 
@@ -243,7 +253,7 @@ void RCWL_0516::SendToServer(int val, time_t now)
 
   if (!m_Active)
   {
-    // Current time
+    // Current time.
     currentTrigger = millis();
 
     if ((currentTrigger - lastTriggerEvent) < m_timeSeconds)
@@ -274,8 +284,6 @@ void RCWL_0516::SendToServer(int val, time_t now)
     // debug_outln_verbose(F("[Sending a request] => Radar Motion Value: "), String(val));
  
     // Send rader value to external Server.
-    //client.print(String("Radar Value: ") + String(val));
-
     //String message = String(F("Date:")) + String(time_buffer) + String(F(",Radar Value:")) + String(val);
     client.print( message);
     client.stop();                      // clean-up client resouces.
@@ -329,7 +337,7 @@ void RCWL_0516::sendMQTT(int val, time_t now)
 
 			if( this->mqtt_client->publish( status_header.c_str(), payload_messages.c_str()))
 			{
-			  debug_outln_info(F("- LWT topic = "), mqtt_lwt_header);
+			  debug_outln_verbose(F("- LWT topic = "), mqtt_lwt_header);
 			  String payload_mess_on = INTL_LWT_ONLINE;
 			  this->mqtt_client->publish(mqtt_lwt_header, payload_mess_on.c_str());
 

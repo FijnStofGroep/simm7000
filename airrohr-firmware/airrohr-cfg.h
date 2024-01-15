@@ -10,6 +10,9 @@
 // run python airrohr-cfg.h.py
 //
 
+#ifndef __airrohr_cfg_h
+#define __airrohr_cfg_h
+          
 enum ConfigEntryType : unsigned short {
 	Config_Type_Bool,
 	Config_Type_UInt,
@@ -327,3 +330,6 @@ static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_Bool, 0, CFG_KEY_HAS_RADARMOTION, &cfg::has_radarmotion },
 	{ Config_Type_Bool, 0, CFG_KEY_HAS_MOREWIFI, &cfg::has_morewifi },
 };
+
+#endif
+
