@@ -5,7 +5,7 @@
  *                                                                      *
  ************************************************************************
  *                                                                      *
- *    airRohr firmware                                                  *
+ *  airRohr firmware                                                    *
  *    Copyright (C) 2016-2021  Code for Stuttgart a.o.                  *
  *    Copyright (C) 2019-2020  Dirk Mueller                             *
  *                                                                      *
@@ -79,10 +79,11 @@
  * RAM:     [=====     ]  46.0% (used 37696 bytes from 81920 bytes)		*
  * PROGRAM: [======    ]  61.6% (used 643167 bytes from 1044464 bytes)	*
  * 																		*
- * latest build 2024-01-13												*
+ * latest build 2024-01-30												*
  * PLATFORM: Espressif 8266 (3.1.0) > NodeMCU 1.0 (ESP-12E Module)		*
- * RAM:     [=====     ]  47.0% (used 38488 bytes from 81920 bytes)		*
- * PROGRAM: [======    ]  62.3% (used 650991 bytes from 1044464 bytes)	*
+ * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
+ * RAM:     [=====     ]  47.5% (used 38888 bytes from 81920 bytes)		*
+ * PROGRAM: [======    ]  62.9% (used 657327 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -509,7 +510,6 @@ unsigned long starttime_SDS;
 unsigned long starttime_GPS;
 unsigned long starttime_NPM;
 unsigned long starttime_IPS;
-unsigned long starttime_MQTT;
 
 unsigned long act_micro;
 unsigned long act_milli;
@@ -1303,13 +1303,13 @@ void printModuleVersions()
 
     if (error) 
 	{
-        Debug.print("Error trying to execute getProductName(): ");
+        Debug.print(F("Error trying to execute getProductName(): "));
         errorToString(error, errorMessage, 256);
         Debug.println(errorMessage);
     } 
 	else
 	{
-        Debug.print("ProductName:");
+        Debug.print(F("ProductName: "));
         Debug.println((char*)productName);
 		memcpy(SEN5X_type, productName, 6);
 
@@ -1329,21 +1329,21 @@ void printModuleVersions()
                              protocolMinor);
     if (error) 
 	{
-        Debug.print("Error trying to execute getVersion(): ");
+        Debug.print(F("Error trying to execute getVersion(): "));
         errorToString(error, errorMessage, 256);
         Debug.println(errorMessage);
     } 
 	else 
 	{
-        Debug.print("Firmware: ");
+        Debug.print(F("Firmware: "));
         Debug.print(firmwareMajor);
-        Debug.print(".");
+        Debug.print(F("."));
         Debug.print(firmwareMinor);
-        Debug.print(", ");
+        Debug.print(F(", "));
 
-        Debug.print("Hardware: ");
+        Debug.print(F("Hardware: "));
         Debug.print(hardwareMajor);
-        Debug.print(".");
+        Debug.print(F("."));
         Debug.println(hardwareMinor);
     }
 }
@@ -1359,13 +1359,13 @@ void printSerialNumber()
 
     if (error) 
 	{
-        Debug.print("Error trying to execute getSerialNumber(): ");
+        Debug.print(F("Error trying to execute getSerialNumber(): "));
         errorToString(error, errorMessage, 256);
         Debug.println(errorMessage);
     } 
 	else 
 	{
-        Debug.print("SerialNumber:");
+        Debug.print(F("SerialNumber: "));
         Debug.println((char*)serialNumber);
     }
 }
@@ -1376,12 +1376,12 @@ void printSerialNumber()
  *****************************************************************/
 static void disable_unneeded_nmea()
 {
-	serialGPS->println(F("$PUBX,40,GLL,0,0,0,0*5C")); // Geographic position, latitude / longitude
-													  //	serialGPS->println(F("$PUBX,40,GGA,0,0,0,0*5A"));       // Global Positioning System Fix Data
-	serialGPS->println(F("$PUBX,40,GSA,0,0,0,0*4E")); // GPS DOP and active satellites
-													  //	serialGPS->println(F("$PUBX,40,RMC,0,0,0,0*47"));       // Recommended minimum specific GPS/Transit data
-	serialGPS->println(F("$PUBX,40,GSV,0,0,0,0*59")); // GNSS satellites in view
-	serialGPS->println(F("$PUBX,40,VTG,0,0,0,0*5E")); // Track made good and ground speed
+	serialGPS->println(F("$PUBX,40,GLL,0,0,0,0*5C")); 	// Geographic position, latitude / longitude
+//	serialGPS->println(F("$PUBX,40,GGA,0,0,0,0*5A"));   // Global Positioning System Fix Data
+	serialGPS->println(F("$PUBX,40,GSA,0,0,0,0*4E")); 	// GPS DOP and active satellites
+//	serialGPS->println(F("$PUBX,40,RMC,0,0,0,0*47"));   // Recommended minimum specific GPS/Transit data
+	serialGPS->println(F("$PUBX,40,GSV,0,0,0,0*59")); 	// GNSS satellites in view
+	serialGPS->println(F("$PUBX,40,VTG,0,0,0,0*5E")); 	// Track made good and ground speed
 }
 
 /*****************************************************************
@@ -1474,7 +1474,7 @@ static void readConfigBase(bool oldconfig)
 
 	if ( !err )
 	{
-		serializeJsonPretty(json, Debug);		// display all members + value of config file.
+		serializeJsonPretty(json, Debug);		// display all members + value of config file (send it to UART0 port).
 		debug_outln_info(F("\nparsed json...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
 
 		// "configShape" memory array[], defined in airrohr-cfg.h
@@ -4556,7 +4556,7 @@ static unsigned long sendSensorCommunity(const String &data, const int pin, cons
 
 		sum_send_time = sendData(LoggerSensorCommunity, data_sensorcommunity, pin, HOST_SENSORCOMMUNITY, URL_SENSORCOMMUNITY);
 
-		debug_outln_info( F("SensorCommunity data: "), data_sensorcommunity);
+		debug_outln_info( F("Sensor.Community data:\n"), data_sensorcommunity);
 	}
 
 	return sum_send_time;
@@ -4570,7 +4570,7 @@ static unsigned long sendmqtt(const String &data)
 {
 #if defined(ESP8266)
 
-	starttime_MQTT = millis();
+	unsigned long  starttime_MQTT = millis();
 
 	if ( !mqtt_client.connected())
 	{// after x time MQTT connection will be lost wifi connection.... but why ????
@@ -4612,7 +4612,7 @@ static unsigned long sendmqtt(const String &data)
 			header += "/sensor";
 
 			payload.remove(payload.length() - 1, 1);	// delete last char ','.
-			payload += "}";								// set end char. Json format
+			payload += "}";								// set end char. Json format.
 
 			debug_outln_info(F("\npublish a message To MQTT Broker = ... "));
 			debug_outln_info(F("- topic = "), (String &)header);
@@ -4620,7 +4620,7 @@ static unsigned long sendmqtt(const String &data)
 
 			if (mqtt_client.publish(header.c_str(), payload.c_str()))
 			{
-				debug_outln_info(F("payload send ok..."));
+				debug_outln_info(F("Sensor send ok..."));
 				mqtt_error = "ok";
 			}
 			else
@@ -4663,13 +4663,13 @@ static unsigned long sendmqtt(const String &data)
 			}
 
 			// default LWT online
-			//debug_outln_info(F("Send online LWT"));
 			debug_outln_info(F("- LWT topic = "), mqtt_lwt_header);
 
 			String payload_mess_on = INTL_ONLINE;
 			if( mqtt_client.publish(mqtt_lwt_header, payload_mess_on.c_str()))
 			{
-				debug_outln_info(F("lwt send ok..."));
+				debug_outln_info(F("- LWT payload = "), (String &)payload_mess_on);
+				debug_outln_info(F("LWT send ok..."));
 				//mqtt_error = "ok";
 			}
 			else
@@ -4680,7 +4680,7 @@ static unsigned long sendmqtt(const String &data)
 		}
 	}
 
-	return micros() - starttime_MQTT;
+	return millis() - starttime_MQTT;				//  micros() - starttime_MQTT;
 #endif
 }
 
@@ -7623,7 +7623,7 @@ static void initSEN5X()
 	error = sen5x.deviceReset();
 	if (error)
 	{
-		Debug.print("SEN5X_DeviceReset() return Error: ");
+		Debug.print(F("SEN5X_DeviceReset() return Error: "));
 		errorToString(error, errorMessage, 256);
 		Debug.println(errorMessage);
 		debug_outln_error(F("Check SEN5x sensor is NOT connected!"));
@@ -7633,8 +7633,8 @@ static void initSEN5X()
 	}
 
 #ifdef USE_PRODUCT_INFO
-	printSerialNumber();
 	printModuleVersions();
+	printSerialNumber();
 #endif
 
 	if (sen5x.setFanAutoCleaningInterval(SEN5X_AUTO_CLEANING_INTERVAL) != 0)
@@ -7645,35 +7645,38 @@ static void initSEN5X()
 	}
 
     // Adjust tempOffset to account for additional temperature offsets
-    // exceeding the SEN module's self heating.
-    float tempOffset = readCorrectionOffset(cfg::temp_correction);		//String(cfg::temp_correction).toFloat();
+    // exceeding the SEN5X module's self heating.
+    float tempOffset = readCorrectionOffset(cfg::scd30_temp_correction);		//String(cfg::scd30_temp_correction).toFloat();
     error = sen5x.setTemperatureOffsetSimple(tempOffset);
 
     if (error) 
 	{
-        Debug.print("Error trying to execute setTemperatureOffsetSimple(): ");
+        Debug.print(F("Error trying to execute setTemperatureOffsetSimple(): "));
         errorToString(error, errorMessage, 256);
         Debug.println(errorMessage);
     } 
 	else 
 	{
-        Debug.print("Temperature Offset = ");
+        Debug.print(F("Temperature Offset = "));
         Debug.print(tempOffset);
-        Debug.println(" deg. Celsius (SEN54/SEN55 only)");
+        Debug.println(F(" °C. (SEN54/SEN55 only)"));
     }
 
 	error = sen5x.startMeasurement();
 
 	if (error)
 	{
-		Debug.print("Error trying to execute startMeasurement(): ");
+		Debug.print(F("Error trying to execute startMeasurement(): "));
 		errorToString(error, errorMessage, 256);
 		Debug.println(errorMessage);
 		is_Sen5x_init_failed = true;
-		//return;
 	}
 	else
 	{
+		debug_outln_info(F("Emulate SEN55:"));
+		debug_outln_info(F("\tPM - "), FPSTR(cfg::sen5x_sym_pm));
+		debug_outln_info(F("\tTH - "), FPSTR(cfg::sen5x_sym_th));
+
 		debug_outln(F("SEN5X sensor active. Sensor Fan Cleaning and Warm-Up for the first Measurement."), DEBUG_MIN_INFO);
 		sen5x.startFanCleaning();
 		is_SEN5X_running = false;
@@ -8016,60 +8019,58 @@ static void powerOnTestSensors()
 */
 static void logEnabledAPIs()
 {
+	debug_outln_info(FPSTR(DBG_TXT_SEP));
 	debug_outln_info(F("Send to :"));
 
 	if (cfg::send2dusti)
 	{
-		debug_outln_info(F("sensor.community"));
+		debug_outln_info(F("\tsensor.community"));
 	}
 
 	if (cfg::send2fsapp)
 	{
-		debug_outln_info(F("Feinstaub-App"));
+		debug_outln_info(F("\tFeinstaub-App"));
 	}
 
 	if (cfg::send2madavi)
 	{
-		debug_outln_info(F("Madavi.de"));
+		debug_outln_info(F("\tMadavi.de"));
 	}
 
 	if (cfg::send2csv)
 	{
-		debug_outln_info(F("Serial as CSV"));
+		debug_outln_info(F("\tSerial as CSV"));
 	}
 
 	if (cfg::send2custom)
 	{
-		debug_outln_info(F("custom API"));
+		debug_outln_info(F("\tcustom API"));
 	}
 	
 	if (cfg::send2mqtt)
 	{
-		debug_outln_info(F("MQTT broker: "), String(cfg::mqtt_server));
-		debug_outln_info(F(" - Port: "), String(cfg::mqtt_port));
-		debug_outln_info(F(" - User: "), String(cfg::mqtt_user));
-//		debug_outln_info(F(" - Pasword: "), String(cfg::mqtt_pwd));
-		debug_outln_info(F(" - Topic: "), String(cfg::mqtt_topic));
-		debug_outln_info(F(" - MQTT-client: "), String(mqtt_client_id));
-
+		debug_outln_info(F("\tMQTT broker: "), String(cfg::mqtt_server));
+		debug_outln_info(F("\t\t- Port: "), String(cfg::mqtt_port));
+		debug_outln_info(F("\t\t- User: "), String(cfg::mqtt_user));
+//		debug_outln_info(F("\t\t- Pasword: "), String(cfg::mqtt_pwd));
+		debug_outln_info(F("\t\t- Topic: "), String(cfg::mqtt_topic));
+		debug_outln_info(F("\t\t- MQTT-client: "), String(mqtt_client_id));
 	}
 
 	if (cfg::send2aircms)
 	{
-		debug_outln_info(F("aircms API"));
+		debug_outln_info(F("\taircms API"));
 	}
 
 	if (cfg::send2influx)
 	{
-		debug_outln_info(F("custom influx DB"));
+		debug_outln_info(F("\tcustom influx DB"));
 	}
 
 	if (cfg::send2sensemap)
 	{
-		debug_outln_info(F("OpenSenseMap.org"));
+		debug_outln_info(F("\tOpenSenseMap.org"));
 	}
-
-	debug_outln_info(FPSTR(DBG_TXT_SEP));
 
 /*
 	if (cfg::auto_update)
@@ -8077,6 +8078,8 @@ static void logEnabledAPIs()
 		debug_outln_info(F("Auto-Update active..."));
 	}
 */
+
+	debug_outln_info(FPSTR(DBG_TXT_SEP));
 
 }
 
@@ -8142,10 +8145,6 @@ static unsigned long sendDataToOptionalApis(const String &data)
 
 		if (cfg::sen5x_read && (!is_Sen5x_init_failed))
 		{
-			debug_outln_info(F("Emulate SEN55:"));
-			debug_outln_info(F("TH - "), FPSTR(cfg::sen5x_sym_th));
-			debug_outln_info(F("PM - "), FPSTR(cfg::sen5x_sym_pm));
-
 			RESERVE_STRING(data_sensemap, LARGE_STR);
 			data_sensemap = data;
 			data_sensemap.replace("SEN55", cfg::sen5x_sym_pm);	// set PM sensor Name.
@@ -8184,12 +8183,9 @@ static unsigned long sendDataToOptionalApis(const String &data)
 
 			data_sensemap.replace("signal", "wifi_signal");					// Wifi signal info
 			
-				// end
+			// end
 
 			debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("opensensemap: "));
-			// debug_outln_info(F("Emulate SEN55 -"));
-			// debug_outln_info(F("TH - "), FPSTR(cfg::sen5x_sym_th));
-			// debug_outln_info(F("PM - "), FPSTR(cfg::sen5x_sym_pm));
 
 			String sensemap_path(tmpl(FPSTR(URL_SENSEMAP), cfg::senseboxid));
 			sum_send_time += sendData(LoggerSensemap, data_sensemap, 0, HOST_SENSEMAP, sensemap_path.c_str());
@@ -8371,7 +8367,8 @@ void setup(void)
 	createLoggerConfigs();
 
 	debug_outln_info(F("\nChipId: "), esp_chipid);
-	debug_outln_info(F("\nMAC Id: "), esp_mac_id);
+	//debug_outln_info(F("\nMAC Id: "), esp_mac_id);
+	debug_outln_info(F("MAC Id: "), WiFi.macAddress() + String(F("\n")));
 
 #if defined(ESP8266)
 	if(cfg::send2mqtt)
@@ -8798,11 +8795,12 @@ void loop(void)
 		data += "]}";						// set JSON end chars.
 
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
-		Debug.println(data);				// print complete Json data string.
+		debug_outln_info( F("Raw Sensor Data format for other Api's:\n"), data);	// Raw print complete Json data string.
+		//Debug.println(data);				
 
-		yield();							// give waiting threads CPU time.
+		yield();							// give waiting thread(s) CPU time.
 
-		// send to:
+		// send to Optional Api's:
 		sum_send_time += sendDataToOptionalApis(data);
 		
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
