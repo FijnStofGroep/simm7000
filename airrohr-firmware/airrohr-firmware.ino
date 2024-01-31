@@ -83,7 +83,7 @@
  * PLATFORM: Espressif 8266 (3.1.0) > NodeMCU 1.0 (ESP-12E Module)		*
  * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
  * RAM:     [=====     ]  47.5% (used 38888 bytes from 81920 bytes)		*
- * PROGRAM: [======    ]  62.9% (used 657327 bytes from 1044464 bytes)	*
+ * PROGRAM: [======    ]  63.0% (used 658063 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -3117,9 +3117,6 @@ static void webserver_values()
 
 	if (cfg::sen5x_read)
 	{
-		// Debug.println((char*)SEN5X_type);
-		// Debug.println(memcmp(SEN5X_type,"SEN50",6));
-
 		if (memcmp(SEN5X_type, "SEN50", 6) == 0)
 		{
 			add_table_pm_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_PM1), last_value_SEN5X_P0);
@@ -3419,6 +3416,31 @@ static void webserver_status()
 		//add_table_row_from_value(page_content, F("CO₂ offset"), String( settingVal) + String(" ppm"));
 	}
 
+	if (cfg::sen5x_read)
+	{// Display Sen5x settings.
+		if (memcmp(SEN5X_type, "SEN54", 6) == 0)
+		{
+			//String manufacturer = F("Sensirion ") + String(SENSORS_SEN54);
+			add_table_row_from_value(page_content, FPSTR((String(MANUFACTURER) + String(SENSORS_SEN54)).c_str()), emptyString);
+		}
+		else
+		{
+			//String manufacturer = F("Sensirion ") + String(SENSORS_SEN55);
+			add_table_row_from_value(page_content, FPSTR((String(MANUFACTURER) + String(SENSORS_SEN55)).c_str()), emptyString);
+		}
+
+		float offsetTemp;
+		sen5x.getTemperatureOffsetSimple(offsetTemp);
+		versionHtml = F("Temperature offset: ");
+		versionHtml += String(offsetTemp,1) + String("°C");
+		versionHtml += String( BR_TAG);
+		versionHtml += FPSTR(INTL_SEN5X_ON);
+		versionHtml += cfg::sen5x_on == true ? F(": enabled") : F(": disabled");
+		//versionHtml += String( BR_TAG);
+
+		add_table_row_from_value(page_content, FPSTR(emptyString.c_str()), versionHtml);
+	}
+
 	page_content += FPSTR(EMPTY_ROW);
 	page_content += F("<tr><td colspan='2'><b>" INTL_ERROR "</b></td></tr>");
 
@@ -3469,18 +3491,16 @@ static void webserver_status()
 	}
 
 	if (cfg::sen5x_read)
-	{
+	{// display SEN5x reading Errors.
 		if(memcmp(SEN5X_type,"SEN50",6) == 0)
 		{
 			add_table_row_from_value(page_content, FPSTR(SENSORS_SEN50), String(SEN5X_read_error_counter));
 		}
-
-		if(memcmp(SEN5X_type,"SEN54",6)== 0)
+		else if (memcmp(SEN5X_type, "SEN54", 6) == 0)
 		{
 			add_table_row_from_value(page_content, FPSTR(SENSORS_SEN54), String(SEN5X_read_error_counter));
 		}
-
-		if(memcmp(SEN5X_type,"SEN55",6)== 0)
+		else if (memcmp(SEN5X_type, "SEN55", 6) == 0)
 		{
 			add_table_row_from_value(page_content, FPSTR(SENSORS_SEN55), String(SEN5X_read_error_counter));
 		}
@@ -6483,6 +6503,11 @@ static void GetSen5XSensorData()
 			value_SEN5X_N4 += numberConcentrationPm4p0;
 			value_SEN5X_N10 += numberConcentrationPm10p0;
 			value_SEN5X_TS += typicalParticleSize;
+
+			debug_outln_verbose(F("PM1 (sec.): "), String(massConcentrationPm1p0));
+			debug_outln_verbose(F("PM2.5 (sec.): "), String(massConcentrationPm2p5));
+			debug_outln_verbose(F("PM4 (sec.) : "), String(massConcentrationPm4p0));
+			debug_outln_verbose(F("PM10 (sec.) : "), String(massConcentrationPm10p0));
 		}
 
 		error = sen5x.readMeasuredValues(massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, massConcentrationPm10p0,
@@ -6501,6 +6526,9 @@ static void GetSen5XSensorData()
 			value_SEN5X_H += ambientHumidity;
 			value_SEN5X_VOC += vocIndex;
 			value_SEN5X_NOX += noxIndex;
+
+			debug_outln_verbose(F("Temp (sec.): "), String(ambientTemperature));
+			debug_outln_verbose(F("Hum (sec.): "), String(ambientHumidity));
 		}
 
 		SEN5X_measurement_count++;
