@@ -43,6 +43,7 @@ String form_select_mode_SEN5TH()
 				  "<option value='SEN55'>SEN55</option>"
 				  "<option value='SCD30'>SCD30</option>"
 				  "<option value='SHT35'>SHT35</option>"
+				  "<option value='SHT3X'>SHT3X</option>"
 				  "</select>"
 				  "</td>"
 				  "</tr>");
