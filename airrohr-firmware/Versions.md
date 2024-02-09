@@ -1,3 +1,6 @@
+FWL-2024-02-B2  (Fijnstof Werkgroep Leusden)
+* Add Temp/Hum SHT3X as SEN55 (needed for Madavi)
+
 FWL-2023-12-B1  (Fijnstof Werkgroep Leusden)
 * Change config web
 * add allways on SEN5X
