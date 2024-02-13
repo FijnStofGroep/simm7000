@@ -307,7 +307,7 @@ static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
 #define BMP_API_PIN 3
 
 // BMP280/BME280, temperature, pressure (humidity on BME280)
-#define BMX280_READ 1
+#define BMX280_READ 0
 #define BMP280_API_PIN 3
 #define BME280_API_PIN 11
 
