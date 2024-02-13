@@ -79,11 +79,11 @@
  * RAM:     [=====     ]  46.0% (used 37696 bytes from 81920 bytes)		*
  * PROGRAM: [======    ]  61.6% (used 643167 bytes from 1044464 bytes)	*
  * 																		*
- * latest build 2024-01-30												*
+ * latest build 2024-02-13												*
  * PLATFORM: Espressif 8266 (3.1.0) > NodeMCU 1.0 (ESP-12E Module)		*
  * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
  * RAM:     [=====     ]  47.5% (used 38888 bytes from 81920 bytes)		*
- * PROGRAM: [======    ]  63.0% (used 658063 bytes from 1044464 bytes)	*
+ * PROGRAM: [======    ]  63.0% (used 658231 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -8175,8 +8175,8 @@ static unsigned long sendDataToOptionalApis(const String &data)
 		{
 			RESERVE_STRING(data_sensemap, LARGE_STR);
 			data_sensemap = data;
-			data_sensemap.replace("SEN55", cfg::sen5x_sym_pm);	// set PM sensor Name.
-			data_sensemap.replace("SEN5X", cfg::sen5x_sym_th);	// set temp/hummidity/NOx sensor Name.
+			data_sensemap.replace("SEN55", cfg::sen5x_sym_pm);	// replace PM sensor Name.
+			data_sensemap.replace("SEN5X", cfg::sen5x_sym_th);	// replace temp/hummidity/NOx sensor Name.
 
 			sum_send_time += sendData(LoggerMadavi, data_sensemap, 0, HOST_MADAVI, URL_MADAVI);
 		}
@@ -8206,10 +8206,10 @@ static unsigned long sendDataToOptionalApis(const String &data)
 
 			RESERVE_STRING(data_sensemap, LARGE_STR);
 			data_sensemap = data;
-			data_sensemap.replace("SEN55", cfg::sen5x_sym_pm); 				// set PM sensor Name
-			data_sensemap.replace("SEN5X", cfg::sen5x_sym_th);				// set temp/hummidity/NOx sensor Name
+			data_sensemap.replace("SEN55", cfg::sen5x_sym_pm); 				// replace PM sensor Name
+			data_sensemap.replace("SEN5X", cfg::sen5x_sym_th);				// replace temp/hummidity/NOx sensor Name
 
-			data_sensemap.replace("signal", "wifi_signal");					// Wifi signal info
+			data_sensemap.replace("signal", "wifi_signal");					// replace Wifi signal info
 			
 			// end
 
@@ -8230,9 +8230,22 @@ static unsigned long sendDataToOptionalApis(const String &data)
 	}
 
 	if (cfg::send2fsapp)
-	{
+	{// for feinstaub program developt by chillibits.com
 		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("Server FS App: "));
-		sum_send_time += sendData(LoggerFSapp, data, 0, HOST_FSAPP, URL_FSAPP);
+
+		if (cfg::sen5x_read && (!is_Sen5x_init_failed))
+		{
+			RESERVE_STRING(data_sensemap, LARGE_STR);
+			data_sensemap = data;
+			data_sensemap.replace("SEN55", cfg::sen5x_sym_pm);	// replace PM sensor Name.
+			data_sensemap.replace("SEN5X", cfg::sen5x_sym_th);	// replace temp/hummidity/NOx sensor Name.
+
+			sum_send_time += sendData(LoggerFSapp, data_sensemap, 0, HOST_FSAPP, URL_FSAPP);
+		}
+		else
+		{
+			sum_send_time += sendData(LoggerFSapp, data, 0, HOST_FSAPP, URL_FSAPP);
+		}
 	}
 
 	if (cfg::send2aircms)
@@ -8268,13 +8281,14 @@ static unsigned long sendDataToOptionalApis(const String &data)
 		data_4_custom += esp_chipid;
 		data_4_custom += "\", ";
 		data_4_custom += data_to_send;
+
 		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("custom api: "));
 		sum_send_time += sendData(LoggerCustom, data_4_custom, 0, cfg::host_custom, cfg::url_custom);
 	}
 
 	if (cfg::send2csv)
 	{
-		debug_outln_info(F("## Sending as csv: "));
+		debug_outln_info(F("## Sending Serial out as \"CSV\" format: "));
 		send_csv(data);
 	}
 
