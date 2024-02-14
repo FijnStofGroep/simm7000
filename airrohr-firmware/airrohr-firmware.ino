@@ -8166,6 +8166,16 @@ static void setupNetworkTime()
 static unsigned long sendDataToOptionalApis(const String &data)
 {
 	unsigned long sum_send_time = 0;
+	RESERVE_STRING(data_sensemap, LARGE_STR);
+
+	if (cfg::sen5x_read && (!is_Sen5x_init_failed))
+	{
+		data_sensemap = data;
+		data_sensemap.replace("SEN55", cfg::sen5x_sym_pm);	 	// replace PM sensor Name.
+		data_sensemap.replace("SEN5X", cfg::sen5x_sym_th);		// replace temp/hummidity/NOx sensor Name.
+
+		debug_outln_info(F("sendDataToOptionalApis data:\n"), data_sensemap);
+	}
 
 	if (cfg::send2madavi)
 	{
@@ -8173,11 +8183,6 @@ static unsigned long sendDataToOptionalApis(const String &data)
 
 		if (cfg::sen5x_read && (!is_Sen5x_init_failed))
 		{
-			RESERVE_STRING(data_sensemap, LARGE_STR);
-			data_sensemap = data;
-			data_sensemap.replace("SEN55", cfg::sen5x_sym_pm);	// replace PM sensor Name.
-			data_sensemap.replace("SEN5X", cfg::sen5x_sym_th);	// replace temp/hummidity/NOx sensor Name.
-
 			sum_send_time += sendData(LoggerMadavi, data_sensemap, 0, HOST_MADAVI, URL_MADAVI);
 		}
 		else
@@ -8188,58 +8193,32 @@ static unsigned long sendDataToOptionalApis(const String &data)
 
 	if (cfg::send2sensemap && (cfg::senseboxid[0] != '\0'))
 	{
+		String sensemap_path(tmpl(FPSTR(URL_SENSEMAP), cfg::senseboxid));
+
+		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("opensensemap: "));
+
 		if (cfg::sen5x_read && (!is_Sen5x_init_failed))
-		{	// OpenSenseMap
-			// RESERVE_STRING(data_sensemap, MED_STR);			// LARGE_STR
-			// data_sensemap = FPSTR( (String("{ \"") + String(JSON_SENSOR_DATA_VALUES) + String("\":[")).c_str() );	//FPSTR(data_first_part);
-			// this works
-			// add_Value2Json(data_sensemap, F("SPS30_P0"), F("PM1.0: "), last_value_SEN5X_P0);
-			// add_Value2Json(data_sensemap, F("SPS30_P2"), F("PM2.5: "), last_value_SEN5X_P2);
-			// add_Value2Json(data_sensemap, F("SPS30_P4"), F("PM4.0: "), last_value_SEN5X_P4);
-			// add_Value2Json(data_sensemap, F("SPS30_P1"), F("PM 10: "), last_value_SEN5X_P1);
-			// add_Value2Json(data_sensemap, F("SCD30_temperature"), FPSTR(DBG_TXT_TEMPERATURE), last_value_SEN5X_T);
-			// add_Value2Json(data_sensemap, F("SCD30_humidity"), FPSTR(DBG_TXT_HUMIDITY), last_value_SEN5X_H);
+		{ // OpenSenseMap
+			RESERVE_STRING(data_2_sensemap, LARGE_STR);
+			data_2_sensemap = data_sensemap;
+			data_2_sensemap.replace("signal", "wifi_signal");	// replace Wifi signal ID.
 
-			// data_sensemap.remove(data_sensemap.length() - 1);			// remove ',' char.
-			// data_sensemap += "]}";										// Add end markers
-			// or this
+			sum_send_time += sendData(LoggerSensemap, data_2_sensemap, 0, HOST_SENSEMAP, sensemap_path.c_str());
 
-			RESERVE_STRING(data_sensemap, LARGE_STR);
-			data_sensemap = data;
-			data_sensemap.replace("SEN55", cfg::sen5x_sym_pm); 				// replace PM sensor Name
-			data_sensemap.replace("SEN5X", cfg::sen5x_sym_th);				// replace temp/hummidity/NOx sensor Name
-
-			data_sensemap.replace("signal", "wifi_signal");					// replace Wifi signal info
-			
-			// end
-
-			debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("opensensemap: "));
-
-			String sensemap_path(tmpl(FPSTR(URL_SENSEMAP), cfg::senseboxid));
-			sum_send_time += sendData(LoggerSensemap, data_sensemap, 0, HOST_SENSEMAP, sensemap_path.c_str());
-
-			debug_outln_info(F("opensensemap data: "), data_sensemap);
+			debug_outln_info(F("opensensemap data: "), data_2_sensemap);
 		}
 		else
 		{
-			debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("opensensemap: "));
-			
-			String sensemap_path(tmpl(FPSTR(URL_SENSEMAP), cfg::senseboxid));
 			sum_send_time += sendData(LoggerSensemap, data, 0, HOST_SENSEMAP, sensemap_path.c_str());
 		}
 	}
 
 	if (cfg::send2fsapp)
-	{// for feinstaub program developt by chillibits.com
-		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("Server FS App: "));
+	{ // for feinstaub program developt by chillibits.com
+		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("Server FeinStaube App: "));
 
 		if (cfg::sen5x_read && (!is_Sen5x_init_failed))
 		{
-			RESERVE_STRING(data_sensemap, LARGE_STR);
-			data_sensemap = data;
-			data_sensemap.replace("SEN55", cfg::sen5x_sym_pm);	// replace PM sensor Name.
-			data_sensemap.replace("SEN5X", cfg::sen5x_sym_th);	// replace temp/hummidity/NOx sensor Name.
-
 			sum_send_time += sendData(LoggerFSapp, data_sensemap, 0, HOST_FSAPP, URL_FSAPP);
 		}
 		else
@@ -8251,6 +8230,7 @@ static unsigned long sendDataToOptionalApis(const String &data)
 	if (cfg::send2aircms)
 	{
 		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("aircms.online: "));
+
 		unsigned long ts = millis() / 1000;
 		String token = WiFi.macAddress();
 		String aircms_data("L=");
@@ -8258,7 +8238,8 @@ static unsigned long sendDataToOptionalApis(const String &data)
 		aircms_data += "&t=";
 		aircms_data += String(ts, DEC);
 		aircms_data += F("&airrohr=");
-		aircms_data += data;
+		aircms_data += (cfg::sen5x_read && (!is_Sen5x_init_failed)) ? data_sensemap : data;
+
 		String aircms_url(FPSTR(URL_AIRCMS));
 		aircms_url += hmac1(sha1Hex(token), aircms_data + token);
 
@@ -8268,27 +8249,31 @@ static unsigned long sendDataToOptionalApis(const String &data)
 	if (cfg::send2influx)
 	{
 		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("custom influx db: "));
+
 		RESERVE_STRING(data_4_influxdb, LARGE_STR);
-		create_influxdb_string_from_data(data_4_influxdb, data);
+		create_influxdb_string_from_data(data_4_influxdb, (cfg::sen5x_read && (!is_Sen5x_init_failed)) ? data_sensemap : data);
+
 		sum_send_time += sendData(LoggerInflux, data_4_influxdb, 0, cfg::host_influx, cfg::url_influx);
 	}
 
 	if (cfg::send2custom)
 	{
-		String data_to_send = data;
+		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("custom api: "));
+
+		String data_to_send = (cfg::sen5x_read && (!is_Sen5x_init_failed)) ? data_sensemap : data;
 		data_to_send.remove(0, 1);
+		
 		String data_4_custom(F("{\"esp8266id\": \""));
 		data_4_custom += esp_chipid;
 		data_4_custom += "\", ";
 		data_4_custom += data_to_send;
 
-		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("custom api: "));
 		sum_send_time += sendData(LoggerCustom, data_4_custom, 0, cfg::host_custom, cfg::url_custom);
 	}
 
 	if (cfg::send2csv)
 	{
-		debug_outln_info(F("## Sending Serial out as \"CSV\" format: "));
+		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F(" Serial out as \"CSV\" format: "));
 		send_csv(data);
 	}
 
