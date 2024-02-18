@@ -65,6 +65,7 @@ body{font-family:Arial,sans-serif;margin:0}	\
 td{vertical-align:top}	\
 .v>tbody>tr:nth-child(odd){background:#e7e6d1}	\
 .b{text-decoration:none;padding:10px;background:#055d52;color:#fff;display:block;width:auto;border-radius:5px;}	\
+.c{text-decoration:none;padding:10px;background:#5d0505;color:#fff;display:block;width:auto;border-radius:5px;}	\
 .wifi{background:0 0;color:#00f;padding:5px;display:inline;border:0;}	\
 input[type=text]{width:100%}	\
 input[type=password]{width:100%}	\
@@ -120,7 +121,8 @@ const char WEB_ROOT_PAGE_CONTENT[] PROGMEM = "<a class='b' href='/values'>{t}</a
 	<a class='b' href='/config'>{conf}</a><br/>\
 	<a class='b' href='/removeConfig'>" INTL_CONFIGURATION_DELETE "</a><br/>\
 	<a class='b' href='/reset'>{restart}</a><br/>\
-	<a class='b' href='/debug'>{debug}</a><br/>";
+	<a class='b' href='/debug'>{debug}</a><br/>\
+	<a class='c' href='/update'>{update}</a><br/>";
 
 const char WEB_ROOT_PAGE_CONTENT_S7000[] PROGMEM = "<a class='b' href='/values'>{t}</a><br/>\
 	<a class='b' href='/status'>{s}</a><br/>\
@@ -129,7 +131,8 @@ const char WEB_ROOT_PAGE_CONTENT_S7000[] PROGMEM = "<a class='b' href='/values'>
 	<a class='b' href='/s7000'>{s7000}</a><br/>\
 	<a class='b' href='/removeConfig'>" INTL_CONFIGURATION_DELETE "</a><br/>\
 	<a class='b' href='/reset'>{restart}</a><br/>\
-	<a class='b' href='/debug'>{debug}</a><br/>";
+	<a class='b' href='/debug'>{debug}</a><br/>\
+	<a class='c' href='/update'>{update}</a><br/>";
 
 const char WEB_CONFIG_SCRIPT[] PROGMEM = "<script>\
 function setSSID(ssid){document.getElementById('wlanssid').value=ssid.innerText||ssid.textContent;document.getElementById('wlanpwd').focus();}\
