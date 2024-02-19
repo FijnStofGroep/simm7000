@@ -478,6 +478,13 @@ DallasTemperature ds18b20(&oneWire);
 /*****************************************************************
  * SEN5X declaration                                             *
  *****************************************************************/
+unsigned char SEN5X_type[6];
+
+#if (defined(I2C_BUFFER_LENGTH) && (I2C_BUFFER_LENGTH >= MAXBUF_REQUIREMENT)) ||  \
+    (defined(BUFFER_LENGTH)     && BUFFER_LENGTH >= MAXBUF_REQUIREMENT)
+ #define USE_PRODUCT_INFO
+#endif
+
 SensirionI2CSen5x sen5x;
 
 /*****************************************************************
@@ -1281,16 +1288,6 @@ static String IPS_version_date()
 /*****************************************************************
  * read SEN5X sensor serial and firmware date                    *
  *****************************************************************/
-
-unsigned char SEN5X_type[6];
-
-#define MAXBUF_REQUIREMENT 48
-
-#if (defined(I2C_BUFFER_LENGTH) && (I2C_BUFFER_LENGTH >= MAXBUF_REQUIREMENT)) ||  \
-    (defined(BUFFER_LENGTH)     && BUFFER_LENGTH >= MAXBUF_REQUIREMENT)
- #define USE_PRODUCT_INFO
-#endif
-
 void printModuleVersions() 
 {
     uint16_t error;
@@ -1511,7 +1508,7 @@ static void readConfigBase(bool oldconfig)
 
 		String writtenVersion(json["SOFTWARE_VERSION"].as<const char *>());
 		
-		if (writtenVersion.length() && writtenVersion[0] == 'N' && SOFTWARE_VERSION != writtenVersion)
+		if (writtenVersion.length() > 0 && writtenVersion[0] == 'N' && SOFTWARE_VERSION != writtenVersion)
 		{
 			debug_outln_info(F("Rewriting old config from: "), writtenVersion);
 			// would like to do that, but this would wipe firmware.old which the two stage loader
@@ -2282,7 +2279,7 @@ static void webserver_root()
 		page_content.replace(F("{s7000}"), FPSTR(INTL_SIM7000_CONFIGURATION));
 		page_content.replace(F("{restart}"), FPSTR(INTL_RESTART_SENSOR));
 		page_content.replace(F("{debug}"), FPSTR(INTL_DEBUG_LEVEL));
-		page_content.replace(F("{update}"), FPSTR(INTL_UPDATE_FIRM));
+		page_content.replace(F("{update}"), FPSTR(INTL_UPDATE_FIRMWARE));
 
 		end_html_page(page_content);
 	}
@@ -2871,6 +2868,13 @@ static void webserver_config7()
 	}
 }
 
+/// @brief 
+/// sensor will be restart after:
+///			- some time
+///			- Exception Error
+///			- by Software / Hardware watchdog.
+///			- By new firmware loading by OTA.
+///
 static void sensor_restart()
 {
 #if defined(ESP8266)
@@ -2925,7 +2929,7 @@ static void webserver_firmware_update()
 	String page_content;
 	page_content.reserve(512);
 	//start_html_page(page_content, F("Update Firmware"));
-	start_html_page(page_content, FPSTR(INTL_UPDATE_FIRM));
+	start_html_page(page_content, FPSTR(INTL_UPDATE_FIRMWARE));
 	debug_outln_info(F("ws: firmware page"));
 	debug_outln_verbose(F("HTTP GET: "), String(FPSTR(FW_DOWNLOAD_HOST)) + ':' + String(FW_DOWNLOAD_PORT) + String(FW_DOWNLOAD_URL));
 	end_html_page(page_content);
@@ -4436,9 +4440,6 @@ static WiFiClient *getNewLoggerWiFiClient(const LoggerEntry logger)
 	NOTE: Software serial is not reliable on 115200 baud and therefore changes it to a lower value. 
 		  9600 works well in almost all applications, but 115200 works great with Hardware serial.
 */
-#define LTEMODEM_BAUD	9600
-#define SERIALSIM_BAUD	115200
-
 static boolean SIM700LTEConnect() 
 {
 	debug_outln_info(F("SIM700 Connecting to "), String(cfg::wlanssid));	// ???
@@ -4595,7 +4596,7 @@ static unsigned long sendSensorCommunity(const String &data, const int pin, cons
 
 		sum_send_time = sendData(LoggerSensorCommunity, data_sensorcommunity, pin, HOST_SENSORCOMMUNITY, URL_SENSORCOMMUNITY);
 
-		debug_outln_info( F("Sensor.Community data:\n"), data_sensorcommunity);
+		debug_outln_verbose( F("Sensor.Community data:\n"), data_sensorcommunity);
 	}
 
 	return sum_send_time;
@@ -4653,7 +4654,7 @@ static void sendmqtt(const String &data)
 
 			debug_outln_info(F("\npublish a message To MQTT Broker = ... "));
 			debug_outln_info(F("- topic = "), (String &)header);
-			debug_outln_info(F("- payload = "), (String &)payload);
+			debug_outln_verbose(F("- payload = "), (String &)payload);
 
 			if (mqtt_client.publish(header.c_str(), payload.c_str()))
 			{
@@ -4686,7 +4687,7 @@ static void sendmqtt(const String &data)
 			payload_status += "\":\"" + mqtt_error + "\"}";
 
 			debug_outln_info(F("- status topic = "), (String &)status_header);
-			debug_outln_info(F("- status payload = "), (String &)payload_status);
+			debug_outln_verbose(F("- status payload = "), (String &)payload_status);
 
 			if(mqtt_client.publish(status_header.c_str(), payload_status.c_str()))
 			{
@@ -4705,13 +4706,13 @@ static void sendmqtt(const String &data)
 			String payload_mess_on = INTL_ONLINE;
 			if( mqtt_client.publish(mqtt_lwt_header, payload_mess_on.c_str()))
 			{
-				debug_outln_info(F("- LWT payload = "), (String &)payload_mess_on);
+				debug_outln_verbose(F("- LWT payload = "), (String &)payload_mess_on);
 				debug_outln_info(F("LWT send ok..."));
 				//mqtt_error = "ok";
 			}
 			else
 			{
-				debug_outln_info(F("lwt send failed..."));
+				debug_outln_info(F("LWT send failed..."));
 				//mqtt_error = "failed";
 			}
 		}
@@ -6119,24 +6120,6 @@ static void fetchSensorSEN5X(String &s)
 	add_Value2Json(s, FPSTR((result_SEN5X + F("N10")).c_str()), F("NC10:  "), last_value_SEN5X_N10);
 	add_Value2Json(s, FPSTR((result_SEN5X + F("TS")).c_str()),  F("TPS:   "), last_value_SEN5X_TS);
 
-	// For test fase split sensor data in two sections (PM and temp) moved to fetchSensorSEN5X_HT().
-	// if (memcmp(SEN5X_type, "SEN50", 6) != 0)
-	// {
-	// 	add_Value2Json(s, FPSTR((result_SEN5X + F("temperature")).c_str()), FPSTR(DBG_TXT_TEMPERATURE), last_value_SEN5X_T);
-	// 	add_Value2Json(s, FPSTR((result_SEN5X + F("humidity")).c_str()), FPSTR(DBG_TXT_HUMIDITY), last_value_SEN5X_H);
-	// }
-
-	// ["\"voc\" is not a valid choice. for SEN54/SEN55, type NOT in sensor community table."]
-	// if (memcmp(SEN5X_type, "SEN54", 6) == 0 || memcmp(SEN5X_type, "SEN55", 6) == 0)
-	// {
-	// 	add_Value2Json(s, FPSTR((result_SEN5X + F("VOC")).c_str()), FPSTR(DBG_TXT_VOCINDEX), last_value_SEN5X_VOC);
-	// }
-
-	// if (memcmp(SEN5X_type, "SEN55", 6) == 0)
-	// {// NOx 
-	// 	add_Value2Json(s, FPSTR((result_SEN5X + F("CO2")).c_str()), FPSTR(DBG_TXT_NOX), last_value_SEN5X_NOX);
-	// }
-
 	debug_outln_info( FPSTR((result_SEN5X + " read counter: ").c_str()), String(SEN5X_read_counter));
 	debug_outln_info( FPSTR((result_SEN5X + " read error counter: ").c_str()), String(SEN5X_read_error_counter));
 
@@ -6183,7 +6166,7 @@ static void fetchSensorSEN5X_THN(String &s)
 
 		//String result_SEN5X((char*)0);
 		//result_SEN5X.reserve(10);
-		// or
+		// same as:
 		RESERVE_STRING(result_SEN5X, 10);
 		result_SEN5X = F("SEN5X_");
 
@@ -8446,7 +8429,7 @@ void setup(void)
 			// implementation of MQTT communication.
 			setup_mqtt_broker( cfg::mqtt_server, cfg::mqtt_port);
 			RCWL0516.setMQTTClient(mqtt_client, mqtt_header, mqtt_lwt_header);
-			debug_outln_info(F("RCWL_0516 => set MQTT Client instance."));
+			debug_outln_info(F("RCWL_0516 => setup MQTT Client instance."));
 		}
 	}
 #endif

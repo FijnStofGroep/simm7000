@@ -58,6 +58,11 @@
 #define LEN_SIMM7000 30
 #define LEN_SEN5X_SYM 6
 
+#define LTEMODEM_BAUD	9600
+#define SERIALSIM_BAUD	115200
+
+#define MAXBUF_REQUIREMENT 48
+
 // define debug levels
 #define DEBUG_ERROR 1
 #define DEBUG_WARNING 2
