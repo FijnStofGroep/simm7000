@@ -82,8 +82,8 @@
  * latest build 2024-02-13												*
  * PLATFORM: Espressif 8266 (3.1.0) > NodeMCU 1.0 (ESP-12E Module)		*
  * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
- * RAM:     [=====     ]  47.5% (used 38888 bytes from 81920 bytes)		*
- * PROGRAM: [======    ]  63.0% (used 658231 bytes from 1044464 bytes)	*
+ * RAM:     [=====     ]  47.5% (used 38776 bytes from 81920 bytes)		*
+ * PROGRAM: [======    ]  63.0% (used 658159 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -93,7 +93,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2024-02-B2"
+#define SOFTWARE_VERSION_STR "FWL-2024-02-B3"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -3117,7 +3117,7 @@ static void webserver_values()
 
 	if (cfg::sen5x_read)
 	{
-		if (memcmp(SEN5X_type, "SEN50", 6) == 0)
+		if (memcmp(SEN5X_type, SENSOR_SEN50, 6) == 0)
 		{
 			add_table_pm_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_PM1), last_value_SEN5X_P0);
 			add_table_pm_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_PM25), last_value_SEN5X_P2);
@@ -3132,7 +3132,7 @@ static void webserver_values()
 			page_content += FPSTR(EMPTY_ROW);
 		}
 
-		if (memcmp(SEN5X_type, "SEN54", 6) == 0)
+		if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
 		{
 			add_table_pm_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_PM1), last_value_SEN5X_P0);
 			add_table_pm_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_PM25), last_value_SEN5X_P2);
@@ -3150,7 +3150,7 @@ static void webserver_values()
 			page_content += FPSTR(EMPTY_ROW);
 		}
 
-		if (memcmp(SEN5X_type, "SEN55", 6) == 0)
+		if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
 		{
 			add_table_pm_value(FPSTR(SENSORS_SEN55), FPSTR(WEB_PM1), last_value_SEN5X_P0);
 			add_table_pm_value(FPSTR(SENSORS_SEN55), FPSTR(WEB_PM25), last_value_SEN5X_P2);
@@ -3418,7 +3418,7 @@ static void webserver_status()
 
 	if (cfg::sen5x_read)
 	{// Display Sen5x settings.
-		if (memcmp(SEN5X_type, "SEN54", 6) == 0)
+		if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
 		{
 			//String manufacturer = F("Sensirion ") + String(SENSORS_SEN54);
 			add_table_row_from_value(page_content, FPSTR((String(MANUFACTURER) + String(SENSORS_SEN54)).c_str()), emptyString);
@@ -3492,15 +3492,15 @@ static void webserver_status()
 
 	if (cfg::sen5x_read)
 	{// display SEN5x reading Errors.
-		if(memcmp(SEN5X_type,"SEN50",6) == 0)
+		if(memcmp(SEN5X_type, SENSOR_SEN50,6) == 0)
 		{
 			add_table_row_from_value(page_content, FPSTR(SENSORS_SEN50), String(SEN5X_read_error_counter));
 		}
-		else if (memcmp(SEN5X_type, "SEN54", 6) == 0)
+		else if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
 		{
 			add_table_row_from_value(page_content, FPSTR(SENSORS_SEN54), String(SEN5X_read_error_counter));
 		}
-		else if (memcmp(SEN5X_type, "SEN55", 6) == 0)
+		else if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
 		{
 			add_table_row_from_value(page_content, FPSTR(SENSORS_SEN55), String(SEN5X_read_error_counter));
 		}
@@ -3919,12 +3919,12 @@ static void setup_mqtt_broker(const char *host, const int port)
 					break;
 				}
 
-				debug_outln_info(F("** Not connected to MQTT Broker, wait ** state: "), String(mqtt_client.state()));
+				debug_outln_verbose(F("Not connected to MQTT Broker, wait state: "), String(mqtt_client.state()));
 				delay(500);
 			}
 
-			debug_outln_info(F("KeepAlive  - "), String(keepAlive) + F(" sec."));
-			debug_outln_info(F("** MQTT Broker connected ** C_flag: "), String(mqtt_client.connected()));
+			debug_outln_verbose(F("KeepAlive  - "), String(keepAlive) + F(" sec."));
+			debug_outln_info(F("MQTT Broker connected, C_flag: "), String(mqtt_client.connected()));
 		}
 		else
 		{
@@ -3934,11 +3934,11 @@ static void setup_mqtt_broker(const char *host, const int port)
 #endif
 }
 
-/*
-	MQTT Callback methode.
-
-	only for test, maybe FFU
-*/
+/************************************************************************************
+ *	MQTT Callback methode.															*
+ *																					*
+ *	only for test, maybe FFU														*
+*************************************************************************************/
 // void mqttCallback(char *topic, uint8_t *payload, unsigned int len)
 // {
 // 	String topicmesg = String(mqtt_header) + String("/radar");
@@ -3953,10 +3953,10 @@ static void setup_mqtt_broker(const char *host, const int port)
 // 	}
 // }
 
-/*
-	select Channel For App.
-	return channel nr: 1 or 6 or 11
-*/
+/************************************************************************************
+ *	select Channel For App.															*
+ *	return channel nr: 1 or 6 or 11													*
+*************************************************************************************/
 static int selectChannelForAp()
 {
 	std::array<int, 14> channels_rssi;
@@ -4583,14 +4583,12 @@ static unsigned long sendSensorCommunity(const String &data, const int pin, cons
 }
 
 /*****************************************************************
- * send data to mqtt api                                         *
- * return: total working/send time.								 *
+ * send densor data to mqtt Broker.                              *
+ * 																 *
 /*****************************************************************/
-static unsigned long sendmqtt(const String &data)
+static void sendmqtt(const String &data)
 {
 #if defined(ESP8266)
-
-	unsigned long  starttime_MQTT = millis();
 
 	if ( !mqtt_client.connected())
 	{// after x time MQTT connection will be lost wifi connection.... but why ????
@@ -4700,7 +4698,6 @@ static unsigned long sendmqtt(const String &data)
 		}
 	}
 
-	return millis() - starttime_MQTT;				//  micros() - starttime_MQTT;
 #endif
 }
 
@@ -6049,29 +6046,31 @@ static void fetchSensorIPS(String &s)
 }
 
 /*****************************************************************
-   read SEN5X PM sensor values
-
-   Send NOx value to outside
+ *  read SEN5X PM sensor values
+ *
+ *  Send NOx value to outside
  *****************************************************************/
 static void fetchSensorSEN5X(String &s)
 {
-	String result_SEN5X = emptyString;
+	//String result_SEN5X = emptyString;
+	RESERVE_STRING(result_SEN5X, 10);
+	result_SEN5X = F("SEN55_");
 
-	if (memcmp(SEN5X_type, "SEN50", 6) == 0)
+	if (memcmp(SEN5X_type, SENSOR_SEN50, 6) == 0)
 	{
-		result_SEN5X = F("SEN50_");
+		//result_SEN5X = F("SEN50_");
 		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN50));
 	}
 
-	if (memcmp(SEN5X_type, "SEN54", 6) == 0)
+	if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
 	{
-		result_SEN5X = F("SEN54_");
+		//result_SEN5X = F("SEN54_");
 		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN54));
 	}
 
-	if (memcmp(SEN5X_type, "SEN55", 6) == 0)
+	if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
 	{
-		result_SEN5X = F("SEN55_");
+		//result_SEN5X = F("SEN55_");
 		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN55));
 	}
 
@@ -6131,17 +6130,17 @@ static void fetchSensorSEN5X(String &s)
 
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 
-	if (memcmp(SEN5X_type, "SEN50", 6) == 0)
+	if (memcmp(SEN5X_type, SENSOR_SEN50, 6) == 0)
 	{
 		debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_SEN50));
 	}
 
-	if (memcmp(SEN5X_type, "SEN54", 6) == 0)
+	if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
 	{
 		debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_SEN54));
 	}
 
-	if (memcmp(SEN5X_type, "SEN55", 6) == 0)
+	if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
 	{
 		debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_SEN55));
 	}
@@ -6155,20 +6154,27 @@ static void fetchSensorSEN5X(String &s)
 */
 static void fetchSensorSEN5X_THN(String &s)
 {
-	if (memcmp(SEN5X_type, "SEN55", 6) == 0 || memcmp(SEN5X_type, "SEN54", 6) == 0)
+	if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0 || memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
 	{
 		last_value_SEN5X_T = value_SEN5X_T / SEN5X_measurement_count;
 		last_value_SEN5X_H = value_SEN5X_H / SEN5X_measurement_count;
 		last_value_SEN5X_NOX = value_SEN5X_NOX / SEN5X_measurement_count;
 
-		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN55));
+		//String result_SEN5X = F("SEN5X_");
 
-		String result_SEN5X = F("SEN5X_");
+		//String result_SEN5X((char*)0);
+		//result_SEN5X.reserve(10);
+		// or
+		RESERVE_STRING(result_SEN5X, 10);
+		result_SEN5X = F("SEN5X_");
+
+		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), result_SEN5X);
+
 		add_Value2Json(s, FPSTR((result_SEN5X + F("temperature")).c_str()), FPSTR(DBG_TXT_TEMPERATURE), last_value_SEN5X_T);
 		add_Value2Json(s, FPSTR((result_SEN5X + F("humidity")).c_str()),    FPSTR(DBG_TXT_HUMIDITY),    last_value_SEN5X_H);
 		add_Value2Json(s, FPSTR((result_SEN5X + F("co2_ppm")).c_str()), 	FPSTR(DBG_TXT_NOX), 		last_value_SEN5X_NOX);	// NOx
 
-		debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_SEN55));
+		debug_outln_verbose(FPSTR(DBG_TXT_END_READING), result_SEN5X);
 	}
 
 	value_SEN5X_H = value_SEN5X_T = value_SEN5X_NOX = 0.0;
@@ -6184,7 +6190,6 @@ static __noinline void fetchSensorPPD(String &s)
 
 	if (msSince(starttime) <= SAMPLETIME_MS)
 	{
-
 		// Read pins connected to ppd42ns
 		boolean valP1 = digitalRead(PPD_PIN_PM1);
 		boolean valP2 = digitalRead(PPD_PIN_PM2);
@@ -6446,7 +6451,7 @@ static void GetSen5XSensorData()
 		{
 			if (!cfg::sen5x_on)
 			{
-				debug_outln_info(F("SEN5X STOP Measurement. time: "), String(msSince(starttime)));
+				debug_outln_verbose(F("SEN5X STOP Measurement. time: "), String(msSince(starttime)));
 	
 				sen5x.stopMeasurement();
 			}
@@ -6457,8 +6462,8 @@ static void GetSen5XSensorData()
 	else if (is_SEN5X_running && (msSince(starttime) - SEN5X_read_timer) > SEN5X_WAITING_AFTER_LAST_READ)
 	{
 		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN55));
-		debug_outln_info(FPSTR(DBG_TXT_SEP));
-		debug_outln_info(F("SEN5X START sensor readings. time: "), String((msSince(starttime) - (SEN5X_read_timer + (SEN5X_WAITING_AFTER_LAST_READ - SAMPLETIME_SEN5X_MS)))) + F(" msec.") );
+		debug_outln_verbose(FPSTR(DBG_TXT_SEP));
+		debug_outln_verbose(F("SEN5X START sensor readings. time: "), String((msSince(starttime) - (SEN5X_read_timer + (SEN5X_WAITING_AFTER_LAST_READ - SAMPLETIME_SEN5X_MS)))) + F(" msec.") );
 
 		uint16_t error;
 		char errorMessage[256];
@@ -6487,7 +6492,7 @@ static void GetSen5XSensorData()
 
 		if (error)
 		{
-			Debug.print("Error trying to execute readMeasuredPmValues(): ");
+			Debug.print( F("Error trying to execute readMeasuredPmValues(): "));
 			errorToString(error, errorMessage, sizeof(errorMessage));
 			Debug.println(errorMessage);
 		}
@@ -6516,7 +6521,7 @@ static void GetSen5XSensorData()
 
 		if (error)
 		{
-			Debug.print("Error trying to execute readMeasuredTHValues(): ");
+			Debug.print(F("Error trying to execute readMeasuredTHValues(): "));
 			errorToString(error, errorMessage, sizeof(errorMessage));
 			Debug.println(errorMessage);
 		}
@@ -6529,6 +6534,7 @@ static void GetSen5XSensorData()
 
 			debug_outln_verbose(F("Temp (sec.): "), String(ambientTemperature));
 			debug_outln_verbose(F("Hum (sec.): "), String(ambientHumidity));
+			debug_outln_verbose(F("NOx (index): "), String(noxIndex));
 		}
 
 		SEN5X_measurement_count++;
@@ -6536,7 +6542,7 @@ static void GetSen5XSensorData()
 		// Set sensor read time on 1 sec. => 5 reads => Nox value = 0 (start/stop)
 		SEN5X_read_timer = msSince(starttime + (SEN5X_WAITING_AFTER_LAST_READ - SAMPLETIME_SEN5X_MS));
 		
-		debug_outln_info(FPSTR(DBG_TXT_SEP));
+		debug_outln_verbose(FPSTR(DBG_TXT_SEP));
 		debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_SEN55));
 	}
 	else
@@ -6545,7 +6551,7 @@ static void GetSen5XSensorData()
 		{
 			if (!cfg::sen5x_on)
 			{
-				debug_outln_info(F("SEN5X START Measurement. Time: "), String(msSince(starttime)));
+				debug_outln_verbose(F("SEN5X START Measurement. Time: "), String(msSince(starttime)));
 				sen5x.startMeasurement();
 			}
 
@@ -7046,7 +7052,7 @@ static void display_values()
 
 	if (cfg::sen5x_read)
 	{
-		if (memcmp(SEN5X_type, "SEN50", 6) == 0)
+		if (memcmp(SEN5X_type, SENSOR_SEN50, 6) == 0)
 		{
 			pm01_sensor = FPSTR(SENSORS_SEN50);
 			pm10_sensor = FPSTR(SENSORS_SEN50);
@@ -7054,7 +7060,7 @@ static void display_values()
 			t_sensor = h_sensor = voc_sensor = FPSTR(SENSORS_SEN50);
 		}
 
-		if (memcmp(SEN5X_type, "SEN54", 6) == 0)
+		if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
 		{
 			pm01_sensor = FPSTR(SENSORS_SEN54);
 			pm10_sensor = FPSTR(SENSORS_SEN54);
@@ -7062,7 +7068,7 @@ static void display_values()
 			t_sensor = h_sensor = voc_sensor = FPSTR(SENSORS_SEN54);
 		}
 
-		if (memcmp(SEN5X_type, "SEN55", 6) == 0)
+		if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
 		{
 			pm01_sensor = FPSTR(SENSORS_SEN55);
 			pm10_sensor = FPSTR(SENSORS_SEN55);
@@ -7362,16 +7368,16 @@ static void display_values()
 		case 13:
 			display_header = F("Sensirion SEN5X");
 
-			if (memcmp(SEN5X_type, "SEN50", 6) == 0)
+			if (memcmp(SEN5X_type, SENSOR_SEN50, 6) == 0)
 			{
 			}
-			else if (memcmp(SEN5X_type, "SEN54", 6) == 0)
+			else if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
 			{
 				display_lines[0] = std::move(tmpl(F("Temp.: {v} °C"), check_display_value(t_value, -128, 1, 6)));
 				display_lines[1] = std::move(tmpl(F("Humi: {v} %"), check_display_value(h_value, -1, 1, 6)));
 				display_lines[2] = std::move(tmpl(F("VOC: {v} (index)"), check_display_value(voc_value, -1, 1, 6)));
 			}
-			else if (memcmp(SEN5X_type, "SEN55", 6) == 0)
+			else if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
 			{
 				// display_lines[0] = std::move(tmpl(F("Humi: {v} %"), check_display_value(h_value, -1, 1, 6)));
 				// display_lines[1] = std::move(tmpl(F(": {v} (index)"), check_display_value(voc_value, -1, 1, 6)));
@@ -7823,6 +7829,7 @@ static void powerOnTestSensors()
 		uint8_t test_state;
 		delay(15000); // wait a bit to be sure Next PM is ready to receive instructions.
 		test_state = NPM_get_state();
+		
 		if (test_state == 0x00)
 		{
 			debug_outln_info(F("NPM already started..."));
@@ -7843,14 +7850,17 @@ static void powerOnTestSensors()
 			{
 				debug_outln_info(F("Default state"));
 			}
+
 			if (bitRead(test_state, 2) == 1)
 			{
 				debug_outln_info(F("Not ready"));
 			}
+
 			if (bitRead(test_state, 3) == 1)
 			{
 				debug_outln_info(F("Heat error"));
 			}
+
 			if (bitRead(test_state, 4) == 1)
 			{
 				debug_outln_info(F("T/RH error"));
@@ -8155,8 +8165,8 @@ static void setupNetworkTime()
 
 	strcpy_P(ntpServer1, NTP_SERVER_1);
 	strcpy_P(ntpServer2, NTP_SERVER_2);
-	//configTime(0, 0, ntpServer1, ntpServer2);
 
+	//configTime(0, 0, ntpServer1, ntpServer2);
 	configTime(MY_TZ, 0, ntpServer1, ntpServer2);	// set Daylight Saving => NTP with auto-switching between summer/winter time.
 }
 
@@ -8171,10 +8181,10 @@ static unsigned long sendDataToOptionalApis(const String &data)
 	if (cfg::sen5x_read && (!is_Sen5x_init_failed))
 	{
 		data_sensemap = data;
-		data_sensemap.replace("SEN55", cfg::sen5x_sym_pm);	 	// replace PM sensor Name.
-		data_sensemap.replace("SEN5X", cfg::sen5x_sym_th);		// replace temp/hummidity/NOx sensor Name.
+		data_sensemap.replace("SEN55", cfg::sen5x_sym_pm);	 	// replace PM Sensor Type Name.
+		data_sensemap.replace("SEN5X", cfg::sen5x_sym_th);		// replace temp/hummidity/NOx Sensor Type Name.
 
-		debug_outln_info(F("sendDataToOptionalApis data:\n"), data_sensemap);
+		debug_outln_verbose(F("sendDataToOptionalApis data:\n"), data_sensemap);
 	}
 
 	if (cfg::send2madavi)
@@ -8205,7 +8215,7 @@ static unsigned long sendDataToOptionalApis(const String &data)
 
 			sum_send_time += sendData(LoggerSensemap, data_2_sensemap, 0, HOST_SENSEMAP, sensemap_path.c_str());
 
-			debug_outln_info(F("opensensemap data: "), data_2_sensemap);
+			debug_outln_verbose(F("opensensemap data: "), data_2_sensemap);
 		}
 		else
 		{
@@ -8278,11 +8288,20 @@ static unsigned long sendDataToOptionalApis(const String &data)
 	}
 
 #if defined(ESP8266)
-	// MQTT send process.
 	if (cfg::send2mqtt)
-	{
-		debug_out(String(DBG_TXT_SENDING_TO) + String("mqtt: "), DEBUG_MIN_INFO);
-		sum_send_time += sendmqtt(data);
+	{ // MQTT send process.
+		unsigned long  starttime_MQTT = millis();
+
+		debug_out(String(DBG_TXT_SENDING_TO) + String("mqtt: "), DEBUG_MAX_INFO);
+
+		sendmqtt(data);
+
+		if (mqtt_client.connected())
+		{
+			mqtt_client.loop();
+		}
+
+		sum_send_time += millis() - starttime_MQTT;				//  micros() - starttime_MQTT;
 	}
 #endif
 
@@ -8294,7 +8313,7 @@ static unsigned long sendDataToOptionalApis(const String &data)
  *****************************************************************/
 void setup(void)
 {
-	Debug.begin(9600); 												// Output to Serial at 9600 baud
+	Debug.begin(9600); 												// Output to Hardware Serial at 9600 baud.
 
 #if defined(ESP8266)
 	esp_chipid = std::move(String(ESP.getChipId()));				// get MCU chip serial number.
@@ -8357,9 +8376,8 @@ void setup(void)
 		Debug.println("Read IPS... serialIPS 115200 8N1"); // will be set to 9600 8N1 afterwards
 		serialIPS.setTimeout(900);						   // Which timeout?
 	}
-	else
+	else if (cfg::sds_read)
 	{
-
 #if defined(ESP8266)
 		serialSDS.begin(9600, SWSERIAL_8N1, PM_SERIAL_RX, PM_SERIAL_TX);
 		serialSDS.enableIntTx(true);
@@ -8492,7 +8510,7 @@ void loop(void)
 		sleep = 0;
 	}
 
-	// Wait at least 30s for each NTP server to sync
+	// Wait at least 30s for each NTP server to sync.
 	if (!sntp_time_set && send_now &&
 		msSince(time_point_device_start_ms) < 1000 * 2 * 30 + 5000)
 	{
@@ -8618,14 +8636,14 @@ void loop(void)
 
 	if ( (msSince(last_display_millis) > DISPLAY_UPDATE_INTERVAL_MS) &&
 		 (cfg::has_display || cfg::has_sh1106 || lcd_1602 || lcd_2004) )
-	{
+	{ // Update "OLED" Display lines.
 		display_values();
 		last_display_millis = act_milli;
 	}
 
 	server.handleClient();				// when a connection is make by iphone/tablet/... to the home webpage of sensor app.
 
-	yield();
+	yield();							// give waiting thread(s) CPU time.
 
 	if (send_now)
 	{
@@ -8671,24 +8689,24 @@ void loop(void)
 
 		if (cfg::sen5x_read && (!is_Sen5x_init_failed))
 		{
-			fetchSensorSEN5X(result); // edit and format sensor type/value for sending to webserver.
+			fetchSensorSEN5X(result); // edit and format sensor type/value for sending to Sensor-Community webserver.
 
 			data += result;
 
-			if (memcmp(SEN5X_type, "SEN50", 6) == 0)
-			{
-				sum_send_time += sendSensorCommunity(result, SEN5X_PM_API_PIN, FPSTR(SENSORS_SEN50), "SEN50_");
-			}
+			// if (memcmp(SEN5X_type, SENSOR_SEN50, 6) == 0)
+			// {
+			// 	sum_send_time += sendSensorCommunity(result, SEN5X_PM_API_PIN, FPSTR(SENSORS_SEN50), "SEN50_");
+			// }
 
-			if (memcmp(SEN5X_type, "SEN54", 6) == 0)
-			{
-				sum_send_time += sendSensorCommunity(result, SEN5X_PM_API_PIN, FPSTR(SENSORS_SEN54), "SEN54_");
-			}
+			// if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
+			// {
+			// 	sum_send_time += sendSensorCommunity(result, SEN5X_PM_API_PIN, FPSTR(SENSORS_SEN54), "SEN54_");
+			// }
 
-			if (memcmp(SEN5X_type, "SEN55", 6) == 0)
-			{
-				sum_send_time += sendSensorCommunity(result, SEN5X_PM_API_PIN, FPSTR(SENSORS_SEN55), "SEN55_");
-			}
+			// if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
+			// {
+			 	sum_send_time += sendSensorCommunity(result, SEN5X_PM_API_PIN, FPSTR(SENSORS_SEN55), "SEN55_");
+			// }
 
 			result = emptyString;
 
@@ -8696,10 +8714,10 @@ void loop(void)
 			debug_outln_info(FPSTR(DBG_TXT_SEP));
 
 			fetchSensorSEN5X_THN(result);
-
-			int pin = memcmp(cfg::sen5x_sym_th, "SCD30", 6) == 0 ? SEN5X_SCD30_TH_API_PIN : SEN5X_SHT35_TH_API_PIN;
-
 			data += result;
+
+			int pin = memcmp(cfg::sen5x_sym_th, SENSOR_SCD30, 6) == 0 ? SEN5X_SCD30_TH_API_PIN : SEN5X_SHT35_TH_API_PIN;
+
 			sum_send_time += sendSensorCommunity(result, pin, FPSTR(SENSORS_SEN5X_TH), "SEN5X_");
 
 			result = emptyString;
@@ -8730,6 +8748,7 @@ void loop(void)
 		{
 			// getting temperature and humidity (optional)
 			fetchSensorHTU21D(result);
+			
 			data += result;
 			sum_send_time += sendSensorCommunity(result, HTU21D_API_PIN, FPSTR(SENSORS_HTU21D), "HTU21D_");
 			result = emptyString;
@@ -8739,6 +8758,7 @@ void loop(void)
 		{
 			// getting temperature and pressure (optional)
 			fetchSensorBMP(result);
+
 			data += result;
 			sum_send_time += sendSensorCommunity(result, BMP_API_PIN, FPSTR(SENSORS_BMP180), "BMP_");
 			result = emptyString;
@@ -8766,6 +8786,7 @@ void loop(void)
 		{
 			// getting temperature and humidity (optional)
 			fetchSensorSHT3x(result);
+
 			data += result;
 			sum_send_time += sendSensorCommunity(result, SHT3X_API_PIN, FPSTR(SENSORS_SHT3X), "SHT3X_");
 			result = emptyString;
@@ -8787,6 +8808,7 @@ void loop(void)
 		{
 			// getting temperature (optional)
 			fetchSensorDS18B20(result);
+
 			data += result;
 			sum_send_time += sendSensorCommunity(result, DS18B20_API_PIN, FPSTR(SENSORS_DS18B20), "DS18B20_");
 			result = emptyString;
@@ -8796,6 +8818,7 @@ void loop(void)
 		{
 			// getting noise measurement values from dnms (optional)
 			fetchSensorDNMS(result);
+
 			data += result;
 			sum_send_time += sendSensorCommunity(result, DNMS_API_PIN, FPSTR(SENSORS_DNMS), "DNMS_");
 			result = emptyString;
@@ -8821,23 +8844,24 @@ void loop(void)
 
 		data += "]}";						// set JSON end chars.
 
-		debug_outln_info(FPSTR(DBG_TXT_SEP));
-		debug_outln_info( F("Raw Sensor Data format for other Api's:\n"), data);	// Raw print complete Json data string.
-		//Debug.println(data);				
-
 		yield();							// give waiting thread(s) CPU time.
 
+		debug_outln_verbose(FPSTR(DBG_TXT_SEP));
+		debug_outln_verbose( F("Raw Sensor Data format for other Api's:\n"), data);	// Raw print complete Json data string.
+		//Debug.println(data);				
+	
 		// send to Optional Api's:
 		sum_send_time += sendDataToOptionalApis(data);
 		
-		debug_outln_info(FPSTR(DBG_TXT_SEP));
+		debug_outln_verbose(FPSTR(DBG_TXT_SEP));
 
-#if defined(ESP8266)
-		if (cfg::send2mqtt && mqtt_client.connected())
-		{
-			mqtt_client.loop();
-		}
-#endif
+//#if defined(ESP8266)
+		// this is moved to send2mqtt() function.
+		// if (cfg::send2mqtt && mqtt_client.connected())
+		// {
+		// 	mqtt_client.loop();
+		// }
+//#endif
 
 		// https://en.wikipedia.org/wiki/Moving_average#Cumulative_moving_average
 		sending_time = (3 * sending_time + sum_send_time) / 4;
@@ -8935,6 +8959,6 @@ void loop(void)
 
 	if (sample_count % 500 == 0)
 	{
-		//		Serial.println(ESP.getFreeHeap(),DEC);
+		//Serial.println(ESP.getFreeHeap(),DEC);
 	}
 } // end loop
