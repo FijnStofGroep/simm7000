@@ -2282,7 +2282,8 @@ static void webserver_root()
 		page_content.replace(F("{s7000}"), FPSTR(INTL_SIM7000_CONFIGURATION));
 		page_content.replace(F("{restart}"), FPSTR(INTL_RESTART_SENSOR));
 		page_content.replace(F("{debug}"), FPSTR(INTL_DEBUG_LEVEL));
-		
+		page_content.replace(F("{update}"), FPSTR(INTL_UPDATE_FIRM));
+
 		end_html_page(page_content);
 	}
 }
@@ -2869,9 +2870,7 @@ static void webserver_config7()
 		}
 	}
 }
-/*
 
-*/
 static void sensor_restart()
 {
 #if defined(ESP8266)
@@ -2914,9 +2913,28 @@ static void sensor_restart()
 }
 
 /*****************************************************************
- * Webserver wifi: show available wifi networks                  *
+ * Webserver Update Firmware: input file extern server           *
  *****************************************************************/
-static void webserver_wifi()
+
+static void webserver_firmware_update()
+{
+	if (!webserver_request_auth())
+	{
+		return;
+	}
+	String page_content;
+	page_content.reserve(512);
+	//start_html_page(page_content, F("Update Firmware"));
+	start_html_page(page_content, FPSTR(INTL_UPDATE_FIRM));
+	debug_outln_info(F("ws: firmware page"));
+	debug_outln_verbose(F("HTTP GET: "), String(FPSTR(FW_DOWNLOAD_HOST)) + ':' + String(FW_DOWNLOAD_PORT) + String(FW_DOWNLOAD_URL));
+	end_html_page(page_content);
+}
+
+/*****************************************************************
+*  Webserver wifi: show available wifi networks                  *
+*****************************************************************/
+	static void webserver_wifi()
 {
 	String page_content;
 
@@ -3858,6 +3876,7 @@ static void setup_webserver()
 	server.on(F("/generate_204"), webserver_config);
 	server.on(F("/fwlink"), webserver_config);
 	server.on(F("/debug"), webserver_debug_level);
+	server.on(F("/update"), webserver_firmware_update);
 	server.on(F("/serial"), webserver_serial);
 	server.on(F("/removeConfig"), webserver_removeConfig);
 	server.on(F("/reset"), webserver_reset);
