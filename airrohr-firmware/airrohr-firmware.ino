@@ -6576,6 +6576,7 @@ static bool fwDownloadStream(WiFiClientSecure &client, const String &url, Stream
 
 	// work with 128kbit/s downlinks
 	http.setTimeout(60 * 1000);
+
 	String agent(SOFTWARE_VERSION);
 	agent += ' ';
 	agent += esp_chipid;
@@ -6705,10 +6706,6 @@ static bool fwDownloadStreamFile(WiFiClientSecure &client, const String &url, co
 	airrohr-update-loader:
 	A transitional firmware which will look for a firmware file stored on SPIFFS to replace itself with for next reboot 
 	or do an endless loop of panic LED blinking if this fails.
-
-	This allows to do an Over-the-air (OTA) procedure on setups that have a 1M/3M split layout (rather the more modern 2M/2M) 
-	for firmwares larger than 512k (up to ~ 740k).
-
 */
 static void twoStageOTAUpdate()
 {
@@ -6721,8 +6718,26 @@ static void twoStageOTAUpdate()
 		return;
 	}
 
-#if defined(ESP8266)
 	debug_outln_info(F("twoStageOTAUpdate"));
+
+	StartTwoStageOTAUpdate();
+}
+
+/*
+	Start Two Stage OTA Update process.
+
+	airrohr-update-loader:
+	A transitional firmware which will look for a firmware file stored on SPIFFS to replace itself with for next reboot 
+	or do an endless loop of panic LED blinking if this fails.
+
+	This allows to do an Over-the-air (OTA) procedure on setups that have a 1M/3M split layout (rather the more modern 2M/2M) 
+	for firmwares larger than 512k (up to ~ 740k).
+
+*/
+static void StartTwoStageOTAUpdate()
+{
+#if defined(ESP8266)
+	debug_outln_info(F("StartTwoStageOTAUpdate"));
 
 	String lang_variant(cfg::current_lang);
 	if (lang_variant.length() != 2)
@@ -6756,6 +6771,7 @@ static void twoStageOTAUpdate()
 	StreamString newFwmd5;
 	if (!fwDownloadStream(client, fetch_md5_name, &newFwmd5))
 	{
+		debug_outln_verbose(F("No .md5 file found on Update server."));
 		return;
 	}
 
@@ -6775,7 +6791,7 @@ static void twoStageOTAUpdate()
 	WiFiClient::stopAllExcept(&client);
 	delay(100);
 
-	debug_outln_verbose(F("Start DownloadStreamFilev process.."));
+	debug_outln_verbose(F("Start DownloadStreamFile process.."));
 
 	String firmware_name(F("/firmware.bin"));
 	String firmware_md5(F("/firmware.bin.md5"));
@@ -6908,6 +6924,7 @@ static void twoStageOTAUpdate()
 	{
 		debug_outln_error(FPSTR(DBG_TXT_UPDATE_FAILED));
 		display_debug(FPSTR(DBG_TXT_UPDATE), FPSTR(DBG_TXT_UPDATE_FAILED));
+
 		SPIFFS.remove(firmware_name);
 		SPIFFS.remove(firmware_md5);
 		return;
