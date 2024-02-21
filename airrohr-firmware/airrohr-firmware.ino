@@ -8646,6 +8646,7 @@ void loop(void)
 	server.handleClient();				// when a connection is make by iphone/tablet/... to the home webpage of sensor app.
 
 	yield();							// give waiting thread(s) CPU time.
+	delay(50);							// Bug - No web page.. connection timing problem (febr 2024)
 
 	if (send_now)
 	{
