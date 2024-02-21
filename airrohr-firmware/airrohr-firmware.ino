@@ -2932,6 +2932,17 @@ static void webserver_firmware_update()
 	start_html_page(page_content, FPSTR(INTL_UPDATE_FIRMWARE));
 	debug_outln_info(F("ws: firmware page"));
 	debug_outln_verbose(F("HTTP GET: "), String(FPSTR(FW_DOWNLOAD_HOST)) + ':' + String(FW_DOWNLOAD_PORT) + String(FW_DOWNLOAD_URL));
+
+	if (server.method() == HTTP_GET)
+	{
+		page_content += FPSTR(WEB_UPDATE_FIRMWARE);
+	}
+	else
+	{
+		debug_outln_info(F("Update firmware"));
+		StartTwoStageOTAUpdate();
+	}
+
 	end_html_page(page_content);
 }
 
@@ -6574,6 +6585,8 @@ static bool fwDownloadStream(WiFiClientSecure &client, const String &url, Stream
 	HTTPClient http;
 	int bytes_written = -1;
 
+	debug_outln_verbose(F("--- fwDownloadStream -----"));
+
 	// work with 128kbit/s downlinks
 	http.setTimeout(60 * 1000);
 
@@ -6615,15 +6628,16 @@ static bool fwDownloadStream(WiFiClientSecure &client, const String &url, Stream
 	http.setUserAgent(agent);
 	http.setReuse(false);
 
-	debug_outln_verbose(F("HTTP GET: "), String(FPSTR(FW_DOWNLOAD_HOST)) + ':' + String(FW_DOWNLOAD_PORT) + url);
+	debug_outln_verbose(F("HTTPP GET: "), String(FPSTR(FW_DOWNLOAD_HOST)) + ':' + String(FW_DOWNLOAD_PORT) + url);
 	//debug_outln_info(F("HTTP GET: "), String(FPSTR(FW_DOWNLOAD_HOST)) + ':' + String(FW_DOWNLOAD_PORT) + url);
 
 	// example Update firmware url address:  https://firmware.sensor.community:443/airrohr/update/latest_nl.bin	
-	if (http.begin(client, FPSTR(FW_DOWNLOAD_HOST), FW_DOWNLOAD_PORT, url))
+	if (http.begin(client, FPSTR(FW_DOWNLOAD_HOST), FW_DOWNLOAD_PORT, url, 1))
 	{
 		int resp = http.GET();
 
 		debug_outln_verbose(F("GET responce code: "), String(resp));
+		debug_outln_verbose(F("url: "), String(url));
 		//debug_outln_info(F("GET responce code: "), String(resp));
 
 		last_update_returncode = resp;
@@ -6746,14 +6760,16 @@ static void StartTwoStageOTAUpdate()
 	}
 
 	lang_variant.toLowerCase();
+	debug_outln_verbose(F("Language "),String(lang_variant));
 
-	String fetch_name(F(OTA_BASENAME "/update/latest_"));
+	String fetch_name(F("/firmware/update/latest_"));
 	if (cfg::use_beta)
 	{
-		fetch_name = F(OTA_BASENAME "/beta/latest_");
+		fetch_name = F("/firmware/beta/latest_");
 	}
 
 	// OTA HTTP server URL
+	// http://air.fijnstofleusden.nl:4488/firmware/update/latest_nl.bin
 	// https://firmware.sensor.community:443/airrohr/update/latest_nl.bin
 	fetch_name += lang_variant;
 	fetch_name += F(".bin");
@@ -6767,6 +6783,9 @@ static void StartTwoStageOTAUpdate()
 
 	String fetch_md5_name(fetch_name);
 	fetch_md5_name += F(".md5");
+
+	debug_outln_verbose(F("fetch_md5_name "), String(fetch_md5_name));
+	debug_outln_verbose(F("Client "), String(client));
 
 	StreamString newFwmd5;
 	if (!fwDownloadStream(client, fetch_md5_name, &newFwmd5))

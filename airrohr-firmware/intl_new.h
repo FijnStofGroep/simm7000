@@ -11,3 +11,6 @@ const char INTL_UPDATE_FIRMWARE[] PROGMEM = "Update Firmware";
 
 #define INTL_SEN5X_EMP_PM "Emulate PM SEN5X"
 #define INTL_SEN5X_EMP_TH "Emulate TH SEN5X"
+
+
+
