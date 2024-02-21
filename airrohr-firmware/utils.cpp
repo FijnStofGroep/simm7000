@@ -204,6 +204,7 @@ bool launchUpdateLoader(const String& md5)
 		return false;
 	}
 
+	// Writes the remaining bytes from the Stream (loader.bin) to the flash memory.
 	if (Update.writeStream(loaderFile) != loaderFile.size()) 
 	{
 		return false;
@@ -218,6 +219,7 @@ bool launchUpdateLoader(const String& md5)
 
 	debug_outln_info(F("Erasing SDK config."));
 	ESP.eraseConfig();
+	
 	return true;
 	
 #pragma GCC diagnostic pop
