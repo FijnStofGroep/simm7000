@@ -6632,7 +6632,7 @@ static bool fwDownloadStream(WiFiClientSecure &client, const String &url, Stream
 	//debug_outln_info(F("HTTP GET: "), String(FPSTR(FW_DOWNLOAD_HOST)) + ':' + String(FW_DOWNLOAD_PORT) + url);
 
 	// example Update firmware url address:  https://firmware.sensor.community:443/airrohr/update/latest_nl.bin	
-	if (http.begin(client, FPSTR(FW_DOWNLOAD_HOST), FW_DOWNLOAD_PORT, url, 1))
+	if (http.begin(client, FPSTR(FW_DOWNLOAD_HOST), FW_DOWNLOAD_PORT, url))
 	{
 		int resp = http.GET();
 

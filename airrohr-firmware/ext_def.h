@@ -88,7 +88,7 @@ static const char URL_AIRCMS[] PROGMEM = "/php/sensors.php?h=";
 
 static const char FW_DOWNLOAD_HOST[] PROGMEM = "air.fijnstofleusden.nl";
 static const char FW_DOWNLOAD_URL[] PROGMEM = "/firmware/update";
-#define FW_DOWNLOAD_PORT 4881                    // 443 is for HTTPS 4881=https
+#define FW_DOWNLOAD_PORT 4488                   // 443 is for HTTPS 4881=https
 
 static const char FW_2ND_LOADER_URL[] PROGMEM = OTA_BASENAME "/loader-002.bin";
 
