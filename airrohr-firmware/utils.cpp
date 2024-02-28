@@ -33,7 +33,8 @@
 /*****************************************************************
  * aircms.online helper functions                                *
  *****************************************************************/
-String sha1Hex(const String& s) {
+String sha1Hex(const String& s) 
+{
 	char sha1sum_output[20];
 
 #if defined(ESP8266)
@@ -57,19 +58,23 @@ String sha1Hex(const String& s) {
 	return r;
 }
 
-String hmac1(const String& secret, const String& s) {
+String hmac1(const String& secret, const String& s)
+{
 	String str = sha1Hex(s);
 	str = secret + str;
 	return sha1Hex(str);
 }
 
-String tmpl(const __FlashStringHelper* patt, const String& value) {
+String tmpl(const __FlashStringHelper* patt, const String& value) 
+{
 	String s = patt;
 	s.replace("{v}", value);
 	return s;
 }
 
-void add_table_row_from_value(String& page_content, const __FlashStringHelper* sensor, const __FlashStringHelper* param, const String& value, const String& unit) {
+void add_table_row_from_value(String& page_content, const __FlashStringHelper* sensor, 
+							  const __FlashStringHelper* param, const String& value, const String& unit) 
+{
 	RESERVE_STRING(s, MED_STR);
 	s = F("<tr><td>{s}</td><td>{p}</td><td class='r'>{v}&nbsp;{u}</td></tr>");
 	s.replace("{s}", sensor);
@@ -79,7 +84,8 @@ void add_table_row_from_value(String& page_content, const __FlashStringHelper* s
 	page_content += s;
 }
 
-void add_table_row_from_value(String& page_content, const __FlashStringHelper* param, const String& value, const char* unit) {
+void add_table_row_from_value(String& page_content, const __FlashStringHelper* param, const String& value, const char* unit) 
+{
 	RESERVE_STRING(s, MED_STR);
 	s = F("<tr><td>{p}</td><td class='r'>{v}&nbsp;{u}</td></tr>");
 	s.replace("{p}", param);
@@ -88,18 +94,21 @@ void add_table_row_from_value(String& page_content, const __FlashStringHelper* p
 	page_content += s;
 }
 
-int32_t calcWiFiSignalQuality(int32_t rssi) {
+int32_t calcWiFiSignalQuality(int32_t rssi)
+{
 	// Treat 0 or positive values as 0%
 	if (rssi >= 0 || rssi < -100) {
 		rssi = -100;
 	}
+
 	if (rssi > -50) {
 		rssi = -50;
 	}
 	return (rssi + 100) * 2;
 }
 
-String add_sensor_type(const String& sensor_text) {
+String add_sensor_type(const String& sensor_text) 
+{
 	RESERVE_STRING(s, SMALL_STR);
 	s = sensor_text;
 	s.replace("{pm}", FPSTR(INTL_PARTICULATE_MATTER));
@@ -112,7 +121,8 @@ String add_sensor_type(const String& sensor_text) {
 	return s;
 }
 
-String wlan_ssid_to_table_row(const String& ssid, const String& encryption, int32_t rssi) {
+String wlan_ssid_to_table_row(const String& ssid, const String& encryption, int32_t rssi) 
+{
 	String s = F(	"<tr>"
 					"<td>"
 					"<a href='#wlanpwd' onclick='setSSID(this)' class='wifi'>{n}</a>&nbsp;{e}"
@@ -127,35 +137,41 @@ String wlan_ssid_to_table_row(const String& ssid, const String& encryption, int3
 	return s;
 }
 
-String delayToString(unsigned time_ms) {
+String delayToString(unsigned time_ms) 
+{
 
 	char buf[64];
 	String s;
 
-	if (time_ms > 2 * 1000 * 60 * 60 * 24) {
+	if (time_ms > 2 * 1000 * 60 * 60 * 24) 
+	{
 		sprintf_P(buf, PSTR("%d days, "), time_ms / (1000 * 60 * 60 * 24));
 		s += buf;
 		time_ms %= 1000 * 60 * 60 * 24;
 	}
 
-	if (time_ms > 2 * 1000 * 60 * 60) {
+	if (time_ms > 2 * 1000 * 60 * 60) 
+	{
 		sprintf_P(buf, PSTR("%d hours, "), time_ms / (1000 * 60 * 60));
 		s += buf;
 		time_ms %= 1000 * 60 * 60;
 	}
 
-	if (time_ms > 2 * 1000 * 60) {
+	if (time_ms > 2 * 1000 * 60) 
+	{
 		sprintf_P(buf, PSTR("%d min, "), time_ms / (1000 * 60));
 		s += buf;
 		time_ms %= 1000 * 60;
 	}
 
-	if (time_ms > 2 * 1000) {
+	if (time_ms > 2 * 1000) 
+	{
 		sprintf_P(buf, PSTR("%ds, "), time_ms / 1000);
 		s += buf;
 	}
 
-	if (s.length() > 2) {
+	if (s.length() > 2) 
+	{
 		s = s.substring(0, s.length() - 2);
 	}
 
@@ -165,7 +181,8 @@ String delayToString(unsigned time_ms) {
 #if defined(ESP8266)
 BearSSL::X509List x509_dst_root_ca(dst_root_ca_x3);
 
-void configureCACertTrustAnchor(WiFiClientSecure* client) {
+void configureCACertTrustAnchor(WiFiClientSecure* client) 
+{
 	constexpr time_t fw_built_year = (__DATE__[ 7] - '0') * 1000 + \
 							  (__DATE__[ 8] - '0') *  100 + \
 							  (__DATE__[ 9] - '0') *   10 + \
@@ -182,6 +199,13 @@ void configureCACertTrustAnchor(WiFiClientSecure* client) {
 	}
 }
 
+/// @brief 
+///	launchUpdateLoader
+/// 	Copy Loader.bin from SPIFFS memory into FlashMemory. 
+/// SPIFFS => SPI Flash Filing System was designed for SPI flash devices.
+///
+/// @param md5 
+/// @return 
 bool launchUpdateLoader(const String& md5) 
 {
 
@@ -189,6 +213,7 @@ bool launchUpdateLoader(const String& md5)
 #pragma GCC diagnostic ignored  "-Wdeprecated-declarations"
 
 	File loaderFile = SPIFFS.open(F("/loader.bin"), "r");
+
 	if (!loaderFile) 
 	{
 		return false;
@@ -282,7 +307,7 @@ float readCorrectionOffset(const char* correction)
 }
 
 /*****************************************************************
- * Debug output                                                  *
+ * Debug output to USB Serial port(0)                            *
  *****************************************************************/
 
 LoggingSerial Debug;
@@ -431,7 +456,6 @@ void debug_outln_info_bool(const __FlashStringHelper* text, const bool option)
 /*****************************************************************
  * send SDS011 command (start, stop, continuous mode, version )  *
  *****************************************************************/
-
 template<typename T, std::size_t N> constexpr std::size_t array_num_elements(const T(&)[N]) 
 {
 	return N;
@@ -440,7 +464,8 @@ template<typename T, std::size_t N> constexpr std::size_t array_num_elements(con
 bool SDS_checksum_valid(const uint8_t (&data)[8]) 
 {
     uint8_t checksum_is = 0;
-    for (unsigned i = 0; i < 6; ++i) {
+    for (unsigned i = 0; i < 6; ++i) 
+	{
         checksum_is += data[i];
     }
     return (data[7] == 0xAB && checksum_is == data[6]);
@@ -471,7 +496,8 @@ void SDS_rawcmd(const uint8_t cmd_head1, const uint8_t cmd_head2, const uint8_t 
 
 bool SDS_cmd(PmSensorCmd cmd) 
 {
-	switch (cmd) {
+	switch (cmd)
+	{
 	case PmSensorCmd::Start:
 		SDS_rawcmd(0x06, 0x01, 0x01);
 		break;
@@ -508,6 +534,7 @@ bool PMS_cmd(PmSensorCmd cmd)
 	constexpr uint8_t cmd_len = array_num_elements(start_cmd);
 
 	uint8_t buf[cmd_len];
+
 	switch (cmd) {
 	case PmSensorCmd::Start:
 		memcpy_P(buf, start_cmd, cmd_len);
@@ -558,8 +585,6 @@ bool HPM_cmd(PmSensorCmd cmd) {
 /*********************************************************************************
  * send Tera Sensor Next PM sensor command state, change, concentration, version *
  *********************************************************************************/
-
-
 bool NPM_checksum_valid_4(const uint8_t (&data)[4]) {
 	uint8_t sum = data[0] + data[1] + data[2] + data[3];
 	uint8_t checksum = sum % 0x100;
@@ -666,7 +691,8 @@ void NPM_cmd(PmSensorCmd2 cmd) {
 	// Lowdata,
 	// Baud
 
-void IPS_cmd(PmSensorCmd3 cmd) {
+void IPS_cmd(PmSensorCmd3 cmd) 
+{
 
 	static constexpr char factory_cmd[] PROGMEM = "$Wfactory=\r\n";
 	static constexpr char manual_cmd[] PROGMEM = "$Wmodesel=1\r\n";
@@ -720,7 +746,6 @@ void IPS_cmd(PmSensorCmd3 cmd) {
 /*****************************************************************
  * Helpers                                                       *
  *****************************************************************/
-
 void NPM_data_reader(uint8_t data[], size_t size)
 	{
 		String reader = "Read: ";
@@ -786,7 +811,8 @@ const __FlashStringHelper* loggerDescription(unsigned i)
 /*****************************************************************
  * helper to see if a given string is numeric                    *
  *****************************************************************/
-bool isNumeric(const String& str) {
+bool isNumeric(const String& str) 
+{
 	size_t stringLength = str.length();
 
 	if (stringLength == 0) {

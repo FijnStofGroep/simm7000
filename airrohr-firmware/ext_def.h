@@ -86,11 +86,11 @@ static const char URL_AIRCMS[] PROGMEM = "/php/sensors.php?h=";
 // So we can not use SSL
 #define PORT_AIRCMS 80
 
-static const char FW_DOWNLOAD_HOST[] PROGMEM = "data.fijnstofleusden.nl";
-static const char FW_DOWNLOAD_URL[] PROGMEM = "/firmware";
-#define FW_DOWNLOAD_PORT 443                    // 443 is for HTTPS
+static const char FW_DOWNLOAD_HOST[] PROGMEM = OTA_BASENAME;
+static const char FW_DOWNLOAD_URL[] PROGMEM = "/firmware/update";
+#define FW_DOWNLOAD_PORT 4488                                               // 443 is for HTTPS
 
-static const char FW_2ND_LOADER_URL[] PROGMEM = OTA_BASENAME "/loader-002.bin";
+static const char FW_2ND_LOADER_URL[] PROGMEM = "/firmware/update/loader-002.bin";
 
 static const char NTP_SERVER_1[] PROGMEM = "0.pool.ntp.org";    // NTP servers operate always in UTC time.
 static const char NTP_SERVER_2[] PROGMEM = "1.pool.ntp.org";

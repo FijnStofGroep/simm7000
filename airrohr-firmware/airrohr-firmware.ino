@@ -79,11 +79,11 @@
  * RAM:     [=====     ]  46.0% (used 37696 bytes from 81920 bytes)		*
  * PROGRAM: [======    ]  61.6% (used 643167 bytes from 1044464 bytes)	*
  * 																		*
- * latest build 2024-02-13												*
+ * latest build 2024-02-28												*
  * PLATFORM: Espressif 8266 (3.1.0) > NodeMCU 1.0 (ESP-12E Module)		*
  * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
- * RAM:     [=====     ]  47.5% (used 38776 bytes from 81920 bytes)		*
- * PROGRAM: [======    ]  63.0% (used 658159 bytes from 1044464 bytes)	*
+ * RAM:     [=====     ]  47.6% (used 39004 bytes from 81920 bytes)		*
+ * PROGRAM: [======    ]  64.2% (used 671033 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -386,6 +386,10 @@ PubSubClient mqtt_client(mqtt_wifi);
 
 #if defined(ESP32)
 WebServer server(80);
+#endif
+
+#if defined(ClientSecure)
+#define BR_TLS13 0x0304
 #endif
 
 // default IPv4 address (ex. 192.168.4.1)
@@ -818,6 +822,8 @@ unsigned long count_sends = 0;
 unsigned long last_display_millis = 0;
 uint8_t next_display_count = 0;
 
+volatile bool flg_OTAStartbyWebCall = false;
+
 struct struct_wifiInfo
 {
 	char ssid[LEN_WLANSSID];
@@ -891,6 +897,47 @@ static void display_debug(const String &text1, const String &text2)
 		lcd_2004->print(text2);
 	}
 }
+
+/*
+
+*/
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic ignored "-Wunused-function"
+static void readFileContents( String fileName)
+{
+	debug_outln_verbose(F("Reading file contents: "), fileName);
+
+	// Read File data
+	fs::File rdfile = SPIFFS.open(fileName, "r");
+
+	if (!rdfile)
+	{
+		debug_outln_verbose(F("file open failed"));
+	}
+	else
+	{
+		debug_outln_verbose(F("Reading Data from File:"));
+
+		int len = rdfile.size() > 252 ? 256 : rdfile.size() + 4;
+
+		RESERVE_STRING(tmp, len);
+
+		// Data from file. (max. 256 bytes)
+		for (int idx = 0; idx < len; idx++) // Read upto complete file size
+		{
+			tmp += (char)rdfile.read();
+		}
+
+		debug_outln_info(F("file contents: "), tmp);
+		debug_outln_info(F("file size: "), len);
+
+		rdfile.close(); // Close file
+
+		debug_outln_info(F("File Closed"));
+	}
+}
+#pragma GCC diagnostic pop
 
 /*****************************************************************
  * read SDS011 sensor serial and firmware date                   *
@@ -1508,7 +1555,9 @@ static void readConfigBase(bool oldconfig)
 
 		String writtenVersion(json["SOFTWARE_VERSION"].as<const char *>());
 		
-		if (writtenVersion.length() > 0 && writtenVersion[0] == 'N' && SOFTWARE_VERSION != writtenVersion)
+		if (writtenVersion.length() > 0 && 
+			writtenVersion[0] == 'F' && // writtenVersion[1] == 'W' && 
+			SOFTWARE_VERSION != writtenVersion)
 		{
 			debug_outln_info(F("Rewriting old config from: "), writtenVersion);
 			// would like to do that, but this would wipe firmware.old which the two stage loader
@@ -1718,7 +1767,7 @@ static void init_config()
 
 	debug_outln_info(F("mounting FS done, read config values."));
 
-	FSInfo fs_info;
+	fs::FSInfo fs_info;
 	SPIFFS.info(fs_info);
 
 	debug_outln_info(F("fs_info.totalBytes = "), String(fs_info.totalBytes));
@@ -1727,6 +1776,15 @@ static void init_config()
 	debug_outln_info(F("fs_info.pageSize = "), String(fs_info.pageSize));
 	debug_outln_info(F("fs_info.maxOpenFiles = "), String(fs_info.maxOpenFiles));
 	debug_outln_info(F("fs_info.maxPathLength = "), String(fs_info.maxPathLength));
+
+	debug_outln_info(F("\nSPIFFS root directory list:"));
+	String fileName;
+	fs::Dir dir = SPIFFS.openDir(F("/"));
+	while(dir.next())
+	{
+		fileName = F("\t\t\tName: ") + dir.fileName() + F(" | Size: ") + String(dir.fileSize());
+		debug_outln_info(fileName);
+	}
 
 #pragma GCC diagnostic pop
 
@@ -2919,19 +2977,37 @@ static void sensor_restart()
 /*****************************************************************
  * Webserver Update Firmware: input file extern server           *
  *****************************************************************/
-
 static void webserver_firmware_update()
 {
 	if (!webserver_request_auth())
 	{
 		return;
 	}
-	String page_content;
-	page_content.reserve(512);
-	//start_html_page(page_content, F("Update Firmware"));
+
+	//String page_content;
+	//page_content.reserve(512);
+	// same result
+	RESERVE_STRING(page_content, 512);
+
+	debug_outln_info(F("ws: firmware Update page..."));
+
 	start_html_page(page_content, FPSTR(INTL_UPDATE_FIRMWARE));
-	debug_outln_info(F("ws: firmware page"));
-	debug_outln_verbose(F("HTTP GET: "), String(FPSTR(FW_DOWNLOAD_HOST)) + ':' + String(FW_DOWNLOAD_PORT) + String(FW_DOWNLOAD_URL));
+
+	if (server.method() == HTTP_GET)
+	{
+		debug_outln_verbose(F("webserver_firmware_update(): HTTP GET: "), String(FPSTR(FW_DOWNLOAD_HOST)) + ':' + String(FW_DOWNLOAD_PORT) + String(FW_DOWNLOAD_URL));
+
+		// Send Firmware webpage to clinet web browser.
+		page_content += FPSTR(WEB_UPDATE_FIRMWARE);
+	}
+	else
+	{
+		debug_outln_verbose(F("webserver_firmware_update(): HTTP POST: "), F("start OTA process on main loop()."));
+
+		// start OTA process on main loop().
+		flg_OTAStartbyWebCall = true;
+	}
+
 	end_html_page(page_content);
 }
 
@@ -6563,27 +6639,18 @@ static void GetSen5XSensorData()
 	}
 }
 
-/*****************************************************************
- * OTA-Update                                                    *
- * client => wifi intstance									 	 *
- * url => URL command string									 *
- * ostream => File stream									 	 *
- *****************************************************************/
-static bool fwDownloadStream(WiFiClientSecure &client, const String &url, Stream *ostream)
+/*
+
+*/
+static void GetAgentData( HTTPClient * http)
 {
-	HTTPClient http;
-	int bytes_written = -1;
-
-	// work with 128kbit/s downlinks
-	http.setTimeout(60 * 1000);
-
 	String agent(SOFTWARE_VERSION);
 	agent += ' ';
 	agent += esp_chipid;
 	agent += "/";
 	agent += esp_mac_id;
 	agent += ' ';
-	
+
 	if (cfg::npm_read)
 	{
 		agent += NPM_version_date();
@@ -6612,38 +6679,165 @@ static bool fwDownloadStream(WiFiClientSecure &client, const String &url, Stream
 		agent += F("BETA");
 	}
 
-	http.setUserAgent(agent);
+	http->setUserAgent(agent);
+}
+
+/*****************************************************************
+ * OTA-Update                                                    *
+ * client => Server client intstance						 	 *
+ * url => URL command string									 *
+ * ostream => Stream pointer							 	 	 *
+ *****************************************************************/
+#if defined(ClientSecure)
+static bool fwDownloadStream(WiFiClientSecure &client, const String &url, Stream *ostream)
+#else
+static bool fwDownloadStream(WiFiClient &client, const String &url, Stream *ostream)
+#endif
+{
+	HTTPClient http;
+	int bytes_written = -1;
+
+	// work with 128kbit/s downlinks
+	http.setTimeout(TIMEOUTFORTCPCONNECTION);
+
+	GetAgentData( &http);
+
 	http.setReuse(false);
 
-	debug_outln_verbose(F("HTTP GET: "), String(FPSTR(FW_DOWNLOAD_HOST)) + ':' + String(FW_DOWNLOAD_PORT) + url);
-	//debug_outln_info(F("HTTP GET: "), String(FPSTR(FW_DOWNLOAD_HOST)) + ':' + String(FW_DOWNLOAD_PORT) + url);
+	debug_outln_info(F("HTTP GET: "), String(FPSTR(FW_DOWNLOAD_HOST)) + ':' + String(FW_DOWNLOAD_PORT) + url);
 
-	// example Update firmware url address:  https://firmware.sensor.community:443/airrohr/update/latest_nl.bin	
+	// example Update firmware url address:  http://air.fijnstofleusden.nl:4488/firmware/update/latest_en.bin	
 	if (http.begin(client, FPSTR(FW_DOWNLOAD_HOST), FW_DOWNLOAD_PORT, url))
 	{
+		//start connection and send HTTP header
 		int resp = http.GET();
 
-		debug_outln_verbose(F("GET responce code: "), String(resp));
-		//debug_outln_info(F("GET responce code: "), String(resp));
+		debug_outln_verbose(F("GET responce code: "), (resp > (HTTP_CODE_CONTINUE - 1) ? String(resp) : String(resp) + F(" => ") + http.errorToString(resp)));
 
 		last_update_returncode = resp;
 
 		if (resp == HTTP_CODE_OK)
 		{
-			debug_outln_verbose(F("Start writeToStream(***): "));
-			bytes_written = http.writeToStream(ostream);		// data stored in file in SPIFF memory drive.
+			int total = http.getSize();
+
+			debug_outln_verbose(F("Start writeToStream(***): "), String(total));
+
+			// store firmware.bin data file onto SPIFF memory drive.
+			bytes_written = http.writeToStream(ostream);
+
 			debug_outln_verbose(F("End writeToStream(**): ret code: "), String(bytes_written));
 		}
 
 		http.end();
 	}
 
-	debug_outln_verbose(F("HTTP End: read chars = "), String(bytes_written));
+	if (bytes_written > 0)
+	{
+		debug_outln_verbose(F("HTTP End: read chars = "), String(bytes_written));
+		return true;
+	}
+
+	debug_outln_verbose(F("HTTP End: with Error: "), http.errorToString(bytes_written));
+
+	return false;
+}
+
+/*****************************************************************
+ * OTA-Update                                                    *
+ * client => Server client intstance						 	 *
+ * url => URL command string									 *
+ * ofileStream => File stream pointer							 *
+ *****************************************************************/
+#if defined(ClientSecure)
+static bool fwDownloadFileStream(WiFiClientSecure &client, const String &url, Stream *ostream)
+#else
+static bool fwDownloadFileStream(WiFiClient &client, const String &url, Stream * ofileStream)
+#endif
+{
+	HTTPClient http;
+	int bytes_written = -1;
+	int resp = HTTPC_ERROR_NO_HTTP_SERVER;
+
+	// work with 128kbit/s downlinks
+	http.setTimeout(TIMEOUTFORTCPCONNECTION);
+
+	GetAgentData( &http);
+
+	http.setReuse(false);
+
+	debug_outln_info(F("DownloadFileStream(): HTTP GET: "), String(FPSTR(FW_DOWNLOAD_HOST)) + ':' + String(FW_DOWNLOAD_PORT) + url);
+
+	// example Update firmware url address:  http://air.fijnstofleusden.nl:4488/firmware/update/latest_en.bin
+	if (http.begin(client, FPSTR(FW_DOWNLOAD_HOST), FW_DOWNLOAD_PORT, url))
+	{
+		// start connection and send HTTP header
+		resp = http.GET();
+
+		debug_outln_verbose(F("GET responce code: "), (resp > (HTTP_CODE_CONTINUE - 1) ? String(resp) : String(resp) + F(" => ") + http.errorToString(resp)));
+
+		last_update_returncode = resp;
+
+		if (resp == HTTP_CODE_OK)
+		{
+			debug_outln_verbose(F("Start write To File"));
+
+			// get lenght of document (is -1 when Server sends no Content-Length header)
+			int total = http.getSize();
+			int len = total;
+			bytes_written = 0;
+
+			debug_outln_verbose(F("Server send: Total File size: ") + String(total));
+
+			// create read-buffer.
+			uint8_t buff[1024] = {0};
+
+			// Get TCP stream pointer.
+			WiFiClient *stream = http.getStreamPtr();
+
+			// Read all data from server.
+			while (len > 0 )
+			{
+				// Get available data size.
+				size_t size = stream->available();
+
+				if (size)
+				{
+					// read up to max. 1024 bytes
+					int cnt = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
+
+					//debug_outln_verbose(F("File Stream counter: ") + String(size) + F(" | Read Bytes count: ") + String(cnt));
+
+					// Write buffer[] to SPIFFS memory flash-drive.
+					ofileStream->write(buff, cnt);
+
+					if (len > 0)
+					{
+						len -= cnt;
+						bytes_written += cnt;
+					}
+
+					debug_outln_verbose(F("Count: ") + String(bytes_written));
+				}
+
+				yield();
+				//delay(1);				// delay of 1 msec.
+
+			}// while loop
+
+			debug_outln_verbose(F("End writeStreamToFile(**): ret code: "), String(bytes_written));
+		}
+
+		http.end();
+	}
 
 	if (bytes_written > 0)
 	{
+		debug_outln_verbose(F("DownloadFileStream( END )"));
+
 		return true;
 	}
+
+	debug_outln_verbose(F("DownloadFileStream( ENDED ) with Error: "), (resp > (HTTP_CODE_CONTINUE - 1)) ? String(resp) : http.errorToString(bytes_written));
 
 	return false;
 }
@@ -6651,35 +6845,46 @@ static bool fwDownloadStream(WiFiClientSecure &client, const String &url, Stream
 /// @brief 
 /// @param client 
 /// @param url 
-/// @param fname 
+/// @param File stream 
 /// @return 
-static bool fwDownloadStreamFile(WiFiClientSecure &client, const String &url, const String &fname)
+#if defined(ClientSecure)
+static bool fwDownloadStreamFile(WiFiClientSecure &client, const String &url, const String &filename)
+#else
+static bool fwDownloadStreamFile(WiFiClient &client, const String &url, const String &filename)
+#endif
 {
-	debug_outln_verbose(F("fwDownloadStreamFile(): URL | file name "), String(url) + " | " + String(fname));
+	debug_outln_verbose(F("fwDownloadStreamFile(): URL: "), String(url) + " | File Stream name: " + String(filename));
 
-	String fname_new(fname);
+	String fname_new(filename);
 	fname_new += F(".new");
 	bool downloadSuccess = false;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
-	File fwFile = SPIFFS.open(fname_new, "w");
+	SPIFFS.remove(fname_new);
+	fs::File fwFile = SPIFFS.open(fname_new, "w"); // create a file to write the downloaded data to.
 
 	// bool fileExist = SPIFFS.exists(fname_new);
-	// debug_outln_verbose(F("Check if File Open, File Name: "), fname_new + F(", Exist: ") + String(fileExist));
+	// debug_outln_verbose(F("Check if File Open and ready to write, File Name: "), fname_new + F(", Exist: ") + String(fileExist));
 
-	debug_outln_verbose(F("File created in SPIFFS, Stream to File object: "), fwFile.fullName());
+	debug_outln_verbose(F("File created in SPIFFS, Stream to File: "), fwFile.fullName());
 
 	if (fwFile)
 	{
+
+#if defined(ClientSecure)
 		downloadSuccess = fwDownloadStream(client, url, &fwFile);
+#else
+		downloadSuccess = fwDownloadFileStream(client, url, &fwFile);
+#endif
+
 		fwFile.close();
 
 		if (downloadSuccess)
 		{
-			SPIFFS.remove(fname);
-			SPIFFS.rename(fname_new, fname);
+			SPIFFS.remove(filename);
+			SPIFFS.rename(fname_new, filename);
 			debug_outln_info(F("Success downloading: "), url);
 		}
 	}
@@ -6688,7 +6893,7 @@ static bool fwDownloadStreamFile(WiFiClientSecure &client, const String &url, co
 		debug_outln_verbose(F("File open failed"));
 	}
 
-	debug_outln_verbose(F("fwDownloadStreamFile():Ending, status: "), String(downloadSuccess));
+	debug_outln_verbose(F("fwDownloadStreamFile( Ending ): Download status: "), downloadSuccess ? F("OK") : F("FAILED"));
 
 	if (downloadSuccess)
 	{
@@ -6696,7 +6901,7 @@ static bool fwDownloadStreamFile(WiFiClientSecure &client, const String &url, co
 	}
 
 	SPIFFS.remove(fname_new);
-	
+
 #pragma GCC diagnostic pop
 
 	return false;
@@ -6704,7 +6909,7 @@ static bool fwDownloadStreamFile(WiFiClientSecure &client, const String &url, co
 
 /*
 	airrohr-update-loader:
-	A transitional firmware which will look for a firmware file stored on SPIFFS to replace itself with for next reboot 
+	A transitional firmware which will look for a firmware file stored on SPIFFS to replace itself with for next reboot
 	or do an endless loop of panic LED blinking if this fails.
 */
 static void twoStageOTAUpdate()
@@ -6714,7 +6919,7 @@ static void twoStageOTAUpdate()
 	return;
 
 	if (!cfg::auto_update)
-	{// NO auto firmware update.
+	{ // NO auto firmware update.
 		return;
 	}
 
@@ -6747,23 +6952,29 @@ static void StartTwoStageOTAUpdate()
 
 	lang_variant.toLowerCase();
 
-	String fetch_name(F(OTA_BASENAME "/update/latest_"));
+	String fetch_name( String(FPSTR(FW_DOWNLOAD_URL)) + F("/latest_"));
 	if (cfg::use_beta)
 	{
-		fetch_name = F(OTA_BASENAME "/beta/latest_");
+		fetch_name = String(FPSTR(FW_DOWNLOAD_URL)) + F(OTA_BASENAME "/beta/latest_");
 	}
 
 	// OTA HTTP server URL
-	// https://firmware.sensor.community:443/airrohr/update/latest_nl.bin
+	// 			http://air.fijnstofleusden.nl:4488/firmware/update/latest_en.bin
 	fetch_name += lang_variant;
 	fetch_name += F(".bin");
 
-	WiFiClientSecure client;
+#if defined(ClientSecure)
+	BearSSL::WiFiClientSecure client;
 	BearSSL::Session clientSession;
 
 	client.setBufferSizes(1024, TCP_MSS > 1024 ? 2048 : 1024);
 	client.setSession(&clientSession);
+	//client.setSSLVersion(BR_TLS12, BR_TLS13);
+
 	configureCACertTrustAnchor(&client);
+#else
+	WiFiClient client;
+#endif
 
 	String fetch_md5_name(fetch_name);
 	fetch_md5_name += F(".md5");
@@ -6791,13 +7002,12 @@ static void StartTwoStageOTAUpdate()
 	WiFiClient::stopAllExcept(&client);
 	delay(100);
 
-	debug_outln_verbose(F("Start DownloadStreamFile process.."));
-
+	// Start Firmware File Loading process..
 	String firmware_name(F("/firmware.bin"));
-	String firmware_md5(F("/firmware.bin.md5"));
+	String firmware_md5_name(F("/firmware.bin.md5"));
 	String loader_name(F("/loader.bin"));
 
-	debug_outln_verbose(F("Start DownloadStreamFile() process.. "), String(fetch_name) + " | " + String(firmware_name));
+	//debug_outln_verbose(F("Firmware File process.."), String(fetch_name) + F(" => ") + String(firmware_name));
 
 //---------------- TEST TEST -----File write / read works OK ------------------------------------------------------------------------------------------------------------
 #if TEST
@@ -6858,38 +7068,40 @@ static void StartTwoStageOTAUpdate()
 	#pragma GCC diagnostic pop
 
 #endif
-//--------------------TEST TEST -------------------------------------------------------------------------------------------------------------
+//---------------- TEST TEST --------------------------------------------------------------------------------------------------------------------------------------------
 
+	debug_outln_verbose(F("Start Download Firmware File process.."));
 
 	if (!fwDownloadStreamFile(client, fetch_name, firmware_name))
 	{
-		debug_outln_verbose(F("Failed DownloadStreamFile() firmware_name file.."));
+		debug_outln_verbose(F("Failed DownloadStreamFile(): "), fetch_name);
 		return;
 	}
 
-	if (!fwDownloadStreamFile(client, fetch_md5_name, firmware_md5))
+	if (!fwDownloadStreamFile(client, fetch_md5_name, firmware_md5_name))
 	{
-		debug_outln_verbose(F("Failed DownloadStreamFile() firmware_md5 file.."));
+		debug_outln_verbose(F("Failed DownloadStreamFile(): "), fetch_md5_name);
 		return;
 	}
 
 	if (!fwDownloadStreamFile(client, FPSTR(FW_2ND_LOADER_URL), loader_name))
 	{
-		debug_outln_verbose(F("Failed DownloadStreamFile() loader_name file.."));
+		debug_outln_verbose(F("Failed DownloadStreamFile(): "), loader_name);
 		return;
 	}
 
-	debug_outln_verbose(F("All Files are downloaded.. "), String(firmware_name));
+	debug_outln_verbose(F("END, all firmware files are loaded.. "), FPSTR(FW_2ND_LOADER_URL));
 
 	// SPIFFS is deprecated, we know
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 	File fwFile = SPIFFS.open(firmware_name, "r");
 
 	if (!fwFile)
 	{
 		SPIFFS.remove(firmware_name);
-		SPIFFS.remove(firmware_md5);
+		SPIFFS.remove(firmware_md5_name);
 		debug_outln_error(F("Failed reopening fw file.."));
 		return;
 	}
@@ -6898,43 +7110,64 @@ static void StartTwoStageOTAUpdate()
 	MD5Builder md5;
 	md5.begin();
 	md5.addStream(fwFile, fwSize);
-	md5.calculate();
+	md5.calculate();					// calculate md5 hash value.
 	fwFile.close();
+
 	String md5String = md5.toString();
 
-	// Firmware is always at least 128 kB and padded to 16 bytes
+	// Firmware is always at least 128 kB and padded to 16 bytes.
 	if (fwSize < (1 << 17) || (fwSize % 16 != 0) || newFwmd5 != md5String)
 	{
 		debug_outln_info(F("FW download failed validation.. deleting"));
 		SPIFFS.remove(firmware_name);
-		SPIFFS.remove(firmware_md5);
+		SPIFFS.remove(firmware_md5_name);
 		return;
 	}
 
 	StreamString loaderMD5;
 	if (!fwDownloadStream(client, String(FPSTR(FW_2ND_LOADER_URL)) + F(".md5"), &loaderMD5))
 	{
+		debug_outln_verbose(F("No loader.md5 file found on Update server."));
 		return;
 	}
 
 	loaderMD5.trim();
 
-	debug_outln_info(F("launching 2nd stage"));
+	debug_outln_info(F("Launching 2nd stage."));
+
+	// debug_outln_verbose(F("Check SPIFFS flas drive root: "));
+  	// String fileName;
+  	// fs::Dir dir = SPIFFS.openDir(F("/"));
+  	// while (dir.next())
+	// {
+	//	fileName = dir.fileName() + F(" | size: ") + String(dir.fileSize());
+	// 	debug_outln_verbose(fileName);
+	// }
+	//
+	// debug_outln_verbose(F(".... TEST END TEST .... "));
+	// return;
+
+
 	if (!launchUpdateLoader(loaderMD5))
-	{
+	{// Could NOT flash Loader application into flash memory from address 0.
 		debug_outln_error(FPSTR(DBG_TXT_UPDATE_FAILED));
 		display_debug(FPSTR(DBG_TXT_UPDATE), FPSTR(DBG_TXT_UPDATE_FAILED));
 
 		SPIFFS.remove(firmware_name);
-		SPIFFS.remove(firmware_md5);
+		SPIFFS.remove(firmware_md5_name);
 		return;
 	}
+
 #pragma GCC diagnostic pop
 
 	sensor_restart();
+
 #endif
 }
 
+/*
+	display Generate Footer
+*/
 static String displayGenerateFooter(unsigned int screen_count)
 {
 	String display_footer;
@@ -6942,6 +7175,7 @@ static String displayGenerateFooter(unsigned int screen_count)
 	{
 		display_footer += (i != (next_display_count % screen_count)) ? " . " : " o ";
 	}
+
 	return display_footer;
 }
 
@@ -8932,6 +9166,17 @@ void loop(void)
 		sum_send_time = 0;
 		starttime = millis(); 					// store the start time.
 		count_sends++;
+	}
+	else
+	{
+		// time for a OTA attempt?
+		if (flg_OTAStartbyWebCall && sntp_time_set > 0)
+		{
+			debug_outln_info(F("Start OTA in LOOP()"));
+
+			StartTwoStageOTAUpdate();
+			flg_OTAStartbyWebCall = false;
+		}
 	}
 
 #if defined(ESP8266)

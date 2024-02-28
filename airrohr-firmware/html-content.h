@@ -149,6 +149,12 @@ const char WEB_RESET_CONTENT[] PROGMEM = "<h3>" INTL_REALLY_RESTART_SENSOR "</h3
 "<input type='submit' class='s_red' name='submit' value='" INTL_RESTART "'/>"\
 "</form></td><td><a class='b' href='/'>" INTL_CANCEL "</a></td></tr></table>";
 
+const char WEB_UPDATE_FIRMWARE[] PROGMEM = "<h3> Really Update Firmware? </h3>"
+										   "<table><tr><td><form method='POST' action'/reset'>"
+										   "<input type='submit' class='s_red' name='submit' value=' Update firmware'/>"
+										   "</form></td><td><a class='b' href='/'>" INTL_CANCEL "</a></td></tr></table>";
+
+
 const char WEB_IOS_REDIRECT[] PROGMEM = "<html><body>Redirecting...\
 <script type=\"text/javascript\">\
 window.location = \"http://192.168.4.1/config\";\

@@ -10,7 +10,7 @@
 
 #if defined(ESP8266)
 #define SENSOR_BASENAME "esp8266-"
-#define OTA_BASENAME "/airrohr"
+#define OTA_BASENAME    "air.fijnstofleusden.nl"
 
 #define MY_TZ "CET-1CEST,M3.5.0/02,M10.5.0/03"  // Europe/Amsterdam, see Timezone: https://leo.leung.xyz/wiki/Timezone
 #endif
@@ -105,6 +105,8 @@ constexpr const unsigned long SEN5X_AUTO_CLEANING_INTERVAL = 1 * 24 * 60 * 60 * 
 
 constexpr const unsigned long SPS30_WAITING_AFTER_LAST_READ = 11000;                    // waiting time after last reading mesurement data in ms
 constexpr const unsigned long SPS30_AUTO_CLEANING_INTERVAL = 7200;                      // time in seconds
+
+#define TIMEOUTFORTCPCONNECTION 60 * 1000                                               // set the timeout for the TCP connection
 
 // Definition GPIOs for Zero based Arduino Feather M0 LoRaWAN
 #if defined(ARDUINO_SAMD_ZERO) && defined(SERIAL_PORT_USBVIRTUAL)
