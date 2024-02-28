@@ -9,6 +9,3 @@ const char INTL_SEN5X_ON[] PROGMEM = "Fan allways on";
 
 #define INTL_SEN5X_EMP_PM "Emulate PM SEN5X"
 #define INTL_SEN5X_EMP_TH "Emulate TH SEN5X"
-
-
-
