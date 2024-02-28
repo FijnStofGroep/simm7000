@@ -6951,6 +6951,7 @@ static void StartTwoStageOTAUpdate()
 	}
 
 	lang_variant.toLowerCase();
+	debug_outln_verbose(F("Language "),String(lang_variant));
 
 	String fetch_name( String(FPSTR(FW_DOWNLOAD_URL)) + F("/latest_"));
 	if (cfg::use_beta)
@@ -6978,6 +6979,9 @@ static void StartTwoStageOTAUpdate()
 
 	String fetch_md5_name(fetch_name);
 	fetch_md5_name += F(".md5");
+
+	debug_outln_verbose(F("fetch_md5_name "), String(fetch_md5_name));
+	debug_outln_verbose(F("Client "), String(client));
 
 	StreamString newFwmd5;
 	if (!fwDownloadStream(client, fetch_md5_name, &newFwmd5))
