@@ -20,22 +20,23 @@ def after_build(source, target, env):
 
     date = datetime.now().strftime("%Y_%m_%d")
 
+    # lang = fileName-versionNumber (from: platformio.ini)
     lang = env.GetProjectOption('lang')
     target_name = lang.lower()
 
     print("\n**** After build \"airrohr-firmware => SEN5X sensor\" **** ")
  
-    with open(f"builds/latest_{target_name}.bin.md5", "w") as md5:
+    with open(f"builds/{target_name}.bin.md5", "w") as md5:
         print(_file_md5_hexdigest(target[0].path), file = md5)
 
-    with open(f"builds/latest_{target_name}_{date}.bin.md5", "w") as md5:
+    with open(f"builds/{target_name}_{date}.bin.md5", "w") as md5:
         print(_file_md5_hexdigest(target[0].path), file = md5)
 
-    shutil.copy(target[0].path, f"builds/latest_{target_name}.bin")
-    shutil.copy(target[0].path, f"builds/latest_{target_name}_{date}.bin")
+    shutil.copy(target[0].path, f"builds/{target_name}.bin")
+    shutil.copy(target[0].path, f"builds/{target_name}_{date}.bin")
 
-    print( f"Copy: [\"{target[0].path}\"] To " + f"[\"./builds/latest_{target_name}.bin\"]")
-    print( f"Copy: [\"{target[0].path}\"] To " + f"[\"./builds/latest_{target_name}_{date}.bin\"]")
+    print( f"Copy: [\"{target[0].path}\"] To " + f"[\"./builds/{target_name}.bin\"]")
+    print( f"Copy: [\"{target[0].path}\"] To " + f"[\"./builds/{target_name}_{date}.bin\"]")
      
 env.AddPostAction("$BUILD_DIR/firmware.bin", after_build)
 
