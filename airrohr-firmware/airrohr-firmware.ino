@@ -82,8 +82,8 @@
  * latest build 2024-02-28												*
  * PLATFORM: Espressif 8266 (3.1.0) > NodeMCU 1.0 (ESP-12E Module)		*
  * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
- * RAM:     [=====     ]  47.6% (used 39004 bytes from 81920 bytes)		*
- * PROGRAM: [======    ]  64.2% (used 671033 bytes from 1044464 bytes)	*
+ * RAM:     [=====     ]  47.4% (used 38864 bytes from 81920 bytes)		*
+ * PROGRAM: [======    ]  63.9% (used 667629 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -93,7 +93,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2024-02-B3"
+#define SOFTWARE_VERSION_STR "FWL-2024-03-B4"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -6696,6 +6696,7 @@ static bool fwDownloadStream(WiFiClient &client, const String &url, Stream *ostr
 {
 	HTTPClient http;
 	int bytes_written = -1;
+	int resp = HTTPC_ERROR_NO_HTTP_SERVER;
 
 	// work with 128kbit/s downlinks
 	http.setTimeout(TIMEOUTFORTCPCONNECTION);
@@ -6704,13 +6705,13 @@ static bool fwDownloadStream(WiFiClient &client, const String &url, Stream *ostr
 
 	http.setReuse(false);
 
-	debug_outln_info(F("HTTP GET: "), String(FPSTR(FW_DOWNLOAD_HOST)) + ':' + String(FW_DOWNLOAD_PORT) + url);
+	debug_outln_info(F("fwDownloadStream( START ): URL = http://"), String(FPSTR(FW_DOWNLOAD_HOST)) + F(":") + String(FW_DOWNLOAD_PORT) + url);
 
 	// example Update firmware url address:  http://air.fijnstofleusden.nl:4488/firmware/update/latest_en.bin	
 	if (http.begin(client, FPSTR(FW_DOWNLOAD_HOST), FW_DOWNLOAD_PORT, url))
 	{
 		//start connection and send HTTP header
-		int resp = http.GET();
+		resp = http.GET();
 
 		debug_outln_verbose(F("GET responce code: "), (resp > (HTTP_CODE_CONTINUE - 1) ? String(resp) : String(resp) + F(" => ") + http.errorToString(resp)));
 
@@ -6720,12 +6721,12 @@ static bool fwDownloadStream(WiFiClient &client, const String &url, Stream *ostr
 		{
 			int total = http.getSize();
 
-			debug_outln_verbose(F("Start writeToStream(***): "), String(total));
+			debug_outln_verbose(F("Start write To Stream(***): bytes = "), String(total));
 
 			// store firmware.bin data file onto SPIFF memory drive.
 			bytes_written = http.writeToStream(ostream);
 
-			debug_outln_verbose(F("End writeToStream(**): ret code: "), String(bytes_written));
+			debug_outln_verbose(F("End writeToStream: bytes = "), String(bytes_written));
 		}
 
 		http.end();
@@ -6733,11 +6734,12 @@ static bool fwDownloadStream(WiFiClient &client, const String &url, Stream *ostr
 
 	if (bytes_written > 0)
 	{
-		debug_outln_verbose(F("HTTP End: read chars = "), String(bytes_written));
+		debug_outln_verbose(F("fwDownloadStream( END )"));
 		return true;
 	}
 
-	debug_outln_verbose(F("HTTP End: with Error: "), http.errorToString(bytes_written));
+		debug_outln_verbose(F("fwDownloadStream( ENDED ) with Error: "), (resp > (HTTP_CODE_CONTINUE - 1)) ? String(resp) : http.errorToString(bytes_written));
+
 
 	return false;
 }
@@ -6765,7 +6767,7 @@ static bool fwDownloadFileStream(WiFiClient &client, const String &url, Stream *
 
 	http.setReuse(false);
 
-	debug_outln_info(F("DownloadFileStream(): HTTP GET: "), String(FPSTR(FW_DOWNLOAD_HOST)) + ':' + String(FW_DOWNLOAD_PORT) + url);
+	debug_outln_info(F("fwDownloadFileStream( START ): URL = http://"), String(FPSTR(FW_DOWNLOAD_HOST)) + F(":") + String(FW_DOWNLOAD_PORT) + url);
 
 	// example Update firmware url address:  http://air.fijnstofleusden.nl:4488/firmware/update/latest_en.bin
 	if (http.begin(client, FPSTR(FW_DOWNLOAD_HOST), FW_DOWNLOAD_PORT, url))
@@ -6818,13 +6820,16 @@ static bool fwDownloadFileStream(WiFiClient &client, const String &url, Stream *
 
 					debug_outln_verbose(F("Count: ") + String(bytes_written));
 				}
+				else
+				{
+					delay(1);				// delay of 1 msec.
+				}
 
 				yield();
-				//delay(1);				// delay of 1 msec.
 
 			}// while loop
 
-			debug_outln_verbose(F("End writeStreamToFile(**): ret code: "), String(bytes_written));
+			debug_outln_verbose(F("End writeStreamToFile: ret code: "), String(bytes_written));
 		}
 
 		http.end();
@@ -6832,12 +6837,12 @@ static bool fwDownloadFileStream(WiFiClient &client, const String &url, Stream *
 
 	if (bytes_written > 0)
 	{
-		debug_outln_verbose(F("DownloadFileStream( END )"));
+		debug_outln_verbose(F("fwDownloadFileStream( END )"));
 
 		return true;
 	}
 
-	debug_outln_verbose(F("DownloadFileStream( ENDED ) with Error: "), (resp > (HTTP_CODE_CONTINUE - 1)) ? String(resp) : http.errorToString(bytes_written));
+	debug_outln_verbose(F("fwDownloadFileStream( ENDED ) with Error: "), (resp > (HTTP_CODE_CONTINUE - 1)) ? String(resp) : http.errorToString(bytes_written));
 
 	return false;
 }
@@ -6853,7 +6858,7 @@ static bool fwDownloadStreamFile(WiFiClientSecure &client, const String &url, co
 static bool fwDownloadStreamFile(WiFiClient &client, const String &url, const String &filename)
 #endif
 {
-	debug_outln_verbose(F("fwDownloadStreamFile(): URL: "), String(url) + " | File Stream name: " + String(filename));
+	debug_outln_verbose(F("fwDownloadStreamFile(): URL:"), String(url) + " | File Stream name: " + String(filename));
 
 	String fname_new(filename);
 	fname_new += F(".new");
@@ -6914,10 +6919,6 @@ static bool fwDownloadStreamFile(WiFiClient &client, const String &url, const St
 */
 static void twoStageOTAUpdate()
 {
-	// always return => process become dead could not load binary data into FS.
-	// TODO: to find out what are the problem.
-	return;
-
 	if (!cfg::auto_update)
 	{ // NO auto firmware update.
 		return;
@@ -7008,68 +7009,6 @@ static void StartTwoStageOTAUpdate()
 	String loader_name(F("/loader.bin"));
 
 	//debug_outln_verbose(F("Firmware File process.."), String(fetch_name) + F(" => ") + String(firmware_name));
-
-//---------------- TEST TEST -----File write / read works OK ------------------------------------------------------------------------------------------------------------
-#if TEST
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#pragma GCC diagnostic ignored "-Wsign-compare"
-
-	// Create New File And Write Data to It
-	// w=Write Open file for writing
-	File f = SPIFFS.open(firmware_name, "w");
-
-	if (!f)
-	{
-		debug_outln_verbose(F("file open failed"));
-	}
-	else
-	{
-		// Write data to file
-		debug_outln_verbose(F("Writing Data to File"));
-		f.print("This is sample data which is written in file");
-		f.close(); // Close file
-	}
-
-	delay(2000);
-
-	// Read File data
-	File rf = SPIFFS.open(firmware_name, "r");
-
-	if (!rf)
-	{
-		debug_outln_verbose(F("file open failed"));
-	}
-	else
-	{
-		debug_outln_verbose(F("Reading Data from File:"));
-
-		String tmp = "";
-
-		// Data from file.
-		for (int i = 0; i < rf.size(); i++) // Read upto complete file size
-		{
-			tmp += (char)rf.read();
-		}
-
-		debug_outln_info(F("file contents: "), tmp);
-
-		rf.close(); // Close file
-		debug_outln_info(F("File Closed"));
-	}
-
-	debug_outln_info(F("Remove File from FS: "), firmware_name);
-	SPIFFS.remove(firmware_name);
-
-	delay(1000);
-
-	return;
-
-	#pragma GCC diagnostic pop
-
-#endif
-//---------------- TEST TEST --------------------------------------------------------------------------------------------------------------------------------------------
-
 	debug_outln_verbose(F("Start Download Firmware File process.."));
 
 	if (!fwDownloadStreamFile(client, fetch_name, firmware_name))

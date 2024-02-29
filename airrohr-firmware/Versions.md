@@ -1,3 +1,9 @@
+
+FWL-2024-03-B4
+ADD OTA-firmware Update selectable by web-page. 
+Add Option "CLIENTSECURE": select between use WiFiClientSecure or WiFiClient (default false) in OTA process.
+(set in platformio.ini, section build_flags = -D CLIENTSECURE)
+
 FWL-2024-02-B2  (Fijnstof Werkgroep Leusden)
 * Add Temp/Hum SHT3X as SEN55 (needed for Madavi)
 
