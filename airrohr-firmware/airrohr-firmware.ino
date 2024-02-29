@@ -6822,10 +6822,11 @@ static bool fwDownloadFileStream(WiFiClient &client, const String &url, Stream *
 				}
 				else
 				{
-					delay(1);				// delay of 1 msec.
+					delay(2);				// delay of 2 msec.
 				}
 
-				yield();
+				delay(1);					// delay of 1 msec.
+				//yield();					// this can give a "PANIC exception" in core_esp8266_main.cpp => __yield() function.
 
 			}// while loop
 
@@ -6995,7 +6996,8 @@ static void StartTwoStageOTAUpdate()
 	if (newFwmd5 == ESP.getSketchMD5())
 	{
 		display_debug(FPSTR(DBG_TXT_UPDATE), FPSTR(DBG_TXT_UPDATE_NO_UPDATE));
-		debug_outln_verbose(F("No newer version available."));
+
+		debug_outln_verbose(F("No newer version available. Current md5: "), ESP.getSketchMD5());
 		return;
 	}
 
