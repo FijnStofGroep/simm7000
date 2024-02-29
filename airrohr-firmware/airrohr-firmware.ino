@@ -388,7 +388,7 @@ PubSubClient mqtt_client(mqtt_wifi);
 WebServer server(80);
 #endif
 
-#if defined(ClientSecure)
+#if defined(CLIENTSECURE)
 #define BR_TLS13 0x0304
 #endif
 
@@ -6688,7 +6688,7 @@ static void GetAgentData( HTTPClient * http)
  * url => URL command string									 *
  * ostream => Stream pointer							 	 	 *
  *****************************************************************/
-#if defined(ClientSecure)
+#if defined(CLIENTSECURE)
 static bool fwDownloadStream(WiFiClientSecure &client, const String &url, Stream *ostream)
 #else
 static bool fwDownloadStream(WiFiClient &client, const String &url, Stream *ostream)
@@ -6748,7 +6748,7 @@ static bool fwDownloadStream(WiFiClient &client, const String &url, Stream *ostr
  * url => URL command string									 *
  * ofileStream => File stream pointer							 *
  *****************************************************************/
-#if defined(ClientSecure)
+#if defined(CLIENTSECURE)
 static bool fwDownloadFileStream(WiFiClientSecure &client, const String &url, Stream *ostream)
 #else
 static bool fwDownloadFileStream(WiFiClient &client, const String &url, Stream * ofileStream)
@@ -6847,7 +6847,7 @@ static bool fwDownloadFileStream(WiFiClient &client, const String &url, Stream *
 /// @param url 
 /// @param File stream 
 /// @return 
-#if defined(ClientSecure)
+#if defined(CLIENTSECURE)
 static bool fwDownloadStreamFile(WiFiClientSecure &client, const String &url, const String &filename)
 #else
 static bool fwDownloadStreamFile(WiFiClient &client, const String &url, const String &filename)
@@ -6873,7 +6873,7 @@ static bool fwDownloadStreamFile(WiFiClient &client, const String &url, const St
 	if (fwFile)
 	{
 
-#if defined(ClientSecure)
+#if defined(CLIENTSECURE)
 		downloadSuccess = fwDownloadStream(client, url, &fwFile);
 #else
 		downloadSuccess = fwDownloadFileStream(client, url, &fwFile);
@@ -6963,7 +6963,7 @@ static void StartTwoStageOTAUpdate()
 	fetch_name += lang_variant;
 	fetch_name += F(".bin");
 
-#if defined(ClientSecure)
+#if defined(CLIENTSECURE)
 	BearSSL::WiFiClientSecure client;
 	BearSSL::Session clientSession;
 
