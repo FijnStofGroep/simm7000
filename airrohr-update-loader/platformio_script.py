@@ -1,1 +1,1 @@
-../airrohr-firmware/platformio_script.py
+'../airrohr-firmware/platformio_script.py'
