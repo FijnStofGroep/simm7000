@@ -6919,10 +6919,14 @@ static bool fwDownloadStreamFile(WiFiClient &client, const String &url, const St
 */
 static void twoStageOTAUpdate()
 {
-	if (!cfg::auto_update)
-	{ // NO auto firmware update.
-		return;
-	}
+	// always return => process become dead could not load binary data into FS.
+	// TODO: to find out what are the problem.
+	return;
+
+	// if (!cfg::auto_update)
+	// { // NO auto firmware update.
+	// 	return;
+	// }
 
 	debug_outln_info(F("twoStageOTAUpdate"));
 
