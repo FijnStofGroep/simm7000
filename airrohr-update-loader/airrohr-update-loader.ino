@@ -136,7 +136,7 @@ static bool SPIFFSAutoUpdate()
 
 	if (!updateFile) 
 	{
-		debug_outln_info(F("Failed to open : "), firmware);
+		debug_outln_info(F("Failed to open: "), firmware);
 		return false;
 	}
 
