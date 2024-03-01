@@ -79,11 +79,11 @@
  * RAM:     [=====     ]  46.0% (used 37696 bytes from 81920 bytes)		*
  * PROGRAM: [======    ]  61.6% (used 643167 bytes from 1044464 bytes)	*
  * 																		*
- * latest build 2024-02-28												*
+ * latest build 2024-03-01												*
  * PLATFORM: Espressif 8266 (3.1.0) > NodeMCU 1.0 (ESP-12E Module)		*
  * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
  * RAM:     [=====     ]  47.4% (used 38864 bytes from 81920 bytes)		*
- * PROGRAM: [======    ]  63.9% (used 667629 bytes from 1044464 bytes)	*
+ * PROGRAM: [======    ]  63.9% (used 667657 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -6791,7 +6791,7 @@ static bool fwDownloadFileStream(WiFiClient &client, const String &url, Stream *
 			debug_outln_verbose(F("Server send: Total File size: ") + String(total));
 
 			// create read-buffer.
-			uint8_t buff[4096] = {0};
+			uint8_t buff[1024] = {0};
 
 			// Get TCP stream pointer.
 			WiFiClient *stream = http.getStreamPtr();
@@ -6804,7 +6804,7 @@ static bool fwDownloadFileStream(WiFiClient &client, const String &url, Stream *
 
 				if (size)
 				{
-					// read up to max. 4096 bytes
+					// read up to max. 1024 bytes
 					int cnt = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
 
 					//debug_outln_verbose(F("File Stream counter: ") + String(size) + F(" | Read Bytes count: ") + String(cnt));
@@ -6826,11 +6826,13 @@ static bool fwDownloadFileStream(WiFiClient &client, const String &url, Stream *
 				}
 				else
 				{
-					delay(4);				// delay of 5 msec.
+					delay(5);				// delay of 5 msec.
+					continue;
 				}
 
+				//yield();					// this can give a "PANIC exception" in core_esp8266_main.cpp => __yield() function.
 				delay(1);					// delay of 1 msec.
-				yield();					// this can give a "PANIC exception" in core_esp8266_main.cpp => __yield() function.
+				
 
 			}// while loop
 
