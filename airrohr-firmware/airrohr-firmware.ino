@@ -6791,7 +6791,7 @@ static bool fwDownloadFileStream(WiFiClient &client, const String &url, Stream *
 			debug_outln_verbose(F("Server send: Total File size: ") + String(total));
 
 			// create read-buffer.
-			uint8_t buff[1024] = {0};
+			uint8_t buff[4096] = {0};
 
 			// Get TCP stream pointer.
 			WiFiClient *stream = http.getStreamPtr();
@@ -6804,7 +6804,7 @@ static bool fwDownloadFileStream(WiFiClient &client, const String &url, Stream *
 
 				if (size)
 				{
-					// read up to max. 1024 bytes
+					// read up to max. 4096 bytes
 					int cnt = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
 
 					//debug_outln_verbose(F("File Stream counter: ") + String(size) + F(" | Read Bytes count: ") + String(cnt));
@@ -6818,19 +6818,23 @@ static bool fwDownloadFileStream(WiFiClient &client, const String &url, Stream *
 						bytes_written += cnt;
 					}
 
-					debug_outln_verbose(F("Count: ") + String(bytes_written));
+					if (cfg::debug >= DEBUG_MED_INFO)
+					{
+						//debug_outln_verbose(F("Count: ") + String(bytes_written));
+						Debug.print("*");
+					}
 				}
 				else
 				{
-					delay(2);				// delay of 2 msec.
+					delay(4);				// delay of 5 msec.
 				}
 
 				delay(1);					// delay of 1 msec.
-				//yield();					// this can give a "PANIC exception" in core_esp8266_main.cpp => __yield() function.
+				yield();					// this can give a "PANIC exception" in core_esp8266_main.cpp => __yield() function.
 
 			}// while loop
 
-			debug_outln_verbose(F("End writeStreamToFile: ret code: "), String(bytes_written));
+			debug_outln_verbose(F("\nEnd writeStreamToFile: ret code: "), String(bytes_written));
 		}
 
 		http.end();
