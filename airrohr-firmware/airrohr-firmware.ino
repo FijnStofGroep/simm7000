@@ -2441,7 +2441,8 @@ static void webserver_config_send_body_get(String &page_content)
 	add_form_checkbox(Config_has_s7000, FPSTR(INTL_ENABLE_S7000));
 	page_content += FPSTR(WEB_BR_LF);
 	add_form_checkbox(Config_has_radarmotion, FPSTR(INTL_ENABLE_RCWL_0516));
-	//page_content += FPSTR(WEB_BR_LF_B);
+	// page_content += FPSTR(WEB_BR_LF);
+	// add_form_checkbox(Config_auto_update, FPSTR(INTL_AUTO_UPDATE));
 
 	if (cfg::has_radarmotion)
 	{
