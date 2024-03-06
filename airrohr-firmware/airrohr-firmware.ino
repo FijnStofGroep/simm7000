@@ -1499,14 +1499,14 @@ static void readConfigBase(bool oldconfig)
 	json_config_memory_used = String(json.memoryUsage());
 
 	configFile.seek(0);				// set file pointer back to begin file.
-	debug_outln_info(F("Read(): Config file content: ***\n"), configFile.readString() + String("\n***") );
+	debug_outln_verbose(F("Read(): Config file content: ***\n"), configFile.readString() + String("\n***") );
 	configFile.close();
 
 	if (err.code() == DeserializationError::InvalidInput)
 	{// Check Json string
 		String json_string;
 		serializeJson(json, json_string);
-		debug_outln_info(F("readConfig():Parse => [JSON] input: \n"), json_string.c_str());
+		debug_outln_verbose(F("readConfig():Parse => [JSON] input: \n"), json_string.c_str());
 
 		if (json_string.startsWith("{") && json_string.endsWith("}"))
 		{ // still a good Json format
@@ -1668,14 +1668,14 @@ static void readConfigS7000(bool oldconfig)
 	json_config7000_memory_used = String(json.memoryUsage());
 
 	configFile.seek(0);				// set file pointer back to begin file.
-	debug_outln_info(F("Read(): Config file content: ***\n"), configFile.readString() + String("\n***") );
+	debug_outln_verbose(F("Read(): Config file content: ***\n"), configFile.readString() + String("\n***") );
 	configFile.close();
 
 	if (err.code() == DeserializationError::InvalidInput)
 	{// Check Json string
 		String json_string;
 		serializeJson(json, json_string);
-		debug_outln_info(F("readConfig():Parse => [JSON] input: \n"), json_string.c_str());
+		debug_outln_verbose(F("readConfig():Parse => [JSON] input: \n"), json_string.c_str());
 
 		if (json_string.startsWith("{") && json_string.endsWith("}"))
 		{ // still a good Json format
@@ -7012,6 +7012,11 @@ static void StartTwoStageOTAUpdate()
 	debug_outln_info(F("Current Sketch md5: "), ESP.getSketchMD5());
 
 	// We're entering update phase, kill off everything else
+	if (cfg::has_radarmotion)
+	{// Stop Radar motion Event process.
+		RCWL0516.end();
+	}
+
 	WiFiUDP::stopAll();
 	WiFiClient::stopAllExcept(&client);
 	delay(100);
