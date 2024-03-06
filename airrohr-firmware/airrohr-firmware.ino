@@ -93,7 +93,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2024-03-B4_3"
+#define SOFTWARE_VERSION_STR "FWL-2024-03-B4"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
