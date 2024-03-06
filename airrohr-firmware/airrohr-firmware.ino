@@ -93,7 +93,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2024-03-B4"
+#define SOFTWARE_VERSION_STR "FWL-2024-03-B4_3"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -1493,8 +1493,8 @@ static void readConfigBase(bool oldconfig)
 	DeserializationError err = deserializeJson(json, configFile.readString());
 
 	debug_outln_info(F("Read JSON format.....\nJson memory size: "), String(json.memoryUsage()) + 
-					 " | Elements in array: " + String(json.size()) + 
-					 String(" | Error Code = ") + err.code() + " => " + err.f_str() );
+					 F(" | Elements in array: ") + String(json.size()) + 
+					 F(" | Error Code = ") + err.code() + F(" => ") + err.f_str() );
 
 	json_config_memory_used = String(json.memoryUsage());
 
@@ -1662,8 +1662,8 @@ static void readConfigS7000(bool oldconfig)
 	DeserializationError err = deserializeJson(json, configFile.readString());
 
 	debug_outln_info(F("Read JSON S7000 format.....\nJson memory size: "), String(json.memoryUsage()) + 
-					 " | Elementen in array: " + String(json.size()) + 
-					 String(" | Error Code = ") + err.code() + " => " + err.f_str() );
+					 F(" | Elementen in array: ") + String(json.size()) + 
+					 F(" | Error Code = ") + err.code() + F(" => ") + err.f_str() );
 
 	json_config7000_memory_used = String(json.memoryUsage());
 
