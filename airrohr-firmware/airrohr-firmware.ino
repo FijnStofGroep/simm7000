@@ -6251,7 +6251,7 @@ static void fetchSensorSEN5X_THN(String &s)
 
 		add_Value2Json(s, FPSTR((result_SEN5X + F("temperature")).c_str()), FPSTR(DBG_TXT_TEMPERATURE), last_value_SEN5X_T);
 		add_Value2Json(s, FPSTR((result_SEN5X + F("humidity")).c_str()),    FPSTR(DBG_TXT_HUMIDITY),    last_value_SEN5X_H);
-		add_Value2Json(s, FPSTR((result_SEN5X + F("NOx")).c_str()), 	FPSTR(DBG_TXT_NOX), 		last_value_SEN5X_NOX);	// NOx
+		add_Value2Json(s, FPSTR((result_SEN5X + F("co2_ppm")).c_str()), FPSTR(DBG_TXT_NOX), last_value_SEN5X_NOX); // NOx
 
 		debug_outln_verbose(FPSTR(DBG_TXT_END_READING), result_SEN5X);
 	}
