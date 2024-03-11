@@ -4709,7 +4709,7 @@ static void sendmqtt(const String &data)
 			{
 				key = measurement["value_type"].as<const char *>();
 				val = measurement["value"].as<const char *>();
-
+				key.replace("SEN5X_co2_ppm", "SEN55_NOx");
 				int spc = val.indexOf(' ');
 
 				if (spc >= 0)
