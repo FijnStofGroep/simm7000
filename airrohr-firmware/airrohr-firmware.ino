@@ -49,10 +49,10 @@
  * SEN55: devided in SPS30 for PM, TS, NOx	(pin 1)						*
  * 					 SCD30 for temperature, humidity, CO2(NOx) (pin 17)	*
  * 			Change to													*
- * 					 SHT30 for temperature, humidity (pin 7)			*
+ * 					 SHT3x for temperature, humidity (pin 7)			*
  * 																		*
  * Remark: SEN5X sensor start/stop is enabled then Nox value = 0.		*
- * startUp time = 35 sec. then 9 times read PM/NC, Temp., Hum value.	*
+ * startUp time = 35 sec. then 15 times read PM/NC, Temp., Hum value.	*
  * Nox startUp time at least 60 sec. then read Nox value (F.F.U)		*
  * 																		*
  * Wifi signal MUST be strong.											*
@@ -65,6 +65,13 @@
  * Add WiFiMulti used to connect to a WiFi network with strongest 		*
  * WiFi signal (RSSI). 													*
  * 																		*
+ * There is a hardware WDT and a software WDT.							*
+ * The HW WDT is always running and will reset the MCU after about		* 
+ * 6 seconds if the HW WDT timer is not reset.							*
+ * The SW WDT seems to reset the MCU at 1.5 about seconds.				*
+ * You can enable/disable the SW WDT, but not the HW WDT.				*
+ * There seems to be little point in disabling the SW WDT as you must 	*
+ * reset it to also reset the HW WDT.									*	
  ************************************************************************
  * 																		*
  * latest build using lib 3.1.0											*
@@ -4709,7 +4716,12 @@ static void sendmqtt(const String &data)
 			{
 				key = measurement["value_type"].as<const char *>();
 				val = measurement["value"].as<const char *>();
-				key.replace("SEN5X_co2_ppm", "SEN55_NOx");
+
+				if( key.startsWith(F("SEN5X_co2")))
+				{
+					key.replace(F("_co2_ppm"), F("_NOx"));
+				}
+
 				int spc = val.indexOf(' ');
 
 				if (spc >= 0)
@@ -4719,8 +4731,6 @@ static void sendmqtt(const String &data)
 
 				// Format mqtt message
 				payload += "\"" + key + "\":\"" + val + "\",";
-				//payload += "\"sensor\":\"" + key + "\",\"value\":" + val + ",";
-
 			}
 
 			header = mqtt_header;
@@ -6251,7 +6261,7 @@ static void fetchSensorSEN5X_THN(String &s)
 
 		add_Value2Json(s, FPSTR((result_SEN5X + F("temperature")).c_str()), FPSTR(DBG_TXT_TEMPERATURE), last_value_SEN5X_T);
 		add_Value2Json(s, FPSTR((result_SEN5X + F("humidity")).c_str()),    FPSTR(DBG_TXT_HUMIDITY),    last_value_SEN5X_H);
-		add_Value2Json(s, FPSTR((result_SEN5X + F("co2_ppm")).c_str()), FPSTR(DBG_TXT_NOX), last_value_SEN5X_NOX); // NOx
+		add_Value2Json(s, FPSTR((result_SEN5X + F("co2_ppm")).c_str()), 	FPSTR(DBG_TXT_NOX), last_value_SEN5X_NOX); 			// NOx
 
 		debug_outln_verbose(FPSTR(DBG_TXT_END_READING), result_SEN5X);
 	}
@@ -8916,7 +8926,8 @@ void loop(void)
 
 			// if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
 			// {
-			 	sum_send_time += sendSensorCommunity(result, SEN5X_PM_API_PIN, FPSTR(SENSORS_SEN55), "SEN55_");
+				int pin = memcmp(cfg::sen5x_sym_pm, SENSOR_SEN55, 6) == 0 ? SEN5X_PM_API_PIN : SPS30_API_PIN;
+			 	sum_send_time += sendSensorCommunity(result, pin, FPSTR(SENSORS_SEN55), "SEN55_");
 			// }
 
 			result = emptyString;
@@ -8927,7 +8938,7 @@ void loop(void)
 			fetchSensorSEN5X_THN(result);
 			data += result;
 
-			int pin = memcmp(cfg::sen5x_sym_th, SENSOR_SCD30, 6) == 0 ? SEN5X_SCD30_TH_API_PIN : SEN5X_SHT35_TH_API_PIN;
+			pin = memcmp(cfg::sen5x_sym_th, SENSOR_SCD30, 6) == 0 ? SEN5X_SCD30_TH_API_PIN : SEN5X_SHT35_TH_API_PIN;
 
 			sum_send_time += sendSensorCommunity(result, pin, FPSTR(SENSORS_SEN5X_TH), "SEN5X_");
 
