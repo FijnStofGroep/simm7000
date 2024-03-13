@@ -292,9 +292,9 @@ static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
 
 // Sensirion Sensirion I2C SEN5X
 #define SEN5X_READ 0                          // default: false
-#define SEN5X_PM_API_PIN 16                   // Pin 16 for PM / NCx and Temp, Humidity, Voc, NOx.
+#define SEN5X_PM_API_PIN 16                   // Pin 16 for PM / NCx and Temp, Humidity, (VOC, NOx. => NOT used)
 #define SEN5X_SCD30_TH_API_PIN 17             // Pin 17 for SCD30
-#define SEN5X_SHT35_TH_API_PIN 7              // Pin 7 for SHT35
+#define SEN5X_SHT3X_TH_API_PIN 7              // Pin 7 for SHT3X and SHT35
 #define SEN5X_ON 0
 #define SEN5X_SYM_TH "SHT3X"                  // temp, hum
 #define SEN5X_SYM_PM "SPS30"                  // PM0.5, PM1, PM2.5, PM4, PM10
