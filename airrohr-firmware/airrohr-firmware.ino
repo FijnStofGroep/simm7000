@@ -89,8 +89,8 @@
  * latest build 2024-03-01												*
  * PLATFORM: Espressif 8266 (3.1.0) > NodeMCU 1.0 (ESP-12E Module)		*
  * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
- * RAM:     [=====     ]  47.4% (used 38864 bytes from 81920 bytes)		*
- * PROGRAM: [======    ]  63.9% (used 667657 bytes from 1044464 bytes)	*
+ * RAM:     [=====     ]  47.4% (used 38816 bytes from 81920 bytes)		*
+ * PROGRAM: [======    ]  64.0% (used 667937 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -100,7 +100,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2024-03-B4"
+#define SOFTWARE_VERSION_STR "FWL-2024-03-B5"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -3145,7 +3145,7 @@ static void webserver_values()
 
 	auto add_table_t_value = [&page_content](const __FlashStringHelper *sensor, const __FlashStringHelper *param, const float value)
 	{
-		add_table_row_from_value(page_content, sensor, param, check_display_value(value, -128, 1, 0), "°C");
+		add_table_row_from_value(page_content, sensor, param, check_display_value(value, -128, 2, 0), "°C");
 	};
 
 	auto add_table_h_value = [&page_content](const __FlashStringHelper *sensor, const __FlashStringHelper *param, const float value)
@@ -3250,9 +3250,11 @@ static void webserver_values()
 			add_table_nc_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_NC4k0), last_value_SEN5X_N4);
 			add_table_nc_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_NC10), last_value_SEN5X_N10);
 			add_table_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_TPS), check_display_value(last_value_SEN5X_TS, -1, 1, 0), "µm");
+			page_content += FPSTR(EMPTY_ROW);
 			add_table_t_value(FPSTR(SENSORS_SEN54), FPSTR(INTL_TEMPERATURE), last_value_SEN5X_T);
 			add_table_h_value(FPSTR(SENSORS_SEN54), FPSTR(INTL_HUMIDITY), last_value_SEN5X_H);
-			add_table_value(FPSTR(SENSORS_SEN54), FPSTR(INTL_VOC), check_display_value(last_value_SEN5X_VOC, 0, 0, 0), "(index)");
+			page_content += FPSTR(EMPTY_ROW);
+			add_table_value(FPSTR(SENSORS_SEN54), FPSTR(INTL_VOC), check_display_value(last_value_SEN5X_VOC, -1.0, 2, 0), "(index)");
 			page_content += FPSTR(EMPTY_ROW);
 		}
 
@@ -3268,10 +3270,12 @@ static void webserver_values()
 			add_table_nc_value(FPSTR(SENSORS_SEN55), FPSTR(WEB_NC4k0), last_value_SEN5X_N4);
 			add_table_nc_value(FPSTR(SENSORS_SEN55), FPSTR(WEB_NC10), last_value_SEN5X_N10);
 			add_table_value(FPSTR(SENSORS_SEN55), FPSTR(WEB_TPS), check_display_value(last_value_SEN5X_TS, -1, 1, 0), "µm");
+			page_content += FPSTR(EMPTY_ROW);
 			add_table_t_value(FPSTR(SENSORS_SEN55), FPSTR(INTL_TEMPERATURE), last_value_SEN5X_T);
 			add_table_h_value(FPSTR(SENSORS_SEN55), FPSTR(INTL_HUMIDITY), last_value_SEN5X_H);
-			add_table_value(FPSTR(SENSORS_SEN55), FPSTR(INTL_VOC), check_display_value(last_value_SEN5X_VOC, 0, 0, 0), "(index)");
-			add_table_value(FPSTR(SENSORS_SEN55), FPSTR(INTL_NOX), check_display_value(last_value_SEN5X_NOX, 0, 0, 0), "ppm");
+			page_content += FPSTR(EMPTY_ROW);
+			add_table_value(FPSTR(SENSORS_SEN55), FPSTR(INTL_VOC), check_display_value(last_value_SEN5X_VOC, -1.0, 2, 0), "(index)");
+			add_table_value(FPSTR(SENSORS_SEN55), FPSTR(INTL_NOX), check_display_value(last_value_SEN5X_NOX, -1.0, 2, 0), "ppm");
 			page_content += FPSTR(EMPTY_ROW);
 		}
 	}
@@ -6204,8 +6208,14 @@ static void fetchSensorSEN5X(String &s)
 	add_Value2Json(s, FPSTR((result_SEN5X + F("N1")).c_str()),  F("NC1.0: "), last_value_SEN5X_N1);
 	add_Value2Json(s, FPSTR((result_SEN5X + F("N25")).c_str()), F("NC2.5: "), last_value_SEN5X_N25);
 	add_Value2Json(s, FPSTR((result_SEN5X + F("N4")).c_str()),  F("NC4.0: "), last_value_SEN5X_N4);
-	add_Value2Json(s, FPSTR((result_SEN5X + F("N10")).c_str()), F("NC10:  "), last_value_SEN5X_N10);
-	add_Value2Json(s, FPSTR((result_SEN5X + F("TS")).c_str()),  F("TPS:   "), last_value_SEN5X_TS);
+	add_Value2Json(s, FPSTR((result_SEN5X + F("N10")).c_str()), F("NC10: "), last_value_SEN5X_N10);
+	add_Value2Json(s, FPSTR((result_SEN5X + F("TS")).c_str()),  F("TPS: "), last_value_SEN5X_TS);
+
+	// sensor community server can't handle this ID, (server response code = 400)
+	// if (memcmp(cfg::sen5x_sym_pm, SENSOR_SEN55, 6) == 0)
+	// {
+	// 	add_Value2Json(s, FPSTR((result_SEN5X + F("VOC")).c_str()), F("VOC: "), last_value_SEN5X_VOC);
+	// }
 
 	debug_outln_info( FPSTR((result_SEN5X + " read counter: ").c_str()), String(SEN5X_read_counter));
 	debug_outln_info( FPSTR((result_SEN5X + " read error counter: ").c_str()), String(SEN5X_read_error_counter));
@@ -6214,8 +6224,7 @@ static void fetchSensorSEN5X(String &s)
 	SEN5X_read_error_counter = 0;
 	value_SEN5X_P0 = value_SEN5X_P1 = value_SEN5X_P2 = value_SEN5X_P4 = 0.0;
 	value_SEN5X_N05 = value_SEN5X_N1 = value_SEN5X_N25 = value_SEN5X_N10 = value_SEN5X_N4 = 0.0;
-	value_SEN5X_TS = 0.0;
-	value_SEN5X_VOC = 0.0;
+	value_SEN5X_TS = value_SEN5X_VOC = 0.0;
 
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 
@@ -6236,20 +6245,21 @@ static void fetchSensorSEN5X(String &s)
 }
 
 /*
- 	Temperature and Humidity and Co2 as NOx.
+ 	Temperature and Humidity and NOx as Co2 ID.
 
-	fetchSensorSEN5X() => set last_value_SEN5X_T and last_value_SEN5X_H value.
+	fetchSensorSEN5X() => set last_value_SEN5X_T / last_value_SEN5X_H and last_value_SEN5X_NOX value.
+
+	13-03-2024:
+	sensor community server can't handle NOx ID, (server response code = 400)
 
 */
-static void fetchSensorSEN5X_THN(String &s)
+static void fetchSensorSEN5X_THN(String &s,  bool flg_Nox = true, bool flg_clear = true)
 {
 	if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0 || memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
 	{
 		last_value_SEN5X_T = value_SEN5X_T / SEN5X_measurement_count;
 		last_value_SEN5X_H = value_SEN5X_H / SEN5X_measurement_count;
 		last_value_SEN5X_NOX = value_SEN5X_NOX / SEN5X_measurement_count;
-
-		//String result_SEN5X = F("SEN5X_");
 
 		//String result_SEN5X((char*)0);
 		//result_SEN5X.reserve(10);
@@ -6261,13 +6271,20 @@ static void fetchSensorSEN5X_THN(String &s)
 
 		add_Value2Json(s, FPSTR((result_SEN5X + F("temperature")).c_str()), FPSTR(DBG_TXT_TEMPERATURE), last_value_SEN5X_T);
 		add_Value2Json(s, FPSTR((result_SEN5X + F("humidity")).c_str()),    FPSTR(DBG_TXT_HUMIDITY),    last_value_SEN5X_H);
-		add_Value2Json(s, FPSTR((result_SEN5X + F("co2_ppm")).c_str()), 	FPSTR(DBG_TXT_NOX), last_value_SEN5X_NOX); 			// NOx
+
+		if (flg_Nox)
+		{	// NOx value.
+			add_Value2Json(s, FPSTR((result_SEN5X + F("co2_ppm")).c_str()), FPSTR(DBG_TXT_NOX), last_value_SEN5X_NOX);
+		}
 
 		debug_outln_verbose(FPSTR(DBG_TXT_END_READING), result_SEN5X);
 	}
 
-	value_SEN5X_H = value_SEN5X_T = value_SEN5X_NOX = 0.0;
-	SEN5X_measurement_count = 0;
+	if (flg_clear)
+	{
+		value_SEN5X_H = value_SEN5X_T = value_SEN5X_NOX = 0.0;
+		SEN5X_measurement_count = 0;
+	}
 }
 
 /*****************************************************************
@@ -8490,10 +8507,13 @@ static unsigned long sendDataToOptionalApis(const String &data)
 	{
 		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("custom api: "));
 
-		String data_to_send = (cfg::sen5x_read && (!is_Sen5x_init_failed)) ? data_sensemap : data;
+		RESERVE_STRING(data_4_custom, LARGE_STR);
+		RESERVE_STRING(data_to_send, LARGE_STR);
+
+		data_to_send = (cfg::sen5x_read && (!is_Sen5x_init_failed)) ? data_sensemap : data;
 		data_to_send.remove(0, 1);
 		
-		String data_4_custom(F("{\"esp8266id\": \""));
+		data_4_custom = F("{\"esp8266id\": \"");
 		data_4_custom += esp_chipid;
 		data_4_custom += "\", ";
 		data_4_custom += data_to_send;
@@ -8910,41 +8930,34 @@ void loop(void)
 
 		if (cfg::sen5x_read && (!is_Sen5x_init_failed))
 		{
-			fetchSensorSEN5X(result); // edit and format sensor type/value for sending to Sensor-Community webserver.
+			int pin;
+			RESERVE_STRING(resultTH, MED_STR);
 
+			fetchSensorSEN5X(result); // edit and format sensor type/value for sending to Sensor-Community webserver.
 			data += result;
 
-			// if (memcmp(SEN5X_type, SENSOR_SEN50, 6) == 0)
-			// {
-			// 	sum_send_time += sendSensorCommunity(result, SEN5X_PM_API_PIN, FPSTR(SENSORS_SEN50), "SEN50_");
-			// }
+			fetchSensorSEN5X_THN(resultTH, false, false);
+			resultTH.replace("SEN5X", SENSOR_SEN55); // set 'SEN55' type ID.
+			result += resultTH;
+			pin = SEN5X_PM_API_PIN;
 
-			// if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
-			// {
-			// 	sum_send_time += sendSensorCommunity(result, SEN5X_PM_API_PIN, FPSTR(SENSORS_SEN54), "SEN54_");
-			// }
-
-			// if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
-			// {
-				int pin = memcmp(cfg::sen5x_sym_pm, SENSOR_SEN55, 6) == 0 ? SEN5X_PM_API_PIN : SPS30_API_PIN;
-			 	sum_send_time += sendSensorCommunity(result, pin, FPSTR(SENSORS_SEN55), "SEN55_");
-			// }
+			sum_send_time += sendSensorCommunity(result, pin, FPSTR(SENSORS_SEN55), "SEN55_");
 
 			result = emptyString;
 
 			// Getting temperature and humidity.
-			debug_outln_info(FPSTR(DBG_TXT_SEP));
+			// debug_outln_info(FPSTR(DBG_TXT_SEP));
 
+			// get values for other API's
 			fetchSensorSEN5X_THN(result);
 			data += result;
 
-			pin = memcmp(cfg::sen5x_sym_th, SENSOR_SCD30, 6) == 0 ? SEN5X_SCD30_TH_API_PIN : SEN5X_SHT35_TH_API_PIN;
-
-			sum_send_time += sendSensorCommunity(result, pin, FPSTR(SENSORS_SEN5X_TH), "SEN5X_");
+			// pin = memcmp(cfg::sen5x_sym_th, SENSOR_SCD30, 6) == 0 ? SEN5X_SCD30_TH_API_PIN : SEN5X_SHT35_TH_API_PIN;
+			// sum_send_time += sendSensorCommunity(result, pin, FPSTR(SENSORS_SEN5X_TH), "SEN5X_");
 
 			result = emptyString;
 
-			debug_outln_info(FPSTR(DBG_TXT_SEP));
+			// debug_outln_info(FPSTR(DBG_TXT_SEP));
 		}
 
 		if (cfg::sps30_read && (!sps30_init_failed))
