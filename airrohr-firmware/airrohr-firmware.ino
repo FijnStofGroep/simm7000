@@ -100,7 +100,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2024-03-B5"
+#define SOFTWARE_VERSION_STR "FWL-2024-03-B5_1"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -2182,7 +2182,7 @@ static String form_submit(const String &value)
 }
 
 // Disable Firmware opties (FvD)
-/*
+
 static String form_select_lang()
 {
 	String s_select = F(" selected='selected'");
@@ -2190,33 +2190,33 @@ static String form_select_lang()
 				 "<td>" INTL_LANGUAGE ":&nbsp;</td>"
 				 "<td>"
 				 "<select id='current_lang' name='current_lang'>"
-				 "<option value='BG'>Bulgarian (BG)</option>"
-				 "<option value='CN'>中文 (CN)</option>"
-				 "<option value='CZ'>Český (CZ)</option>"
-				 "<option value='DE'>Deutsch (DE)</option>"
-				 "<option value='DK'>Dansk (DK)</option>"
-				 "<option value='EE'>Eesti keel (EE)</option>"
-				 "<option value='EN'>English (EN)</option>"
-				 "<option value='ES'>Español (ES)</option>"
-				 "<option value='FR'>Français (FR)</option>"
-				 "<option value='GR'>Ελληνικά (GR)</option>"
-				 "<option value='IT'>Italiano (IT)</option>"
-				 "<option value='JP'>日本語 (JP)</option>"
-				 "<option value='LT'>Lietuvių kalba (LT)</option>"
-				 "<option value='LU'>Lëtzebuergesch (LU)</option>"
-				 "<option value='LV'>Latviešu valoda (LV)</option>"
-				 "<option value='NL'>Nederlands (NL)</option>"
-				 "<option value='HU'>Magyar (HU)</option>"
-				 "<option value='PL'>Polski (PL)</option>"
-				 "<option value='PT'>Português (PT)</option>"
-				 "<option value='RO'>Română (RO)</option>"
-				 "<option value='RS'>Srpski (RS)</option>"
-				 "<option value='RU'>Русский (RU)</option>"
-				 "<option value='SI'>Slovenščina (SI)</option>"
-				 "<option value='SK'>Slovák (SK)</option>"
-				 "<option value='SE'>Svenska (SE)</option>"
-				 "<option value='TR'>Türkçe (TR)</option>"
-				 "<option value='UA'>український (UA)</option>"
+				//  "<option value='BG'>Bulgarian (BG)</option>"
+				//  "<option value='CN'>中文 (CN)</option>"
+				//  "<option value='CZ'>Český (CZ)</option>"
+				    "<option value='DE'>Deutsch (DE)</option>"
+				//  "<option value='DK'>Dansk (DK)</option>"
+				//  "<option value='EE'>Eesti keel (EE)</option>"
+					"<option value='EN'>English (EN)</option>"
+				//  "<option value='ES'>Español (ES)</option>"
+				    "<option value='FR'>Français (FR)</option>"
+				//  "<option value='GR'>Ελληνικά (GR)</option>"
+				//  "<option value='IT'>Italiano (IT)</option>"
+				//  "<option value='JP'>日本語 (JP)</option>"
+				//  "<option value='LT'>Lietuvių kalba (LT)</option>"
+				//  "<option value='LU'>Lëtzebuergesch (LU)</option>"
+				//  "<option value='LV'>Latviešu valoda (LV)</option>"
+				    "<option value='NL'>Nederlands (NL)</option>"
+				//  "<option value='HU'>Magyar (HU)</option>"
+				//  "<option value='PL'>Polski (PL)</option>"
+				//  "<option value='PT'>Português (PT)</option>"
+				//  "<option value='RO'>Română (RO)</option>"
+				//  "<option value='RS'>Srpski (RS)</option>"
+				//  "<option value='RU'>Русский (RU)</option>"
+				//  "<option value='SI'>Slovenščina (SI)</option>"
+				//  "<option value='SK'>Slovák (SK)</option>"
+				//  "<option value='SE'>Svenska (SE)</option>"
+				//  "<option value='TR'>Türkçe (TR)</option>"
+				//  "<option value='UA'>український (UA)</option>"
 				 "</select>"
 				 "</td>"
 				 "</tr>");
@@ -2224,7 +2224,7 @@ static String form_select_lang()
 	s.replace("'" + String(cfg::current_lang) + "'>", "'" + String(cfg::current_lang) + "'" + s_select + ">");
 	return s;
 }
-*/
+
 
 /*
   Input:
@@ -2385,7 +2385,7 @@ static void webserver_config_send_body_get(String &page_content)
 					  "<div class='panel' id='panel1'>");
 
 	if (wificonfig_loop)
-	{ // scan for wlan ssids
+	{ // scan for wlan ssid's
 		page_content += F("<div id='wifilist'>" INTL_WIFI_NETWORKS "</div><br/>");
 	}
 
@@ -2439,17 +2439,12 @@ static void webserver_config_send_body_get(String &page_content)
 		server.sendContent(page_content);
 	}
 
-	// Add IP static (FVD)
-	// add checkbox
-
 	page_content = FPSTR(WEB_BR_LF);
 	page_content += F("<hr/>");
-	page_content += FPSTR(WEB_BR_LF);
+	//page_content += FPSTR(WEB_BR_LF);
 	add_form_checkbox(Config_has_s7000, FPSTR(INTL_ENABLE_S7000));
 	page_content += FPSTR(WEB_BR_LF);
 	add_form_checkbox(Config_has_radarmotion, FPSTR(INTL_ENABLE_RCWL_0516));
-	// page_content += FPSTR(WEB_BR_LF);
-	// add_form_checkbox(Config_auto_update, FPSTR(INTL_AUTO_UPDATE));
 
 	if (cfg::has_radarmotion)
 	{
@@ -2465,6 +2460,8 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content += FPSTR(WEB_BR_LF_B);
 	page_content += F("<hr/>");
 
+	// Add IP static (FVD)
+	// add checkbox
 	add_form_checkbox(Config_has_fix_ip, FPSTR(INTL_STATIC_IP_TEXT));
 	page_content += FPSTR(TABLE_TAG_OPEN);
 
@@ -2493,14 +2490,28 @@ static void webserver_config_send_body_get(String &page_content)
 	add_form_checkbox(Config_has_lcd2004, FPSTR(INTL_LCD2004_3F));
 	add_form_checkbox(Config_display_wifi_info, FPSTR(INTL_DISPLAY_WIFI_INFO));
 	add_form_checkbox(Config_display_device_info, FPSTR(INTL_DISPLAY_DEVICE_INFO));
-	page_content += FPSTR(WEB_BR_LF);
-
+	//page_content += FPSTR(WEB_BR_LF);
 	server.sendContent(page_content);
-	page_content = FPSTR(WEB_BR_LF);
 
+	page_content = FPSTR(WEB_BR_LF);
 	page_content += F("<hr/>");
 	page_content += FPSTR(INTL_AB_HIER_NUR_ANDERN);
 	page_content += FPSTR(WEB_B_BR);
+	page_content += FPSTR(WEB_BR_LF);
+
+	page_content += FPSTR(TABLE_TAG_OPEN);
+	page_content += form_select_lang();
+
+	page_content += F("<script>"
+					  "var $ = function(e) { return document.getElementById(e); };"
+					  "function updateOTAOptions() { "
+					  "$('current_lang').disabled = $('use_beta').disabled = !$('auto_update').checked; "
+					  "}; updateOTAOptions(); $('auto_update').onchange = updateOTAOptions;"
+					  "</script>");
+	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+
+	page_content += FPSTR(WEB_BR_LF);
+	add_form_checkbox(Config_auto_update, FPSTR(INTL_AUTO_UPDATE));
 	page_content += FPSTR(BR_TAG);
 
 	add_form_checkbox(Config_powersave, FPSTR(INTL_POWERSAVE));
@@ -6860,7 +6871,6 @@ static bool fwDownloadFileStream(WiFiClient &client, const String &url, Stream *
 
 				//yield();					// this can give a "PANIC exception" in core_esp8266_main.cpp => __yield() function.
 				delay(1);					// delay of 1 msec.
-				
 
 			}// while loop
 
@@ -6954,10 +6964,6 @@ static bool fwDownloadStreamFile(WiFiClient &client, const String &url, const St
 */
 static void twoStageOTAUpdate()
 {
-	// temporaly soluction
-	// TODO: implement new OTA server.
-	return;
-
 	if (!cfg::auto_update)
 	{ // NO auto firmware update.
 		return;
@@ -6965,7 +6971,17 @@ static void twoStageOTAUpdate()
 
 	debug_outln_info(F("two Stage Automatic OTA Update"));
 
-	StartTwoStageOTAUpdate();
+	rst_info * reset_Info = EspClass::getResetInfoPtr();
+	debug_outln_verbose(F("ESP Restart Reason code: "), String(reset_Info->reason));
+	if( reset_Info->reason == rst_reason::REASON_WDT_RST ||		/* hardware watch dog reset */
+		reset_Info->reason == rst_reason::REASON_SOFT_WDT_RST)	/* software watch dog reset */
+	{// this could be, if WiFi connection is slow.
+		return;
+	}
+
+	// start OTA process on main loop().
+	flg_OTAStartbyWebCall = true;
+	//StartTwoStageOTAUpdate();
 }
 
 /*
