@@ -70,8 +70,8 @@
 #define DEBUG_MED_INFO 4
 #define DEBUG_MAX_INFO 5
 
-#define SENSOR_SEN50   "SEN50"
-#define SENSOR_SEN54   "SEN54"
+//#define SENSOR_SEN50   "SEN50"        // remove 2024-03-20
+//#define SENSOR_SEN54   "SEN54"        // remove 2024-03-20
 #define SENSOR_SEN55   "SEN55"
   
 #define SENSOR_SCD30   "SCD30"

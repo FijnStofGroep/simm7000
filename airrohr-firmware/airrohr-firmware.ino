@@ -237,7 +237,7 @@ namespace cfg
 	bool sen5x_on = SEN5X_ON;
 	char sen5x_sym_pm[LEN_SEN5X_SYM] = SEN5X_SYM_PM;
 	char sen5x_sym_th[LEN_SEN5X_SYM] = SEN5X_SYM_TH;
-	char sen5x_pin[LEN_SEN5X_SYM] = SEN5X_PIN;
+	bool sen5x_pin16 = SEN5X_PIN16;
 	bool sps30_read = SPS30_READ;
 	bool bmp_read = BMP_READ;
 	bool bmx280_read = BMX280_READ;
@@ -2541,7 +2541,11 @@ static void webserver_config_send_body_get(String &page_content)
 
 	page_content += form_select_mode_SEN5PM();
 	page_content += form_select_mode_SEN5TH();
-	page_content += form_select_mode_SEN5_scomm();
+
+	page_content += FPSTR(INTL_SENSORCOMMUNITY);
+	page_content += FPSTR(WEB_BR_LF);
+	add_form_checkbox_sensor(Config_sen5x_pin16, FPSTR(INTL_SEN5X_PIN16));
+	//page_content += form_select_mode_SEN5_scomm();
 
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	page_content += F("<hr/>");
@@ -3244,40 +3248,40 @@ static void webserver_values()
 
 	if (cfg::sen5x_read)
 	{
-		if (memcmp(SEN5X_type, SENSOR_SEN50, 6) == 0)
-		{
-			add_table_pm_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_PM1), last_value_SEN5X_P0);
-			add_table_pm_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_PM25), last_value_SEN5X_P2);
-			add_table_pm_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_PM4), last_value_SEN5X_P4);
-			add_table_pm_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_PM10), last_value_SEN5X_P1);
-			add_table_nc_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_NC0k5), last_value_SEN5X_N05);
-			add_table_nc_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_NC1k0), last_value_SEN5X_N1);
-			add_table_nc_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_NC2k5), last_value_SEN5X_N25);
-			add_table_nc_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_NC4k0), last_value_SEN5X_N4);
-			add_table_nc_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_NC10), last_value_SEN5X_N10);
-			add_table_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_TPS), check_display_value(last_value_SEN5X_TS, -1, 1, 0), "µm");
-			page_content += FPSTR(EMPTY_ROW);
-		}
+		// if (memcmp(SEN5X_type, SENSOR_SEN50, 6) == 0)
+		// {
+		// 	add_table_pm_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_PM1), last_value_SEN5X_P0);
+		// 	add_table_pm_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_PM25), last_value_SEN5X_P2);
+		// 	add_table_pm_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_PM4), last_value_SEN5X_P4);
+		// 	add_table_pm_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_PM10), last_value_SEN5X_P1);
+		// 	add_table_nc_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_NC0k5), last_value_SEN5X_N05);
+		// 	add_table_nc_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_NC1k0), last_value_SEN5X_N1);
+		// 	add_table_nc_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_NC2k5), last_value_SEN5X_N25);
+		// 	add_table_nc_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_NC4k0), last_value_SEN5X_N4);
+		// 	add_table_nc_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_NC10), last_value_SEN5X_N10);
+		// 	add_table_value(FPSTR(SENSORS_SEN50), FPSTR(WEB_TPS), check_display_value(last_value_SEN5X_TS, -1, 1, 0), "µm");
+		// 	page_content += FPSTR(EMPTY_ROW);
+		// }
 
-		if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
-		{
-			add_table_pm_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_PM1), last_value_SEN5X_P0);
-			add_table_pm_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_PM25), last_value_SEN5X_P2);
-			add_table_pm_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_PM4), last_value_SEN5X_P4);
-			add_table_pm_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_PM10), last_value_SEN5X_P1);
-			add_table_nc_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_NC0k5), last_value_SEN5X_N05);
-			add_table_nc_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_NC1k0), last_value_SEN5X_N1);
-			add_table_nc_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_NC2k5), last_value_SEN5X_N25);
-			add_table_nc_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_NC4k0), last_value_SEN5X_N4);
-			add_table_nc_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_NC10), last_value_SEN5X_N10);
-			add_table_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_TPS), check_display_value(last_value_SEN5X_TS, -1, 1, 0), "µm");
-			page_content += FPSTR(EMPTY_ROW);
-			add_table_t_value(FPSTR(SENSORS_SEN54), FPSTR(INTL_TEMPERATURE), last_value_SEN5X_T);
-			add_table_h_value(FPSTR(SENSORS_SEN54), FPSTR(INTL_HUMIDITY), last_value_SEN5X_H);
-			page_content += FPSTR(EMPTY_ROW);
-			add_table_value(FPSTR(SENSORS_SEN54), FPSTR(INTL_VOC), check_display_value(last_value_SEN5X_VOC, -1.0, 2, 0), "(index)");
-			page_content += FPSTR(EMPTY_ROW);
-		}
+		// if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
+		// {
+		// 	add_table_pm_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_PM1), last_value_SEN5X_P0);
+		// 	add_table_pm_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_PM25), last_value_SEN5X_P2);
+		// 	add_table_pm_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_PM4), last_value_SEN5X_P4);
+		// 	add_table_pm_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_PM10), last_value_SEN5X_P1);
+		// 	add_table_nc_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_NC0k5), last_value_SEN5X_N05);
+		// 	add_table_nc_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_NC1k0), last_value_SEN5X_N1);
+		// 	add_table_nc_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_NC2k5), last_value_SEN5X_N25);
+		// 	add_table_nc_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_NC4k0), last_value_SEN5X_N4);
+		// 	add_table_nc_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_NC10), last_value_SEN5X_N10);
+		// 	add_table_value(FPSTR(SENSORS_SEN54), FPSTR(WEB_TPS), check_display_value(last_value_SEN5X_TS, -1, 1, 0), "µm");
+		// 	page_content += FPSTR(EMPTY_ROW);
+		// 	add_table_t_value(FPSTR(SENSORS_SEN54), FPSTR(INTL_TEMPERATURE), last_value_SEN5X_T);
+		// 	add_table_h_value(FPSTR(SENSORS_SEN54), FPSTR(INTL_HUMIDITY), last_value_SEN5X_H);
+		// 	page_content += FPSTR(EMPTY_ROW);
+		// 	add_table_value(FPSTR(SENSORS_SEN54), FPSTR(INTL_VOC), check_display_value(last_value_SEN5X_VOC, -1.0, 2, 0), "(index)");
+		// 	page_content += FPSTR(EMPTY_ROW);
+		// }
 
 		if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
 		{
@@ -3549,12 +3553,12 @@ static void webserver_status()
 
 	if (cfg::sen5x_read)
 	{// Display Sen5x settings.
-		if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
-		{
-			//String manufacturer = F("Sensirion ") + String(SENSORS_SEN54);
-			add_table_row_from_value(page_content, FPSTR((String(MANUFACTURER) + String(SENSORS_SEN54)).c_str()), emptyString);
-		}
-		else
+		// if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
+		// {
+		// 	//String manufacturer = F("Sensirion ") + String(SENSORS_SEN54);
+		// 	add_table_row_from_value(page_content, FPSTR((String(MANUFACTURER) + String(SENSORS_SEN54)).c_str()), emptyString);
+		// }
+		// else
 		{
 			//String manufacturer = F("Sensirion ") + String(SENSORS_SEN55);
 			add_table_row_from_value(page_content, FPSTR((String(MANUFACTURER) + String(SENSORS_SEN55)).c_str()), emptyString);
@@ -3623,15 +3627,16 @@ static void webserver_status()
 
 	if (cfg::sen5x_read)
 	{// display SEN5x reading Errors.
-		if(memcmp(SEN5X_type, SENSOR_SEN50,6) == 0)
-		{
-			add_table_row_from_value(page_content, FPSTR(SENSORS_SEN50), String(SEN5X_read_error_counter));
-		}
-		else if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
-		{
-			add_table_row_from_value(page_content, FPSTR(SENSORS_SEN54), String(SEN5X_read_error_counter));
-		}
-		else if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
+		// if(memcmp(SEN5X_type, SENSOR_SEN50,6) == 0)
+		// {
+		// 	add_table_row_from_value(page_content, FPSTR(SENSORS_SEN50), String(SEN5X_read_error_counter));
+		// }
+		// else if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
+		// {
+		// 	add_table_row_from_value(page_content, FPSTR(SENSORS_SEN54), String(SEN5X_read_error_counter));
+		// }
+		// else 
+		if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
 		{
 			add_table_row_from_value(page_content, FPSTR(SENSORS_SEN55), String(SEN5X_read_error_counter));
 		}
@@ -6188,17 +6193,17 @@ static void fetchSensorSEN5X(String &s)
 	RESERVE_STRING(result_SEN5X, 10);
 	result_SEN5X = F("SEN55_");
 
-	if (memcmp(SEN5X_type, SENSOR_SEN50, 6) == 0)
-	{
-		//result_SEN5X = F("SEN50_");
-		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN50));
-	}
+	// if (memcmp(SEN5X_type, SENSOR_SEN50, 6) == 0)
+	// {
+	// 	//result_SEN5X = F("SEN50_");
+	// 	debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN50));
+	// }
 
-	if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
-	{
-		//result_SEN5X = F("SEN54_");
-		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN54));
-	}
+	// if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
+	// {
+	// 	//result_SEN5X = F("SEN54_");
+	// 	debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SEN54));
+	// }
 
 	if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
 	{
@@ -6241,15 +6246,15 @@ static void fetchSensorSEN5X(String &s)
 
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 
-	if (memcmp(SEN5X_type, SENSOR_SEN50, 6) == 0)
-	{
-		debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_SEN50));
-	}
+	// if (memcmp(SEN5X_type, SENSOR_SEN50, 6) == 0)
+	// {
+	// 	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_SEN50));
+	// }
 
-	if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
-	{
-		debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_SEN54));
-	}
+	// if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
+	// {
+	// 	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_SEN54));
+	// }
 
 	if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
 	{
@@ -6268,7 +6273,7 @@ static void fetchSensorSEN5X(String &s)
 */
 static void fetchSensorSEN5X_THN(String &s,  bool flg_Nox = true, bool flg_clear = true)
 {
-	if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0 || memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
+	if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0 /*|| memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0*/ )
 	{
 		last_value_SEN5X_T = value_SEN5X_T / SEN5X_measurement_count;
 		last_value_SEN5X_H = value_SEN5X_H / SEN5X_measurement_count;
@@ -7314,21 +7319,21 @@ static void display_values()
 
 	if (cfg::sen5x_read)
 	{
-		if (memcmp(SEN5X_type, SENSOR_SEN50, 6) == 0)
-		{
-			pm01_sensor = FPSTR(SENSORS_SEN50);
-			pm10_sensor = FPSTR(SENSORS_SEN50);
-			pm25_sensor = FPSTR(SENSORS_SEN50);
-			t_sensor = h_sensor = voc_sensor = FPSTR(SENSORS_SEN50);
-		}
+		// if (memcmp(SEN5X_type, SENSOR_SEN50, 6) == 0)
+		// {
+		// 	pm01_sensor = FPSTR(SENSORS_SEN50);
+		// 	pm10_sensor = FPSTR(SENSORS_SEN50);
+		// 	pm25_sensor = FPSTR(SENSORS_SEN50);
+		// 	t_sensor = h_sensor = voc_sensor = FPSTR(SENSORS_SEN50);
+		// }
 
-		if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
-		{
-			pm01_sensor = FPSTR(SENSORS_SEN54);
-			pm10_sensor = FPSTR(SENSORS_SEN54);
-			pm25_sensor = FPSTR(SENSORS_SEN54);
-			t_sensor = h_sensor = voc_sensor = FPSTR(SENSORS_SEN54);
-		}
+		// if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
+		// {
+		// 	pm01_sensor = FPSTR(SENSORS_SEN54);
+		// 	pm10_sensor = FPSTR(SENSORS_SEN54);
+		// 	pm25_sensor = FPSTR(SENSORS_SEN54);
+		// 	t_sensor = h_sensor = voc_sensor = FPSTR(SENSORS_SEN54);
+		// }
 
 		if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
 		{
@@ -7630,16 +7635,17 @@ static void display_values()
 		case 13:
 			display_header = F("Sensirion SEN5X");
 
-			if (memcmp(SEN5X_type, SENSOR_SEN50, 6) == 0)
-			{
-			}
-			else if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
-			{
-				display_lines[0] = std::move(tmpl(F("Temp.: {v} °C"), check_display_value(t_value, -128, 1, 6)));
-				display_lines[1] = std::move(tmpl(F("Humi: {v} %"), check_display_value(h_value, -1, 1, 6)));
-				display_lines[2] = std::move(tmpl(F("VOC: {v} (index)"), check_display_value(voc_value, -1, 1, 6)));
-			}
-			else if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
+			// if (memcmp(SEN5X_type, SENSOR_SEN50, 6) == 0)
+			// {
+			// }
+			// else if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
+			// {
+			// 	display_lines[0] = std::move(tmpl(F("Temp.: {v} °C"), check_display_value(t_value, -128, 1, 6)));
+			// 	display_lines[1] = std::move(tmpl(F("Humi: {v} %"), check_display_value(h_value, -1, 1, 6)));
+			// 	display_lines[2] = std::move(tmpl(F("VOC: {v} (index)"), check_display_value(voc_value, -1, 1, 6)));
+			// }
+			// else 
+			if (memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
 			{
 				// display_lines[0] = std::move(tmpl(F("Humi: {v} %"), check_display_value(h_value, -1, 1, 6)));
 				// display_lines[1] = std::move(tmpl(F(": {v} (index)"), check_display_value(voc_value, -1, 1, 6)));
@@ -8975,28 +8981,35 @@ void loop(void)
 			fetchSensorSEN5X(result); // edit and format sensor type/value for sending to Sensor-Community webserver.
 			data += result;
 
-			fetchSensorSEN5X_THN(resultTH, false, false);
-			resultTH.replace("SEN5X", SENSOR_SEN55); // set 'SEN55' type ID.
-			result += resultTH;
-			pin = SEN5X_PM_API_PIN;
+			if( cfg::sen5x_pin16 )
+			{
+				// Get only temperature and humidity.
+				fetchSensorSEN5X_THN(resultTH, false, false);
+				resultTH.replace("SEN5X", SENSOR_SEN55); // set 'SEN55' type ID.
+				result += resultTH;
+				pin = SEN5X_PM_API_PIN;
+			}
+			else
+			{
+				pin = SPS30_API_PIN;
+			}
 
 			sum_send_time += sendSensorCommunity(result, pin, FPSTR(SENSORS_SEN55), "SEN55_");
 
 			result = emptyString;
 
-			// Getting temperature and humidity.
-			// debug_outln_info(FPSTR(DBG_TXT_SEP));
-
-			// get values for other API's
+			// Get temperature and humidity and NOx. for other API's
 			fetchSensorSEN5X_THN(result);
 			data += result;
 
-			// pin = memcmp(cfg::sen5x_sym_th, SENSOR_SCD30, 6) == 0 ? SEN5X_SCD30_TH_API_PIN : SEN5X_SHT35_TH_API_PIN;
-			// sum_send_time += sendSensorCommunity(result, pin, FPSTR(SENSORS_SEN5X_TH), "SEN5X_");
+			if( !cfg::sen5x_pin16 )
+			{
+				pin = memcmp(cfg::sen5x_sym_th, SENSOR_SCD30, 6) == 0 ? SEN5X_SCD30_TH_API_PIN : SEN5X_SHT3X_TH_API_PIN;
+				sum_send_time += sendSensorCommunity(result, pin, FPSTR(SENSORS_SEN5X_TH), "SEN5X_");
+			}
 
 			result = emptyString;
 
-			// debug_outln_info(FPSTR(DBG_TXT_SEP));
 		}
 
 		if (cfg::sps30_read && (!sps30_init_failed))
