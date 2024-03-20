@@ -27,6 +27,7 @@ Bool		sen5x_read
 Bool		sen5x_on
 String		sen5x_sym_pm
 String		sen5x_sym_th
+String		sen5x_pin
 Bool		sps30_read
 Bool		bmp_read
 Bool		bmx280_read

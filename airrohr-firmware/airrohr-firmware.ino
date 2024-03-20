@@ -237,6 +237,7 @@ namespace cfg
 	bool sen5x_on = SEN5X_ON;
 	char sen5x_sym_pm[LEN_SEN5X_SYM] = SEN5X_SYM_PM;
 	char sen5x_sym_th[LEN_SEN5X_SYM] = SEN5X_SYM_TH;
+	char sen5x_pin[LEN_SEN5X_SYM] = SEN5X_PIN;
 	bool sps30_read = SPS30_READ;
 	bool bmp_read = BMP_READ;
 	bool bmx280_read = BMX280_READ;
@@ -2533,6 +2534,7 @@ static void webserver_config_send_body_get(String &page_content)
 
 	page_content += form_select_mode_SEN5PM();
 	page_content += form_select_mode_SEN5TH();
+	page_content += form_select_mode_SEN5_scomm();
 
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	page_content += F("<hr/>");

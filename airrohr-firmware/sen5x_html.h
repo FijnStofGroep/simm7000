@@ -52,4 +52,23 @@ String form_select_mode_SEN5TH()
 	return s2;
 }
 
+/**************************************************************************
+ * add html helper functions select PIN for sensor.community              *
+ **************************************************************************/
+String form_select_mode_SEN5_scomm()
+{
+	String s_select3 = F(" selected='selected'");
+	String s3 = F("<tr>"
+				  "<td> Mode sensor.community </td>"
+				  "<td>"
+				  "<select id='sen5x_pin' name='sen5x_pin'>"
+				  "<option value='16'>SEN55 Temp and Hum on Pin 16</option>"
+				  "<option value='1'>SPS30 on Pin 1 and SHT35 on Pin 7</option>"
+				  "</select>"
+				  "</td>"
+				  "</tr>");
+
+	s3.replace("'" + String(cfg::sen5x_pin) + "'>", "'" + String(cfg::sen5x_pin) + "'" + s_select3 + ">");
+	return s3;
+}
 #endif // __sen5x_html
