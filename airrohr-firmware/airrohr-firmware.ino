@@ -100,7 +100,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2024-03-B5_1"
+#define SOFTWARE_VERSION_STR "FWL-2024-03-B5_4"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -1786,12 +1786,19 @@ static void init_config()
 	debug_outln_info(F("fs_info.maxPathLength = "), String(fs_info.maxPathLength));
 
 	debug_outln_info(F("\nSPIFFS root directory list:"));
+	
 	String fileName;
 	fs::Dir dir = SPIFFS.openDir(F("/"));
 	while(dir.next())
 	{
 		fileName = F("\t\t\tName: ") + dir.fileName() + F(" | Size: ") + String(dir.fileSize());
 		debug_outln_info(fileName);
+	}
+
+	if (cfg::debug >= DEBUG_MAX_INFO)
+	{
+		//debug_outln_info(F("Total Free Sketch/Program Space = "), String(ESP.getSketchSize() + ESP.getFreeSketchSpace()));
+		Debug.printf( "Sketch Size=%u Free Sketch Space=%u total Sketch Space=%u\r\n", ESP.getSketchSize(), ESP.getFreeSketchSpace(), (ESP.getSketchSize() + ESP.getFreeSketchSpace()));
 	}
 
 #pragma GCC diagnostic pop
@@ -4333,9 +4340,9 @@ static void waitForMultiWiFiToConnect(int maxRetries, uint16_t connectTimeOutPer
 ******************************************************************/
 static void RegisterMultiWiFiNetworks(int maxRetries)
 {
-	uint16_t connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS; // Defines the TimeOut(ms) which will be used to try and connect with any specific Access Point.
+	uint16_t connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS; 	// Defines the TimeOut(ms) which will be used to try and connect with any specific Access Point.
 
-	wifiMulti.addAP(cfg::wlanssid, cfg::wlanpwd); 			// Open/Start WiFI coonection to router/modem. (default: WiFi Network 1)
+	wifiMulti.addAP(cfg::wlanssid, cfg::wlanpwd); 				// Open/Start WiFI coonection to router/modem. (default: WiFi Network 1)
 
 	if (cfg::has_morewifi)
 	{
@@ -4344,14 +4351,14 @@ static void RegisterMultiWiFiNetworks(int maxRetries)
 		if (strlen(cfg::wlanpwd_2) != 0)
 		{
 			wifiMulti.addAP(cfg::wlanssid_2, cfg::wlanpwd_2);
-			//connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS;
+			connectTimeOutPerAP = 2 * WIFI_SCAN_TIMEOUT_MS;		// needs this time out value for slow and/or bad wifi signal
 			debug_outln_info(F("Set WiFi Network 2."));
 		}
 
 		if (strlen(cfg::wlanpwd_3) != 0)
 		{
 			wifiMulti.addAP(cfg::wlanssid_3, cfg::wlanpwd_3);
-			//connectTimeOutPerAP = WIFI_CONNECT_TIMEOUT_MS;
+			connectTimeOutPerAP = 4 * WIFI_SCAN_TIMEOUT_MS;		// needs this time out value for slow and/or bad wifi signal
 			debug_outln_info(F("Set WiFi Network 3."));
 		}
 	}
@@ -4768,7 +4775,7 @@ static void sendmqtt(const String &data)
 			}
 			else
 			{
-				debug_outln_info(F("payload send failed..."));
+				debug_outln_info(F("Sensor send failed..."));
 				mqtt_error = "failed";
 			}
 
@@ -6210,8 +6217,6 @@ static void fetchSensorSEN5X(String &s)
 	last_value_SEN5X_N10 = value_SEN5X_N10 / SEN5X_measurement_count;
 	last_value_SEN5X_TS = value_SEN5X_TS / SEN5X_measurement_count;
 
-	last_value_SEN5X_VOC = value_SEN5X_VOC / SEN5X_measurement_count;
-
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 
 	add_Value2Json(s, FPSTR((result_SEN5X + F("P0")).c_str()),  F("PM1.0: "), last_value_SEN5X_P0);
@@ -6225,12 +6230,6 @@ static void fetchSensorSEN5X(String &s)
 	add_Value2Json(s, FPSTR((result_SEN5X + F("N10")).c_str()), F("NC10: "), last_value_SEN5X_N10);
 	add_Value2Json(s, FPSTR((result_SEN5X + F("TS")).c_str()),  F("TPS: "), last_value_SEN5X_TS);
 
-	// sensor community server can't handle this ID, (server response code = 400)
-	// if (memcmp(cfg::sen5x_sym_pm, SENSOR_SEN55, 6) == 0)
-	// {
-	// 	add_Value2Json(s, FPSTR((result_SEN5X + F("VOC")).c_str()), F("VOC: "), last_value_SEN5X_VOC);
-	// }
-
 	debug_outln_info( FPSTR((result_SEN5X + " read counter: ").c_str()), String(SEN5X_read_counter));
 	debug_outln_info( FPSTR((result_SEN5X + " read error counter: ").c_str()), String(SEN5X_read_error_counter));
 
@@ -6238,7 +6237,7 @@ static void fetchSensorSEN5X(String &s)
 	SEN5X_read_error_counter = 0;
 	value_SEN5X_P0 = value_SEN5X_P1 = value_SEN5X_P2 = value_SEN5X_P4 = 0.0;
 	value_SEN5X_N05 = value_SEN5X_N1 = value_SEN5X_N25 = value_SEN5X_N10 = value_SEN5X_N4 = 0.0;
-	value_SEN5X_TS = value_SEN5X_VOC = 0.0;
+	value_SEN5X_TS = 0.0;
 
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 
@@ -6274,6 +6273,7 @@ static void fetchSensorSEN5X_THN(String &s,  bool flg_Nox = true, bool flg_clear
 		last_value_SEN5X_T = value_SEN5X_T / SEN5X_measurement_count;
 		last_value_SEN5X_H = value_SEN5X_H / SEN5X_measurement_count;
 		last_value_SEN5X_NOX = value_SEN5X_NOX / SEN5X_measurement_count;
+		last_value_SEN5X_VOC = value_SEN5X_VOC / SEN5X_measurement_count;
 
 		//String result_SEN5X((char*)0);
 		//result_SEN5X.reserve(10);
@@ -6291,12 +6291,18 @@ static void fetchSensorSEN5X_THN(String &s,  bool flg_Nox = true, bool flg_clear
 			add_Value2Json(s, FPSTR((result_SEN5X + F("co2_ppm")).c_str()), FPSTR(DBG_TXT_NOX), last_value_SEN5X_NOX);
 		}
 
+	// sensor community server can't handle this ID, (server response code = 400)
+	// if (memcmp(cfg::sen5x_sym_pm, SENSOR_SEN55, 6) == 0)
+	// {
+	// 	add_Value2Json(s, FPSTR((result_SEN5X + F("VOC")).c_str()), F("VOC: "), last_value_SEN5X_VOC);
+	// }
+
 		debug_outln_verbose(FPSTR(DBG_TXT_END_READING), result_SEN5X);
 	}
 
 	if (flg_clear)
 	{
-		value_SEN5X_H = value_SEN5X_T = value_SEN5X_NOX = 0.0;
+		value_SEN5X_H = value_SEN5X_T = value_SEN5X_NOX = value_SEN5X_VOC = 0.0;
 		SEN5X_measurement_count = 0;
 	}
 }
@@ -8553,7 +8559,21 @@ static unsigned long sendDataToOptionalApis(const String &data)
 
 		debug_out(String(DBG_TXT_SENDING_TO) + String("mqtt: "), DEBUG_MAX_INFO);
 
-		sendmqtt(data);
+		data_sensemap.clear();
+		data_sensemap = data;
+
+		if (cfg::sen5x_read && !is_Sen5x_init_failed && memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
+		{// Add VOC index to sensor MQTT send string.
+			data_sensemap.remove(data_sensemap.length() - 2);	// remove "]}"
+			data_sensemap += ',';
+
+			add_Value2Json(data_sensemap, FPSTR((String(F("SEN5X_")) + F("VOC")).c_str()), F("VOC: "), last_value_SEN5X_VOC);
+
+			data_sensemap.remove(data_sensemap.length() - 1);	// remove ','
+			data_sensemap += "]}";								// set JSON end chars.
+		}
+
+		sendmqtt(data_sensemap);
 
 		if (mqtt_client.connected())
 		{
