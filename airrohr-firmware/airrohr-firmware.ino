@@ -90,7 +90,7 @@
  * PLATFORM: Espressif 8266 (3.1.0) > NodeMCU 1.0 (ESP-12E Module)		*
  * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
  * RAM:     [=====     ]  47.4% (used 38816 bytes from 81920 bytes)		*
- * PROGRAM: [======    ]  64.0% (used 667937 bytes from 1044464 bytes)	*
+ * PROGRAM: [======    ]  64.1% (used 669473 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -1978,10 +1978,10 @@ static void createLoggerConfigs()
 
 	if (cfg::send2dusti)
 	{
-		loggerConfigs[LoggerSensorCommunity].destport = 80;
+		loggerConfigs[LoggerSensorCommunity].destport = PORT_SENSORCOMMUNITY;	// http:
 		if (cfg::ssl_dusti)
-		{
-			loggerConfigs[LoggerSensorCommunity].destport = 443;
+		{// use by: sensor.community and opensensmap
+			loggerConfigs[LoggerSensorCommunity].destport = PORT_SENSEMAP;		// https:
 			loggerConfigs[LoggerSensorCommunity].session = new_session();
 		}
 	}
@@ -1989,7 +1989,7 @@ static void createLoggerConfigs()
 	loggerConfigs[LoggerMadavi].destport = PORT_MADAVI;
 	if (cfg::send2madavi && cfg::ssl_madavi)
 	{
-		loggerConfigs[LoggerMadavi].destport = 443;
+		loggerConfigs[LoggerMadavi].destport = PORT_SENSEMAP;
 		loggerConfigs[LoggerMadavi].session = new_session();
 	}
 
