@@ -179,7 +179,7 @@ String delayToString(unsigned time_ms)
 }
 
 #if defined(ESP8266)
-BearSSL::X509List x509_dst_root_ca(dst_root_ca_x3);
+BearSSL::X509List x509_dst_root_ca(dst_root_ca_x1);
 
 void configureCACertTrustAnchor(WiFiClientSecure* client) 
 {
