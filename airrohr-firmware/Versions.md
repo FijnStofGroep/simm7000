@@ -1,3 +1,6 @@
+FWL-2024-03-B5_4
+* New ca-root certificate
+
 FWL-2024-03-006
 * online since 2024-03-29
 
