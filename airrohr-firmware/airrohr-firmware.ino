@@ -1775,35 +1775,38 @@ static void init_config()
 
 	debug_outln_info(F("mounting FS done, read config values."));
 
-	fs::FSInfo fs_info;
-	SPIFFS.info(fs_info);
-
-	debug_outln_info(F("fs_info.totalBytes = "), String(fs_info.totalBytes));
-	debug_outln_info(F("fs_info.usedBytes = "), String(fs_info.usedBytes));
-	debug_outln_info(F("fs_info.blockSize = "), String(fs_info.blockSize));
-	debug_outln_info(F("fs_info.pageSize = "), String(fs_info.pageSize));
-	debug_outln_info(F("fs_info.maxOpenFiles = "), String(fs_info.maxOpenFiles));
-	debug_outln_info(F("fs_info.maxPathLength = "), String(fs_info.maxPathLength));
-
-	debug_outln_info(F("\nSPIFFS root directory list:"));
-	
-	String fileName;
-	fs::Dir dir = SPIFFS.openDir(F("/"));
-	while(dir.next())
-	{
-		fileName = F("\t\t\tName: ") + dir.fileName() + F(" | Size: ") + String(dir.fileSize());
-		debug_outln_info(fileName);
-	}
+	readConfig();
 
 	if (cfg::debug >= DEBUG_MAX_INFO)
 	{
-		//debug_outln_info(F("Total Free Sketch/Program Space = "), String(ESP.getSketchSize() + ESP.getFreeSketchSpace()));
+		debug_outln_info(F("file system, files:"));
+
+		fs::FSInfo fs_info;
+		SPIFFS.info(fs_info);
+
+		debug_outln_info(F("\t\tfs_info.totalBytes = "), String(fs_info.totalBytes));
+		debug_outln_info(F("\t\tfs_info.usedBytes = "), String(fs_info.usedBytes));
+		debug_outln_info(F("\t\tfs_info.blockSize = "), String(fs_info.blockSize));
+		debug_outln_info(F("\t\tfs_info.pageSize = "), String(fs_info.pageSize));
+		debug_outln_info(F("\t\tfs_info.maxOpenFiles = "), String(fs_info.maxOpenFiles));
+		debug_outln_info(F("\t\tfs_info.maxPathLength = "), String(fs_info.maxPathLength));
+
+		debug_outln_info(F("\nSPIFFS root directory list:"));
+
+		String fileName;
+		fs::Dir dir = SPIFFS.openDir(F("/"));
+		while(dir.next())
+		{
+			fileName = F("\t\tName: ") + dir.fileName() + F(" | Size: ") + String(dir.fileSize());
+			debug_outln_info(fileName);
+		}
+
+		// debug_outln_info(F("Total Free Sketch/Program Space = "), String(ESP.getSketchSize() + ESP.getFreeSketchSpace()));
 		Debug.printf( "Sketch Size=%u Free Sketch Space=%u total Sketch Space=%u\r\n", ESP.getSketchSize(), ESP.getFreeSketchSpace(), (ESP.getSketchSize() + ESP.getFreeSketchSpace()));
 	}
 
 #pragma GCC diagnostic pop
 
-	readConfig();
 }
 
 
@@ -8573,7 +8576,7 @@ static unsigned long sendDataToOptionalApis(const String &data)
 			data_sensemap.remove(data_sensemap.length() - 2);	// remove "]}"
 			data_sensemap += ',';
 
-			add_Value2Json(data_sensemap, FPSTR((String(F("SEN5X_")) + F("VOC")).c_str()), F("VOC: "), last_value_SEN5X_VOC);
+			add_Value2Json(data_sensemap, FPSTR((String(F("SEN5X_")) + F("VOC")).c_str()), F("\nVOC: "), last_value_SEN5X_VOC);
 
 			data_sensemap.remove(data_sensemap.length() - 1);	// remove ','
 			data_sensemap += "]}";								// set JSON end chars.

@@ -1,8 +1,8 @@
-FWL-2024-03-B5_4
-* New ca-root certificate
-
 FWL-2024-03-006
 * online since 2024-03-29
+
+FWL-2024-03-B5_4
+* New ca-root certificate
 
 FWL-2024-03-B5
 * Add SEN5X pin-16 for sensor.community. (send format: PM, NC, TS, Temperature, Humidity)
