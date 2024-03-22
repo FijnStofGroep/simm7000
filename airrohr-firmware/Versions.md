@@ -1,4 +1,4 @@
-FWL-2024-03-B5_4
+FWL-2024-03-B5_6
 * New ca-root certificate
 
 FWL-2024-03-006
