@@ -2512,21 +2512,22 @@ static void webserver_config_send_body_get(String &page_content)
 
 	page_content += FPSTR(TABLE_TAG_OPEN);
 	page_content += form_select_lang();
+	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 
 	page_content += F("<script>"
 					  "var $ = function(e) { return document.getElementById(e); };"
 					  "function updateOTAOptions() { "
-					  "$('current_lang').disabled = $('use_beta').disabled = !$('auto_update').checked; "
+					  "$('current_lang').disabled = $('use_beta').disabled = !$('auto_update').checked;"
 					  "}; updateOTAOptions(); $('auto_update').onchange = updateOTAOptions;"
 					  "</script>");
-	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 
-	page_content += FPSTR(WEB_BR_LF);
+	//page_content += FPSTR(WEB_BR_LF);
 	add_form_checkbox(Config_auto_update, FPSTR(INTL_AUTO_UPDATE));
-	page_content += FPSTR(BR_TAG);
-
+	add_form_checkbox(Config_use_beta, FPSTR(INTL_USE_BETA));
+	//page_content += FPSTR(BR_TAG);
 	add_form_checkbox(Config_powersave, FPSTR(INTL_POWERSAVE));
 	page_content += FPSTR(WEB_BR_LF);
+
 	page_content += FPSTR(TABLE_TAG_OPEN);
 	add_form_input(page_content, Config_debug, FPSTR(INTL_DEBUG_LEVEL), 1);
 	add_form_input(page_content, Config_sending_intervall_ms, FPSTR(INTL_MEASUREMENT_INTERVAL), 5);
@@ -4127,7 +4128,7 @@ static int selectChannelForAp()
 /*****************************************************************
  * WifiConfig                                                    *
  *****************************************************************/
-static void wifiConfig()
+static void wifi_AP_Config()
 {
 	debug_outln_info(F("Starting WiFiManager"));
 	debug_outln_info(F("AP ID: "), String(cfg::fs_ssid));
@@ -4492,7 +4493,8 @@ static void connectWifi()
 		wifi_set_country(&wifi);
 #endif
 
-		wifiConfig();
+		// start Server Configuration website.
+		wifi_AP_Config();
 
 		if (WiFi.status() != WL_CONNECTED)
 		{
@@ -4557,7 +4559,7 @@ static WiFiClient *getNewLoggerWiFiClient(const LoggerEntry logger)
 	NOTE: Software serial is not reliable on 115200 baud and therefore changes it to a lower value. 
 		  9600 works well in almost all applications, but 115200 works great with Hardware serial.
 */
-static boolean SIM700LTEConnect() 
+static boolean SIM7000LTEConnect() 
 {
 	debug_outln_info(F("SIM700 Connecting to "), String(cfg::wlanssid));	// ???
 
@@ -4565,12 +4567,12 @@ static boolean SIM700LTEConnect()
 
 	serialSIM.begin(SERIALSIM_BAUD, SWSERIAL_8N1, SIM_PIN_RX, SIM_PIN_TX);	// start with default SIM7000 shield baud rate.
 	delay(100);
-	LTEmodem.setBaud(LTEMODEM_BAUD);					// Set LTEmodem baud rate to lower value.
+	LTEmodem.setBaud(LTEMODEM_BAUD);					// Set SIM7000 LTE-modem baud rate to lower value.
 	delay(100);
-	serialSIM.begin(LTEMODEM_BAUD, SWSERIAL_8N1);		// set same baud value for SIM7000 shield.
+	serialSIM.begin(LTEMODEM_BAUD, SWSERIAL_8N1);		// set serial port to same baud.
 
 	// Restart takes internal quite some time.
-	//LTEmodem.restart();
+	// LTEmodem.restart();
   	// To skip it, call init() instead of restart()
   	LTEmodem.init();
 
@@ -8718,13 +8720,14 @@ void setup(void)
 			debug_outln_info(F("RCWL_0516 => setup MQTT Client instance."));
 		}
 	}
-#endif
 
 	if (cfg::has_s7000)
 	{
 		debug_outln_info(F("\nSim7000 try to connect."));
-		SIM700LTEConnect();
+		SIM7000LTEConnect();
 	}
+
+#endif
 
 	if (cfg::gps_read)
 	{
