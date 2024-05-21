@@ -42,10 +42,11 @@
  *                                                                      *
  *                                                                      *
  ************************************************************************
+ *    Copyright (C) 2023-2024  Roel Dieperink / Fred van Duin			*
  *                                                                      *
  * Please check Readme.md for other sensors and hardware                *
  *                                                                      *
- * 2023-03-13: RD														*
+ * 2023-03-13: 															*
  * SEN55: devided in SPS30 for PM, TS, NOx	(pin 1)						*
  * 					 SCD30 for temperature, humidity, CO2(NOx) (pin 17)	*
  * 			Change to													*
@@ -59,7 +60,7 @@
  * 																		*
  * 																		*
  * 2023-08-12															*
- * Add MQTT	RD/FvD														*
+ * Add MQTT																*
  * 2023-09-17															*
  * Add Simm7000 Webservice												*
  * Add WiFiMulti used to connect to a WiFi network with strongest 		*
@@ -71,7 +72,12 @@
  * The SW WDT seems to reset the MCU at 1.5 about seconds.				*
  * You can enable/disable the SW WDT, but not the HW WDT.				*
  * There seems to be little point in disabling the SW WDT as you must 	*
- * reset it to also reset the HW WDT.									*	
+ * reset it to also reset the HW WDT.									*
+ * 																		*
+ * 2024-05-02 															*
+ * New Debug level code 88 ("DEBUG_ENGINEER_INFO"):						*
+ * 		Special engineer Debug lines send to USB port					*
+ * 																		*
  ************************************************************************
  * 																		*
  * latest build using lib 3.1.0											*
@@ -86,11 +92,11 @@
  * RAM:     [=====     ]  46.0% (used 37696 bytes from 81920 bytes)		*
  * PROGRAM: [======    ]  61.6% (used 643167 bytes from 1044464 bytes)	*
  * 																		*
- * latest build 2024-03-01												*
+ * latest build 2024-05-01												*
  * PLATFORM: Espressif 8266 (3.1.0) > NodeMCU 1.0 (ESP-12E Module)		*
  * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
- * RAM:     [=====     ]  47.4% (used 38816 bytes from 81920 bytes)		*
- * PROGRAM: [======    ]  64.1% (used 669473 bytes from 1044464 bytes)	*
+ * RAM:     [=====     ]  47.9% (used 39264 bytes from 81920 bytes)		*
+ * PROGRAM: [======    ]  64.4% (used 672501 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -100,7 +106,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2024-03-B5_6"
+#define SOFTWARE_VERSION_STR "FWL-2024-05-B1"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -152,6 +158,7 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #define ARDUINOJSON_ENABLE_ARDUINO_STREAM 0
 #define ARDUINOJSON_ENABLE_ARDUINO_PRINT 0
 #define ARDUINOJSON_DECODE_UNICODE 0
+
 #include <ArduinoJson.h>
 #include <DNSServer.h>
 #include "./DHT.h"
@@ -163,7 +170,6 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include <SparkFun_SCD30_Arduino_Library.h>
 #include <SensirionI2CSen5x.h>
 #include <TinyGPS++.h>					//  Arduino library for parsing NMEA data streams provided by GPS modules. 
-#include <TinyGSM.h>
 
 // local/modified header files.
 #include "./bmx280_i2c.h"
@@ -171,14 +177,23 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include "./dnms_i2c.h"
 #include "./intl.h"
 #include "./utils.h"
-//#include "defines.h"
 #include "ext_def.h"
 #include "html-content.h"
 #include "./airrohr-cfg7000.h"
 #include "./sim7000_html.h"
 #include "./RCWL-0516.h"
 
-// Temp language fields
+#if defined(ESP8266)
+// source code + header files located in ".\lib" folder.
+#include <SIM7000LTE.h>
+
+// #if defined(Password_Encryption)
+// #include <ESP8266_base64.h>
+// #endif
+
+#endif
+
+// Temp language fields.
 #include "./intl_new.h"
 
 /******************************************************************
@@ -442,9 +457,6 @@ SoftwareSerial *serialGPS;
 SoftwareSerial serialNPM;
 SoftwareSerial serialIPS;
 
-SoftwareSerial serialSIM;
-TinyGsm        LTEmodem(serialSIM);
-//TinyGsmClient  LTEclient(LTEmodem);
 #endif
 
 #if defined(ESP32)
@@ -1500,21 +1512,32 @@ static void readConfigBase(bool oldconfig)
 	DynamicJsonDocument json(JSON_BUFFER_SIZE);
 	DeserializationError err = deserializeJson(json, configFile.readString());
 
+	// get Debug level from config file.
+	cfg::debug = json["debug"].is<signed int>() == true ? json["debug"].as<unsigned int>() : DEBUG_MIN_INFO;
+
 	debug_outln_info(F("Read JSON format.....\nJson memory size: "), String(json.memoryUsage()) + 
 					 F(" | Elements in array: ") + String(json.size()) + 
-					 F(" | Error Code = ") + err.code() + F(" => ") + err.f_str() );
+					 F(" | Error Code = ") + err.code() + F(" => ") + err.f_str() +
+					 F(".\nDebug level = ") + String(cfg::debug) );
 
 	json_config_memory_used = String(json.memoryUsage());
 
-	configFile.seek(0);				// set file pointer back to begin file.
-	debug_outln_verbose(F("Read(): Config file content: ***\n"), configFile.readString() + String("\n***") );
-	configFile.close();
+	if (cfg::debug == DEBUG_ENGINEER_INFO)
+	{
+		configFile.seek(0); // set file pointer back to begin file.
+		debug_outln_verbose(F("Read(): Config file content: ***\n"), configFile.readString() + String("\n***"));
+		configFile.close();
+	}
 
 	if (err.code() == DeserializationError::InvalidInput)
-	{// Check Json string
+	{// convert Json array to json string
 		String json_string;
 		serializeJson(json, json_string);
-		debug_outln_verbose(F("readConfig():Parse => [JSON] input: \n"), json_string.c_str());
+
+		if ( cfg::debug == DEBUG_ENGINEER_INFO)
+		{
+			debug_outln_verbose(F("readConfig():Parse => [JSON] input: \n"), json_string.c_str());
+		}
 
 		if (json_string.startsWith("{") && json_string.endsWith("}"))
 		{ // still a good Json format
@@ -1526,13 +1549,23 @@ static void readConfigBase(bool oldconfig)
 
 	if ( !err )
 	{
-		serializeJsonPretty(json, Debug);		// display all members + value of config file (send it to UART0 port).
-		debug_outln_info(F("\nparsed json...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
+		if ( cfg::debug == DEBUG_ENGINEER_INFO)
+		{
+			serializeJsonPretty(json, Debug); // display all members + value of config file (send it to UART0 port).
+			debug_outln_info(F("Parsed json...\nJson memory size: "), String(json.memoryUsage()) + String(" chars."));
+		}
+
+// #if defined(Password_Encryption)
+// 		String _base64Password;
+// 		_base64Password.reserve(256);
+// 		char _password[256];
+// #endif
 
 		// "configShape" memory array[], defined in airrohr-cfg.h
 		for (unsigned e = 0; e < sizeof(configShape) / sizeof(configShape[0]); ++e)
 		{
 			ConfigShapeEntry c;
+
 			memcpy_P(&c, &configShape[e], sizeof(ConfigShapeEntry));
 
 			if (json[c.cfg_key()].isNull())
@@ -1552,10 +1585,31 @@ static void readConfigBase(bool oldconfig)
 					*(c.cfg_val.as_uint) = json[c.cfg_key()].as<unsigned int>();
 					break;
 
-				case Config_Type_String:
 				case Config_Type_Password:
+// #if defined(Password_Encryption)
+// 					_base64Password.clear();
+// 					_password[0] = '\0';
+// 					_base64Password = String(json[c.cfg_key()].as<const char *>());		// Get encrypt password from config file.
+
+// 					if(_base64Password.length() > 0)
+// 					{
+// 						b64_decode( _password, (char *)_base64Password.c_str() , _base64Password.length());
+// 						strncpy(c.cfg_val.as_str, _password, c.cfg_len);	// strlen(_password)
+// 						c.cfg_val.as_str[c.cfg_len] = '\0';					// set terminator char.
+
+// 						if (cfg::debug == DEBUG_ENGINEER_INFO)
+// 						{
+// 							debug_outln_info(F("Input: Base64Password: "), _base64Password);
+// 							debug_outln_info(F("Cfg Password setting: "), String(c.cfg_val.as_str)); // or String(_password)
+// 						}
+
+// 						break;
+// 					}
+// #endif
+
+				case Config_Type_String:
 					strncpy(c.cfg_val.as_str, json[c.cfg_key()].as<const char *>(), c.cfg_len);
-					c.cfg_val.as_str[c.cfg_len] = '\0';	// set terminator char.
+					c.cfg_val.as_str[c.cfg_len] = '\0';						// set terminator char.
 					break;
 
 			};
@@ -1628,7 +1682,7 @@ static void readConfigBase(bool oldconfig)
 		writeConfigBase();
 	}
 
-	debug_outln_info(F("Exit: readConfigBase() methode."));
+	//debug_outln_info(F("Exit: readConfigBase() methode."));
 
 }	// readConfigBase()
 
@@ -1675,18 +1729,25 @@ static void readConfigS7000(bool oldconfig)
 
 	json_config7000_memory_used = String(json.memoryUsage());
 
-	configFile.seek(0);				// set file pointer back to begin file.
-	debug_outln_verbose(F("Read(): Config file content: ***\n"), configFile.readString() + String("\n***") );
-	configFile.close();
+	if (cfg::debug == DEBUG_ENGINEER_INFO)
+	{
+		configFile.seek(0); // set file pointer back to begin file.
+		debug_outln_verbose(F("Read(): Config file content: ***\n"), configFile.readString() + String("\n***"));
+		configFile.close();
+	}
 
 	if (err.code() == DeserializationError::InvalidInput)
 	{// Check Json string
 		String json_string;
 		serializeJson(json, json_string);
-		debug_outln_verbose(F("readConfig():Parse => [JSON] input: \n"), json_string.c_str());
+
+		if (cfg::debug == DEBUG_ENGINEER_INFO)
+		{
+			debug_outln_verbose(F("readConfig():Parse => [JSON] input: \n"), json_string.c_str());
+		}
 
 		if (json_string.startsWith("{") && json_string.endsWith("}"))
-		{ // still a good Json format
+		{ // still a good Json format.
 			err = DeserializationError(DeserializationError::Ok);
 		}
 	}
@@ -1695,8 +1756,11 @@ static void readConfigS7000(bool oldconfig)
 
 	if ( !err )
 	{
-		serializeJsonPretty(json, Debug);					// display all members + value of config file.
-		debug_outln_info(F("\nparsed json7...\nJson memory size: "), String(json.memoryUsage()) + String(" char."));
+		if (cfg::debug == DEBUG_ENGINEER_INFO)
+		{
+			serializeJsonPretty(json, Debug); // display all members + value of config file.
+			debug_outln_info(F("Parsed json7...\nJson memory size: "), String(json.memoryUsage()) + String(" chars."));
+		}
 
 		// "configShape" memory array[], defined in airrohr-cfg.h
 		for (unsigned e = 0; e < sizeof(configShape7) / sizeof(configShape7[0]); ++e)
@@ -1745,7 +1809,7 @@ static void readConfigS7000(bool oldconfig)
 		writeConfigS7000();
 	}
 
-	debug_outln_info(F("Exit: readConfigS7000() methode."));
+	//debug_outln_info(F("Exit: readConfigS7000() methode."));
 	
 }	// readConfigS7000()
 
@@ -1777,7 +1841,7 @@ static void init_config()
 
 	readConfig();
 
-	if (cfg::debug >= DEBUG_MAX_INFO)
+	if (cfg::debug == DEBUG_ENGINEER_INFO)
 	{
 		debug_outln_info(F("file system, files:"));
 
@@ -1802,7 +1866,7 @@ static void init_config()
 		}
 
 		// debug_outln_info(F("Total Free Sketch/Program Space = "), String(ESP.getSketchSize() + ESP.getFreeSketchSpace()));
-		Debug.printf( "Sketch Size=%u Free Sketch Space=%u total Sketch Space=%u\r\n", ESP.getSketchSize(), ESP.getFreeSketchSpace(), (ESP.getSketchSize() + ESP.getFreeSketchSpace()));
+		Debug.printf( "Sketch Size = %u + Free Sketch Size = %u = Total Sketch Space = %u\r\n", ESP.getSketchSize(), ESP.getFreeSketchSpace(), (ESP.getSketchSize() + ESP.getFreeSketchSpace()));
 	}
 
 #pragma GCC diagnostic pop
@@ -1828,6 +1892,12 @@ static bool writeConfigBase()
 {
 	DynamicJsonDocument json(JSON_BUFFER_SIZE);
 
+// #if defined(Password_Encryption)
+// 	String _password;
+// 	_password.reserve(256);
+// 	char _base64Password[256];
+// #endif
+
 	debug_outln_info(F("Saving config..."));
 
 	json["SOFTWARE_VERSION"] = SOFTWARE_VERSION;
@@ -1849,6 +1919,25 @@ static bool writeConfigBase()
 				break;
 
 			case Config_Type_Password:
+// #if defined(Password_Encryption)
+// 				_base64Password[0] = '\0';
+// 				_password = String(c.cfg_val.as_str);		// get password from website.
+
+// 				if( _password.length() > 0)
+// 				{
+// 					b64_encode( _base64Password, (char *)_password.c_str(), _password.length());
+// 					json[c.cfg_key()].set(_base64Password);
+
+// 					if (cfg::debug == DEBUG_ENGINEER_INFO)
+// 					{
+// 						debug_outln_info(F("Input: Password: "), _password);
+// 						debug_outln_info(F("CFG Base64Password: "), String(json[c.cfg_key()])); // or String(_base64Password)
+// 					}
+
+// 					break;
+// 				}
+// #endif
+
 			case Config_Type_String:
 				json[c.cfg_key()].set(c.cfg_val.as_str);
 				break;
@@ -1858,9 +1947,12 @@ static bool writeConfigBase()
 	debug_outln_info(F("Write JSON format.....\nJson memory size: "), String(json.memoryUsage()) + 
 					 " | Elementen in array: " + String(json.size()) );
 
-  	String json_string;
-  	serializeJson(json, json_string);
-	debug_outln_info(F("writeConfigBase() => [JSON] format: \n"), json_string.c_str());
+	if (cfg::debug == DEBUG_ENGINEER_INFO)
+	{
+		String json_string;
+		serializeJson(json, json_string);
+		debug_outln_info(F("writeConfigBase() => [JSON] format: \n"), json_string.c_str());
+	}
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -3565,19 +3657,26 @@ static void webserver_status()
 		// else
 		{
 			//String manufacturer = F("Sensirion ") + String(SENSORS_SEN55);
-			add_table_row_from_value(page_content, FPSTR((String(MANUFACTURER) + String(SENSORS_SEN55)).c_str()), emptyString);
+			add_table_row_from_value( page_content, FPSTR((String(MANUFACTURER) + String(SENSORS_SEN55)).c_str()), emptyString);
 		}
 
-		float offsetTemp;
-		sen5x.getTemperatureOffsetSimple(offsetTemp);
-		versionHtml = F("Temperature offset: ");
-		versionHtml += String(offsetTemp,1) + String("°C");
-		versionHtml += String( BR_TAG);
-		versionHtml += FPSTR(INTL_SEN5X_ON);
-		versionHtml += cfg::sen5x_on == true ? F(": enabled") : F(": disabled");
-		//versionHtml += String( BR_TAG);
+		if (!is_Sen5x_init_failed)
+		{
+			float offsetTemp;
+			sen5x.getTemperatureOffsetSimple(offsetTemp);
+			versionHtml = F("Temperature offset: ");
+			versionHtml += String(offsetTemp, 1) + String("°C");
+			versionHtml += String(BR_TAG);
+			versionHtml += FPSTR(INTL_SEN5X_ON);
+			versionHtml += cfg::sen5x_on == true ? F(": enabled") : F(": disabled");
+			// versionHtml += String( BR_TAG);
 
-		add_table_row_from_value(page_content, FPSTR(emptyString.c_str()), versionHtml);
+			add_table_row_from_value( page_content, FPSTR(emptyString.c_str()), versionHtml);
+		}
+		else
+		{// SEN5X Sensor Hardware Not connected.
+			add_table_row_from_value( page_content, FPSTR(emptyString.c_str()), FPSTR(INTL_SEN5X_NOT_CONNECTED));
+		}
 	}
 
 	page_content += FPSTR(EMPTY_ROW);
@@ -4551,57 +4650,6 @@ static WiFiClient *getNewLoggerWiFiClient(const LoggerEntry logger)
 	}
 
 	return _client;
-}
-
-/*
-	ESP8266 serial speed to SIM7000 = Default baud rate is 115200 bps
-
-	NOTE: Software serial is not reliable on 115200 baud and therefore changes it to a lower value. 
-		  9600 works well in almost all applications, but 115200 works great with Hardware serial.
-*/
-static boolean SIM7000LTEConnect() 
-{
-	debug_outln_info(F("SIM700 Connecting to "), String(cfg::wlanssid));	// ???
-
-	pinMode(SIM_PIN_PWR, OUTPUT);						// Set Power-On/Off SIM7000 board.
-
-	serialSIM.begin(SERIALSIM_BAUD, SWSERIAL_8N1, SIM_PIN_RX, SIM_PIN_TX);	// start with default SIM7000 shield baud rate.
-	delay(100);
-	LTEmodem.setBaud(LTEMODEM_BAUD);					// Set SIM7000 LTE-modem baud rate to lower value.
-	delay(100);
-	serialSIM.begin(LTEMODEM_BAUD, SWSERIAL_8N1);		// set serial port to same baud.
-
-	// Restart takes internal quite some time.
-	// LTEmodem.restart();
-  	// To skip it, call init() instead of restart()
-  	LTEmodem.init();
-
-	String modemInfo = LTEmodem.getModemInfo();
-  	debug_outln_info(F("LTE Modem Info: "), modemInfo);
-
-	// Your GPRS credentials, if any
-	const char apn[]      = "YourAPN";
-	const char gprsUser[] = "";
-	const char gprsPass[] = "";
-
-	LTEmodem.gprsConnect(apn, gprsUser, gprsPass);
-
-	debug_outln_info(F("Waiting for network..."),"");
-	if (!LTEmodem.waitForNetwork())
-	{
-		display_debug(F(" fail"),"");
-		//delay(10000);
-		return false;
-	}
-
-	debug_outln_info(F(" success"),"");
-
-	if (LTEmodem.isGprsConnected())
-	{
-		debug_outln_info(F("GPRS connected."),"");
-	}
-
-	return true;
 }
 
 /*****************************************************************
@@ -7027,10 +7075,10 @@ static void StartTwoStageOTAUpdate()
 
 	lang_variant.toLowerCase();
 
-	String fetch_name( String(FPSTR(FW_DOWNLOAD_URL)) + F("/latest_"));
+	String fetch_name( String(FPSTR(FW_DOWNLOAD_URL)));
 	if (cfg::use_beta)
 	{
-		fetch_name = String(FPSTR(FW_DOWNLOAD_URL)) + F(OTA_BASENAME "/beta/latest_");
+		fetch_name = String(FPSTR(FW_BETA_DOWNLOAD_URL));
 	}
 
 	// OTA HTTP server URL
@@ -7980,7 +8028,7 @@ static void initSEN5X()
 	}
 	else
 	{
-		debug_outln_info(F("Emulate SEN55:"));
+		debug_outln_info(F("Emulate SEN55 to Optional Api's:"));
 		debug_outln_info(F("\tPM - "), FPSTR(cfg::sen5x_sym_pm));
 		debug_outln_info(F("\tTH - "), FPSTR(cfg::sen5x_sym_th));
 
@@ -8723,8 +8771,15 @@ void setup(void)
 
 	if (cfg::has_s7000)
 	{
-		debug_outln_info(F("\nSim7000 try to connect."));
-		SIM7000LTEConnect();
+		debug_outln_info(F("Start with SIM7000 PCB communication..."));
+		if( SIM7000LTEConnect())
+		{
+			debug_outln_info(F("SIM7000 connected."));
+		}
+		else
+		{
+			debug_outln_info(F("SIM7000 NOT connected."));
+		}
 	}
 
 #endif
@@ -9220,6 +9275,7 @@ void loop(void)
 
 #if defined(ESP8266)
 	MDNS.update();
+	
 	if (cfg::npm_read)
 	{
 		serialNPM.perform_work();

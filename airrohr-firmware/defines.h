@@ -4,10 +4,6 @@
  *
  */
 
-// Select LTE/GSM modem type: SIM7000E
-#define TINY_GSM_MODEM_SIM7000              // version does not support SSL but supports up to 8 simultaneous connections.
-// #define TINY_GSM_MODEM_SIM7000SSL        // version supports both SSL and unsecured connections with up to 2 simultaneous connections.
-
 #if defined(ESP8266)
 #define SENSOR_BASENAME "esp8266-"
 #define OTA_BASENAME    "air.fijnstofleusden.nl"
@@ -69,6 +65,7 @@
 #define DEBUG_MIN_INFO 3
 #define DEBUG_MED_INFO 4
 #define DEBUG_MAX_INFO 5
+#define DEBUG_ENGINEER_INFO 88
 
 //#define SENSOR_SEN50   "SEN50"        // remove 2024-03-20
 //#define SENSOR_SEN54   "SEN54"        // remove 2024-03-20

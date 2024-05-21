@@ -1,3 +1,7 @@
+FWL-2024-04-B5_7
+* Add own SIM7000LTE library to project.
+* Debug level 88 => Only for Engineer more Debug info.
+
 FWL-2024-03-B5_6
 * New ca-root certificate
 
