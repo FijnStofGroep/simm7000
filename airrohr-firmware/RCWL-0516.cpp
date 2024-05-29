@@ -8,9 +8,8 @@
  *
 */
 
-#include "./utils.h"
-#include "./Queue.h"
 #include "RCWL-0516.h"
+#include "./utils.h"
 
 RCWL_0516 RCWL0516; // Create RCWL_0516 instance on Stack.
 
