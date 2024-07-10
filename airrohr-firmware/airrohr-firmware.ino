@@ -179,13 +179,13 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include "./utils.h"
 #include "ext_def.h"
 #include "html-content.h"
-#include "./airrohr-cfg7000.h"
-#include "./sim7000_html.h"
 #include "./RCWL-0516.h"
 
 #if defined(ESP8266)
-// source code + header files located in ".\lib" folder.
+// SIM7000 source code + header files located in ".\lib" folder.
 #include <SIM7000LTE.h>
+#include "./airrohr-cfg7000.h"
+#include "./sim7000_html.h"
 
 // #if defined(Password_Encryption)
 // #include <ESP8266_base64.h>
@@ -2863,7 +2863,9 @@ static void webserver_config_send_body_get7(String &page_content)
 	page_content += FPSTR(WEB_BR_BR);
 	page_content += FPSTR(TABLE_TAG_OPEN);
 	// add_form_input7(page_content, Config7000_mode, FPSTR(INTL_SIM_MODE), LEN_SIMM7000 - 1);
-	add_form_input7(page_content, Config7000_apn, FPSTR(INTL_SIM_APN), LEN_SIMM7000 - 1);
+	add_form_input7(page_content, Config7000_gprsapn, FPSTR(INTL_SIM_APN), LEN_SIMM7000 - 1);
+    add_form_input7(page_content, Config7000_gprsUser, FPSTR(INTL_SIM_USER), LEN_SIMM7000 - 1);
+    add_form_input7(page_content, Config7000_gprsPass, FPSTR(INTL_SIM_PASS), LEN_SIMM7000 - 1);
 	add_form_input7(page_content, Config7000_type, FPSTR(INTL_SIM_TYPE), LEN_SIMM7000 - 1);
 	page_content += form_select_mode7();
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
@@ -6568,6 +6570,7 @@ static __noinline void fetchSensorGPS(String &s)
 			last_value_GPS_lon = -200;
 			debug_outln_verbose(F("Lat/Lng INVALID"));
 		}
+
 		if (gps.altitude.isValid())
 		{
 			last_value_GPS_alt = gps.altitude.meters();
@@ -6577,14 +6580,17 @@ static __noinline void fetchSensorGPS(String &s)
 			last_value_GPS_alt = -1000;
 			debug_outln_verbose(F("Altitude INVALID"));
 		}
+
 		if (!gps.date.isValid())
 		{
 			debug_outln_verbose(F("Date INVALID"));
 		}
+
 		if (!gps.time.isValid())
 		{
 			debug_outln_verbose(F("Time: INVALID"));
 		}
+
 		if (gps.date.isValid() && gps.time.isValid())
 		{
 			char gps_datetime[37];
@@ -6598,6 +6604,19 @@ static __noinline void fetchSensorGPS(String &s)
 			last_value_GPS_timestamp = F("2023-01-01T00:00:00.000");
 		}
 	}
+    else
+    {
+        float latitude, longitude, altitude;
+
+        GetGPSLocation(&latitude, &longitude, &altitude);
+
+        last_value_GPS_lat = latitude;
+		last_value_GPS_lon = longitude;
+
+        last_value_GPS_alt = altitude;
+        // define a default value
+		last_value_GPS_timestamp = F("2023-01-01T00:00:00.000");
+    }
 
 	if (send_now)
 	{
@@ -6609,6 +6628,7 @@ static __noinline void fetchSensorGPS(String &s)
 		add_Value2Json(s, F("GPS_lon"), String(last_value_GPS_lon, 6));
 		add_Value2Json(s, F("GPS_height"), F("Altitude: "), last_value_GPS_alt);
 		add_Value2Json(s, F("GPS_timestamp"), last_value_GPS_timestamp);
+
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
 	}
 
@@ -8668,6 +8688,8 @@ void setup(void)
 #endif
 
 	cfg::initNonTrivials(esp_chipid.c_str());
+    
+    cfg7::initNonTrivials();
 
 	debug_outln_info(F("airRohr: " SOFTWARE_VERSION_STR "/"), String(CURRENT_LANG));
 

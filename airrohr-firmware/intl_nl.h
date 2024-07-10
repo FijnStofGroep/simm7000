@@ -155,7 +155,8 @@ const char INTL_SIM7000_CONFIGURATION[] PROGMEM = "Sim7000 LTE";
 const char INTL_SIM7000_DIS[] PROGMEM = "Disable";
 
 const char INTL_SIM_APN[] PROGMEM = "APN";
-const char INTL_SIM_ID[] PROGMEM = "ID";
+const char INTL_GPRS_USER[] PROGMEM = "User";
+const char INTL_GPRS_PASS[] PROGMEM = "Password";
 const char INTL_SIM_GPS[] PROGMEM = "GPS";
 const char INTL_SIM_TYPE[] PROGMEM = "Type";
 const char INTL_SIM_MODE[] PROGMEM = "Mode";

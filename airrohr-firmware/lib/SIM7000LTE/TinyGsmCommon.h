@@ -10,16 +10,16 @@
 #define SRC_TINYGSMCOMMON_H_
 
 // The current library version number
-#define TINYGSM_VERSION "0.11.7"
+#define TINYGSM_VERSION "0.11.8"
 
 #if defined(SPARK) || defined(PARTICLE)
-#include "Particle.h"
+    #include "Particle.h"
 #elif defined(ARDUINO)
-#if ARDUINO >= 100
-#include "Arduino.h"
-#else
-#include "WProgram.h"
-#endif
+    #if ARDUINO >= 100
+    #include "Arduino.h"
+    #else
+    #include "WProgram.h"
+    #endif
 #endif
 
 #if defined(ARDUINO_DASH)
@@ -54,26 +54,31 @@ typedef const char* GsmConstStr;
 #endif
 
 #ifdef TINY_GSM_DEBUG
-namespace {
+namespace 
+{
 template <typename T>
-static void DBG_PLAIN(T last) {
+static void DBG_PLAIN(T last) 
+{
   TINY_GSM_DEBUG.println(last);
 }
 
 template <typename T, typename... Args>
-static void DBG_PLAIN(T head, Args... tail) {
+static void DBG_PLAIN(T head, Args... tail) 
+{
   TINY_GSM_DEBUG.print(head);
   TINY_GSM_DEBUG.print(' ');
   DBG_PLAIN(tail...);
 }
 
 template <typename... Args>
-static void DBG(Args... args) {
+static void DBG(Args... args) 
+{
   TINY_GSM_DEBUG.print(GF("["));
   TINY_GSM_DEBUG.print(millis());
   TINY_GSM_DEBUG.print(GF("] "));
   DBG_PLAIN(args...);
 }
+
 }  // namespace
 #else
 #define DBG_PLAIN(...)
@@ -81,12 +86,14 @@ static void DBG(Args... args) {
 #endif
 
 template <class T>
-const T& TinyGsmMin(const T& a, const T& b) {
+const T& TinyGsmMin(const T& a, const T& b) 
+{
   return (b < a) ? b : a;
 }
 
 template <class T>
-const T& TinyGsmMax(const T& a, const T& b) {
+const T& TinyGsmMax(const T& a, const T& b) 
+{
   return (b < a) ? a : b;
 }
 
@@ -100,20 +107,28 @@ uint32_t TinyGsmAutoBaud(T& SerialAT, uint32_t minimum = 9600,
   for (uint8_t i = 0; i < sizeof(rates) / sizeof(rates[0]); i++) 
   {
     uint32_t rate = rates[i];
-    if (rate < minimum || rate > maximum) continue;
+    if (rate < minimum || rate > maximum) 
+    {
+        continue;
+    }
 
     DBG("Trying baud rate", rate, "...");
     SerialAT.begin(rate);
     delay(10);
-    for (int j = 0; j < 10; j++) {
+
+    for (int j = 0; j < 10; j++) 
+    {
       SerialAT.print("AT\r\n");
       String input = SerialAT.readString();
-      if (input.indexOf("OK") >= 0) {
+      
+      if (input.indexOf("OK") >= 0)
+      {
         DBG("Modem responded at rate", rate);
         return rate;
       }
     }
   }
+
   SerialAT.begin(minimum);
   return 0;
 }

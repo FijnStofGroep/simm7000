@@ -17,23 +17,32 @@ class TinyGsmModem {
   /*
    * Basic functions
    */
-  bool begin(const char* pin = NULL) {
+  bool begin(const char* pin = NULL) 
+  {
     return thisModem().initImpl(pin);
   }
-  bool init(const char* pin = NULL) {
+
+  bool init(const char* pin = NULL) 
+  {
     return thisModem().initImpl(pin);
   }
+
   template <typename... Args>
-  inline void sendAT(Args... cmd) {
+  inline void sendAT(Args... cmd) 
+  {
     thisModem().streamWrite("AT", cmd..., thisModem().gsmNL);
     thisModem().stream.flush();
     TINY_GSM_YIELD(); /* DBG("### AT:", cmd...); */
   }
-  void setBaud(uint32_t baud) {
+
+  void setBaud(uint32_t baud) 
+  {
     thisModem().setBaudImpl(baud);
   }
+
   // Test response to AT commands
-  bool testAT(uint32_t timeout_ms = 10000L) {
+  bool testAT(uint32_t timeout_ms = 10000L) 
+  {
     return thisModem().testATImpl(timeout_ms);
   }
 
@@ -49,6 +58,7 @@ class TinyGsmModem {
   {
     return thisModem().getModemNameImpl();
   }
+  
   bool factoryDefault() {
     return thisModem().factoryDefaultImpl();
   }
@@ -56,19 +66,28 @@ class TinyGsmModem {
   /*
    * Power functions
    */
-  bool restart(const char* pin = NULL) {
+  bool restart(const char* pin = NULL) 
+  {
     return thisModem().restartImpl(pin);
   }
-  bool poweroff() {
+
+  bool poweroff() 
+  {
     return thisModem().powerOffImpl();
   }
-  bool radioOff() {
+
+  bool radioOff() 
+  {
     return thisModem().radioOffImpl();
   }
-  bool sleepEnable(bool enable = true) {
+
+  bool sleepEnable(bool enable = true) 
+  {
     return thisModem().sleepEnableImpl(enable);
   }
-  bool setPhoneFunctionality(uint8_t fun, bool reset = false) {
+
+  bool setPhoneFunctionality(uint8_t fun, bool reset = false) 
+  {
     return thisModem().setPhoneFunctionalityImpl(fun, reset);
   }
 
@@ -76,13 +95,17 @@ class TinyGsmModem {
    * Generic network functions
    */
   // RegStatus getRegistrationStatus() {}
-  bool isNetworkConnected() {
+  bool isNetworkConnected()
+  {
     return thisModem().isNetworkConnectedImpl();
   }
+
   // Waits for network attachment
-  bool waitForNetwork(uint32_t timeout_ms = 60000L, bool check_signal = false) {
+  bool waitForNetwork(uint32_t timeout_ms = 60000L, bool check_signal = false) 
+  {
     return thisModem().waitForNetworkImpl(timeout_ms, check_signal);
   }
+  
   // Gets signal quality report
   int16_t getSignalQuality() {
     return thisModem().getSignalQualityImpl();

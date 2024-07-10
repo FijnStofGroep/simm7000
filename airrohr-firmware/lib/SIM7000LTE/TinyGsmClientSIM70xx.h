@@ -61,10 +61,13 @@ class TinyGsmSim70xx : public TinyGsmModem<TinyGsmSim70xx<modemType>>,
    * CRTP Helper
    */
  protected:
-  inline const modemType& thisModem() const {
+  inline const modemType& thisModem() const 
+  {
     return static_cast<const modemType&>(*this);
   }
-  inline modemType& thisModem() {
+
+  inline modemType& thisModem() 
+  {
     return static_cast<modemType&>(*this);
   }
 
@@ -78,11 +81,13 @@ class TinyGsmSim70xx : public TinyGsmModem<TinyGsmSim70xx<modemType>>,
    * Basic functions
    */
  protected:
-  bool initImpl(const char* pin = NULL) {
+  bool initImpl(const char* pin = NULL) 
+  {
     return thisModem().initImpl(pin);
   }
 
-  String getModemNameImpl() {
+  String getModemNameImpl() 
+  {
     String name = "SIMCom SIM7000";
 
     thisModem().sendAT(GF("+GMM"));
@@ -96,10 +101,11 @@ class TinyGsmSim70xx : public TinyGsmModem<TinyGsmSim70xx<modemType>>,
     return name;
   }
 
-  bool factoryDefaultImpl() {           // these commands aren't supported
+  bool factoryDefaultImpl() 
+  {                                     // these commands aren't supported
     thisModem().sendAT(GF("&FZE0&W"));  // Factory + Reset + Echo Off + Write
     thisModem().waitResponse();
-    thisModem().sendAT(GF("+IPR=0"));  // Auto-baud
+    thisModem().sendAT(GF("+IPR=0"));   // Auto-baud
     thisModem().waitResponse();
     thisModem().sendAT(GF("+IFC=0,0"));  // No Flow Control
     thisModem().waitResponse();
@@ -107,7 +113,8 @@ class TinyGsmSim70xx : public TinyGsmModem<TinyGsmSim70xx<modemType>>,
     thisModem().waitResponse();
     thisModem().sendAT(GF("+CSCLK=0"));  // Disable Slow Clock
     thisModem().waitResponse();
-    thisModem().sendAT(GF("&W"));  // Write configuration
+    thisModem().sendAT(GF("&W"));        // Write configuration
+
     return thisModem().waitResponse() == 1;
   }
 
@@ -115,7 +122,8 @@ class TinyGsmSim70xx : public TinyGsmModem<TinyGsmSim70xx<modemType>>,
    * Power functions
    */
  protected:
-  bool restartImpl(const char* pin = NULL) {
+  bool restartImpl(const char* pin = NULL)
+  {
     thisModem().sendAT(GF("E0"));  // Echo Off
     thisModem().waitResponse();
     if (!thisModem().setPhoneFunctionality(0)) { return false; }
@@ -124,7 +132,8 @@ class TinyGsmSim70xx : public TinyGsmModem<TinyGsmSim70xx<modemType>>,
     return thisModem().initImpl(pin);
   }
 
-  bool powerOffImpl() {
+  bool powerOffImpl() 
+  {
     thisModem().sendAT(GF("+CPOWD=1"));
     return thisModem().waitResponse(GF("NORMAL POWER DOWN")) == 1;
   }
@@ -133,12 +142,14 @@ class TinyGsmSim70xx : public TinyGsmModem<TinyGsmSim70xx<modemType>>,
   // In order to reestablish communication pull the DRT-pin of the SIM70xx
   // module LOW for at least 50ms. Then use this function to disable sleep
   // mode. The DTR-pin can then be released again.
-  bool sleepEnableImpl(bool enable = true) {
+  bool sleepEnableImpl(bool enable = true) 
+  {
     thisModem().sendAT(GF("+CSCLK="), enable);
     return thisModem().waitResponse() == 1;
   }
 
-  bool setPhoneFunctionalityImpl(uint8_t fun, bool reset = false) {
+  bool setPhoneFunctionalityImpl(uint8_t fun, bool reset = false) 
+  {
     thisModem().sendAT(GF("+CFUN="), fun, reset ? ",1" : "");
     return thisModem().waitResponse(10000L) == 1;
   }
@@ -147,13 +158,16 @@ class TinyGsmSim70xx : public TinyGsmModem<TinyGsmSim70xx<modemType>>,
    * Generic network functions
    */
  public:
-  RegStatus getRegistrationStatus() {
-    RegStatus epsStatus =
-        (RegStatus)thisModem().getRegistrationStatusXREG("CEREG");
+  RegStatus getRegistrationStatus() 
+  {
+    RegStatus epsStatus = (RegStatus)thisModem().getRegistrationStatusXREG("CEREG");
     // If we're connected on EPS, great!
-    if (epsStatus == REG_OK_HOME || epsStatus == REG_OK_ROAMING) {
+    if (epsStatus == REG_OK_HOME || epsStatus == REG_OK_ROAMING) 
+    {
       return epsStatus;
-    } else {
+    } 
+    else 
+    {
       // Otherwise, check GPRS network status
       // We could be using GPRS fall-back or the board could be being moody
       return (RegStatus)thisModem().getRegistrationStatusXREG("CGREG");
@@ -161,16 +175,22 @@ class TinyGsmSim70xx : public TinyGsmModem<TinyGsmSim70xx<modemType>>,
   }
 
  protected:
-  bool isNetworkConnectedImpl() {
+  bool isNetworkConnectedImpl() 
+  {
     RegStatus s = getRegistrationStatus();
     return (s == REG_OK_HOME || s == REG_OK_ROAMING);
   }
 
  public:
-  String getNetworkModes() {
+  String getNetworkModes() 
+  {
     // Get the help string, not the setting value
     thisModem().sendAT(GF("+CNMP=?"));
-    if (thisModem().waitResponse(GF(GSM_NL "+CNMP:")) != 1) { return ""; }
+    if (thisModem().waitResponse(GF(GSM_NL "+CNMP:")) != 1) 
+    { 
+        return ""; 
+    }
+
     String res = stream.readStringUntil('\n');
     thisModem().waitResponse();
     return res;
@@ -178,7 +198,11 @@ class TinyGsmSim70xx : public TinyGsmModem<TinyGsmSim70xx<modemType>>,
 
   int16_t getNetworkMode() {
     thisModem().sendAT(GF("+CNMP?"));
-    if (thisModem().waitResponse(GF(GSM_NL "+CNMP:")) != 1) { return false; }
+    if (thisModem().waitResponse(GF(GSM_NL "+CNMP:")) != 1) 
+    {
+         return false; 
+    }
+
     int16_t mode = thisModem().streamGetIntBefore('\n');
     thisModem().waitResponse();
     return mode;

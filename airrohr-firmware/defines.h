@@ -4,6 +4,9 @@
  *
  */
 
+#ifndef defines_h
+#define defines_h
+
 #if defined(ESP8266)
 #define SENSOR_BASENAME "esp8266-"
 #define OTA_BASENAME    "air.fijnstofleusden.nl"
@@ -214,3 +217,5 @@ static const uint16_t suites_P[] PROGMEM = {
     BR_TLS_RSA_WITH_AES_128_CBC_SHA,
     BR_TLS_RSA_WITH_AES_256_CBC_SHA,
 };
+
+#endif // defines_h

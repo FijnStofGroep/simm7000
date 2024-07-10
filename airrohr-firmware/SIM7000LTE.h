@@ -30,9 +30,10 @@
 #define TINY_GSM_MODEM_SIM7000              // version does not support SSL but supports up to 8 simultaneous connections.
 // #define TINY_GSM_MODEM_SIM7000SSL        // version supports both SSL and unsecured connections with up to 2 simultaneous connections.
 
-//#include <SoftwareSerial.h>
-
 #include "TinyGSM.h"
+
+#include "defines.h"
+#include "ext_def.h"
 
 SoftwareSerial SerialSIM;           // Serial port instance. (set baudrate, data lenght, ...)
 TinyGsm LTEmodem(SerialSIM);        // LTEModem instance => connected to serial port.
@@ -45,7 +46,6 @@ TinyGsmClient LTEclient(LTEmodem);  // LTE Client instance (sens data to http/ht
 // }
 
 // SIM7000 settings.
-
 namespace cfg7
 {
 	bool s7000_has_gps = HAS_GPS;
@@ -69,7 +69,7 @@ namespace cfg7
 //***************************************************************************************************************************************************
 
 /*
-    modem Power On
+    modem Power On.
 */
 inline void modemPowerOn()
 {
@@ -82,7 +82,7 @@ inline void modemPowerOn()
 }
 
 /*
-    modem Power Off
+    modem Power Off.
 */
 inline void modemPowerOff()
 {
@@ -95,7 +95,7 @@ inline void modemPowerOff()
 }
 
 /*
-    Test response to AT commands
+    Test response to 'AT' commands.
 
 */
 inline bool IsModemActive()
@@ -216,26 +216,33 @@ inline void disableGPS(void)
     LTEmodem.disableGPS();
 }
 
-inline void GetGPSLocation()
+/*
+    Get GPS Location.
+
+    max. 10 sec.
+*/
+inline void GetGPSLocation(float * latitude, float * longitude, float * altitude)
 {
     debug_outln_info(F("Start positioning . Make sure to locate outdoors."));
 
-    float latitude, longitude;
-
     enableGPS();
 
-    while (true)
+    float speed;
+
+    for(int cnt = 5; cnt > 0; cnt--)
     {
-        if (LTEmodem.getGPS(&latitude, &longitude))
+        if ( LTEmodem.getGPS(latitude, longitude, &speed, altitude) )
         {
             debug_outln_info(F("The location has been locked, the latitude and longitude are:"));
-            debug_outln_info(F("latitude: "), String(latitude));
-            debug_outln_info(F("longitude: "), String(longitude));
+            debug_outln_info(F("latitude: "), String( *latitude));
+            debug_outln_info(F("longitude: "), String( *longitude));
 
             break;
         }
 
         delay(2000);
+
+        yield();							// give waiting thread(s) CPU time.
     }
 
     disableGPS();

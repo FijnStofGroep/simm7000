@@ -59,18 +59,22 @@ class TinyGsmGPRS {
    * GPRS functions
    */
   bool gprsConnect(const char* apn, const char* user = NULL,
-                   const char* pwd = NULL) {
+                   const char* pwd = NULL) 
+  {
     return thisModem().gprsConnectImpl(apn, user, pwd);
   }
 
-  bool gprsDisconnect() {
+  bool gprsDisconnect() 
+  {
     return thisModem().gprsDisconnectImpl();
   }
 
   // Checks if current attached to GPRS/EPS service
-  bool isGprsConnected() {
+  bool isGprsConnected() 
+  {
     return thisModem().isGprsConnectedImpl();
   }
+  
   // Gets the current network operator
   String getOperator() {
     return thisModem().getOperatorImpl();
