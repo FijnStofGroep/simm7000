@@ -14,7 +14,7 @@ const char WLANSSID[] PROGMEM = "Freifunk-disabled";
 const char WLANPWD[] PROGMEM = "";
 
 // BasicAuth config
-const char WWW_USERNAME[] PROGMEM = "admin";
+const char WWW_USERNAME[] PROGMEM = "";
 const char WWW_PASSWORD[] PROGMEM = "";
 #define WWW_BASICAUTH_ENABLED 0
 #define HAS_MOREWIFI 0
@@ -87,7 +87,7 @@ static const char STATIC_SUBNET[] PROGMEM = "255.255.255.0";
 static const char STATIC_GATEWAY[] PROGMEM = "192.168.1.254";
 static const char STATIC_DNS[] PROGMEM = "192.168.1.254";
 
-static const char HOST_AIRCMS[] PROGMEM = "doiot.ru";
+static const char HOST_AIRCMS[] PROGMEM = "iot.1nce.net";
 static const char URL_AIRCMS[] PROGMEM = "/php/sensors.php?h=";
 // As of 2019/09 uses invalid certificates on ssl/port 443 and does not support Maximum Fragment Length Negotiation (MFLN)
 // So we can not use SSL
@@ -100,8 +100,8 @@ static const char FW_BETA_DOWNLOAD_URL[] PROGMEM = "/firmware/beta/latest_";
 
 static const char FW_2ND_LOADER_URL[] PROGMEM = "/firmware/update/loader-002.bin";
 
-static const char NTP_SERVER_1[] PROGMEM = "0.pool.ntp.org";    // NTP servers operate always in UTC time.
-static const char NTP_SERVER_2[] PROGMEM = "1.pool.ntp.org";
+static const char NTP_SERVER_1[] PROGMEM = "2.pool.ntp.org";    // NTP servers operate always in UTC time.(ipv4 and ipv6)
+static const char NTP_SERVER_2[] PROGMEM = "1.pool.ntp.org";    // NTP servers operate always in UTC time.(ipv4)
 
 // define own API
 static const char HOST_CUSTOM[] PROGMEM = "192.168.234.1";

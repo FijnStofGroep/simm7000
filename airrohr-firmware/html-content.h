@@ -10,7 +10,7 @@ const char TXT_CONTENT_TYPE_IMAGE_PNG[] PROGMEM = "image/png";
 
 const char DBG_TXT_TEMPERATURE[] PROGMEM = "Temperature (°C): ";
 const char DBG_TXT_HUMIDITY[] PROGMEM = "Humidity (%): ";
-const char DBG_TXT_PRESSURE[] PROGMEM = "Pressure (hPa): ";
+const char DBG_TXT_PRESSURE[] PROGMEM = "Pressure (Pa): ";
 const char DBG_TXT_CO2PPM[] PROGMEM = "CO₂ (ppm): ";
 const char DBG_TXT_VOCINDEX[] PROGMEM = "VOC index: ";
 const char DBG_TXT_NOX[] PROGMEM = "NOx index: ";
@@ -155,7 +155,6 @@ const char WEB_UPDATE_FIRMWARE[] PROGMEM = "<h3> Really Update Firmware? </h3>"
 										   "<table><tr><td><form method='POST' action'/reset'>"
 										   "<input type='submit' class='s_red' name='submit' value=' Update firmware'/>"
 										   "</form></td><td><a class='b' href='/'>" INTL_CANCEL "</a></td></tr></table>";
-
 
 const char WEB_IOS_REDIRECT[] PROGMEM = "<html><body>Redirecting...\
 <script type=\"text/javascript\">\
