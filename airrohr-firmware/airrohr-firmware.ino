@@ -2872,8 +2872,7 @@ static void webserver_config_send_body_get7(String &page_content)
 	add_form_input7(page_content, Config7000_gprsapn, FPSTR(INTL_SIM_APN), LEN_SIMM7000 - 1);
     add_form_input7(page_content, Config7000_gprsUser, FPSTR(INTL_SIM_USER), LEN_SIMM7000 - 1);
     add_form_input7(page_content, Config7000_gprsPass, FPSTR(INTL_SIM_PASS), LEN_SIMM7000 - 1);
-	//add_form_input7(page_content, Config7000_type, FPSTR(INTL_SIM_TYPE), LEN_SIMM7000 - 1);
-	//page_content += form_select_mode7();
+	page_content += form_select_mode7();
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	page_content += FPSTR(WEB_BR_BR);
 	page_content += form_checkbox7(Config7000_has_gps, FPSTR(INTL_SIM_GPS), false);
@@ -4373,16 +4372,16 @@ static void wifi_AP_Config()
 	dnsServer.stop();
 	delay(100);
 
-	if (cfg::has_fix_ip)
-	{
-		WiFi.begin(cfg::wlanssid, cfg::wlanpwd);
-		waitForWifiToConnect(20);
-	}
-	else
-	{
-		// Register multi WiFi networks
-		RegisterMultiWiFiNetworks(WIFI_MAX_RETRY);
-	}
+		if (cfg::has_fix_ip)
+		{
+			WiFi.begin(cfg::wlanssid, cfg::wlanpwd);
+			waitForWifiToConnect(20);
+		}
+		else
+		{
+			// Register multi WiFi networks
+			RegisterMultiWiFiNetworks(WIFI_MAX_RETRY);
+		}
 
 	// debug_outln_info(FPSTR(DBG_TXT_CONNECTING_TO), cfg::wlanssid);
 }	
@@ -4569,14 +4568,15 @@ static void connectWifi()
 	WiFi.hostname(cfg::fs_ssid);
 
 	if (cfg::has_fix_ip &&
-		addr_static_ip.fromString(cfg::static_ip) && 
-		addr_static_subnet.fromString(cfg::static_subnet) && 
-		addr_static_gateway.fromString(cfg::static_gateway) && 
-		addr_static_dns.fromString(cfg::static_dns))
+		addr_static_ip.fromString(cfg::static_ip) &&
+		addr_static_subnet.fromString(cfg::static_subnet) &&
+		addr_static_gateway.fromString(cfg::static_gateway) &&
+		addr_static_dns.fromString(cfg::static_dns) &&
+		cfg::has_s7000 == 0) // AP mode ip  192.168.4.1
 	{
 		//WiFi.config(addr_static_ip, addr_static_gateway, addr_static_subnet, addr_static_dns, addr_static_dns);
+
 		WiFi.config(addr_static_ip, addr_static_gateway, addr_static_subnet, addr_static_dns);
-		
 		WiFi.begin(cfg::wlanssid, cfg::wlanpwd); 				// Open/Start WiFI coonection to router/modem.
 
 		waitForWifiToConnect(40);
@@ -5233,7 +5233,6 @@ static void fetchSensorBMX280(String &s)
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
 
 		last_value_BMX280_T = t + readCorrectionOffset(cfg::temp_correction);
-
 		last_value_BMX280_P = p;
 
 		if (bmx280.sensorID() == BME280_SENSOR_ID)
