@@ -12,7 +12,8 @@
 #include "TinyGsmCommon.h"
 
 template <class modemType>
-class TinyGsmModem {
+class TinyGsmModem 
+{
  public:
   /*
    * Basic functions
@@ -107,13 +108,18 @@ class TinyGsmModem {
   }
   
   // Gets signal quality report
-  int16_t getSignalQuality() {
+  int16_t getSignalQuality() 
+  {
     return thisModem().getSignalQualityImpl();
   }
-  String getLocalIP() {
+
+  String getLocalIP() 
+  {
     return thisModem().getLocalIPImpl();
   }
-  IPAddress localIP() {
+
+  IPAddress localIP() 
+  {
     return thisModem().TinyGsmIpFromString(thisModem().getLocalIP());
   }
 
@@ -121,10 +127,13 @@ class TinyGsmModem {
    * CRTP Helper
    */
  protected:
-  inline const modemType& thisModem() const {
+  inline const modemType& thisModem() const 
+  {
     return static_cast<const modemType&>(*this);
   }
-  inline modemType& thisModem() {
+
+  inline modemType& thisModem() 
+  {
     return static_cast<modemType&>(*this);
   }
 
@@ -132,12 +141,14 @@ class TinyGsmModem {
    * Basic functions
    */
  protected:
-  void setBaudImpl(uint32_t baud) {
+  void setBaudImpl(uint32_t baud) 
+  {
     thisModem().sendAT(GF("+IPR="), baud);
     thisModem().waitResponse();
   }
 
-  bool testATImpl(uint32_t timeout_ms = 10000L) {
+  bool testATImpl(uint32_t timeout_ms = 10000L) 
+  {
     for (uint32_t start = millis(); millis() - start < timeout_ms;) {
       thisModem().sendAT(GF(""));
       if (thisModem().waitResponse(200) == 1) { return true; }
@@ -146,10 +157,15 @@ class TinyGsmModem {
     return false;
   }
 
-  String getModemInfoImpl() {
+  String getModemInfoImpl() 
+  {
     thisModem().sendAT(GF("I"));
     String res;
-    if (thisModem().waitResponse(1000L, res) != 1) { return ""; }
+    if (thisModem().waitResponse(1000L, res) != 1) 
+    { 
+        return ""; 
+    }
+
     // Do the replaces twice so we cover both \r and \r\n type endings
     res.replace("\r\nOK\r\n", "");
     res.replace("\rOK\r", "");
@@ -159,7 +175,8 @@ class TinyGsmModem {
     return res;
   }
 
-  String getModemNameImpl() {
+  String getModemNameImpl()
+  {
     thisModem().sendAT(GF("+CGMI"));
     String res1;
     if (thisModem().waitResponse(1000L, res1) != 1) { return "unknown"; }
@@ -179,7 +196,8 @@ class TinyGsmModem {
     return name;
   }
 
-  bool factoryDefaultImpl() {
+  bool factoryDefaultImpl() 
+  {
     thisModem().sendAT(GF("&FZE0&W"));  // Factory + Reset + Echo Off + Write
     thisModem().waitResponse();
     thisModem().sendAT(GF("+IPR=0"));  // Auto-baud
@@ -192,7 +210,8 @@ class TinyGsmModem {
    * Power functions
    */
  protected:
-  bool radioOffImpl() {
+  bool radioOffImpl() 
+  {
     if (!thisModem().setPhoneFunctionality(0)) { return false; }
     delay(3000);
     return true;
@@ -200,8 +219,7 @@ class TinyGsmModem {
 
   bool sleepEnableImpl(bool enable = true) TINY_GSM_ATTR_NOT_IMPLEMENTED;
 
-  bool setPhoneFunctionalityImpl(uint8_t fun, bool reset = false)
-      TINY_GSM_ATTR_NOT_IMPLEMENTED;
+  bool setPhoneFunctionalityImpl(uint8_t fun, bool reset = false)  TINY_GSM_ATTR_NOT_IMPLEMENTED;
 
   /*
    * Generic network functions
@@ -211,7 +229,8 @@ class TinyGsmModem {
   // CREG = Generic network registration
   // CGREG = GPRS service registration
   // CEREG = EPS registration for LTE modules
-  int8_t getRegistrationStatusXREG(const char* regCommand) {
+  int8_t getRegistrationStatusXREG(const char* regCommand) 
+  {
     thisModem().sendAT('+', regCommand, '?');
     // check for any of the three for simplicity
     int8_t resp = thisModem().waitResponse(GF("+CREG:"), GF("+CGREG:"),
@@ -224,17 +243,21 @@ class TinyGsmModem {
   }
 
   bool waitForNetworkImpl(uint32_t timeout_ms   = 60000L,
-                          bool     check_signal = false) {
-    for (uint32_t start = millis(); millis() - start < timeout_ms;) {
+                          bool     check_signal = false) 
+  {
+    for (uint32_t start = millis(); millis() - start < timeout_ms;) 
+    {
       if (check_signal) { thisModem().getSignalQuality(); }
       if (thisModem().isNetworkConnected()) { return true; }
       delay(250);
     }
+
     return false;
   }
 
   // Gets signal quality report according to 3GPP TS command AT+CSQ
-  int8_t getSignalQualityImpl() {
+  int8_t getSignalQualityImpl() 
+  {
     thisModem().sendAT(GF("+CSQ"));
     if (thisModem().waitResponse(GF("+CSQ:")) != 1) { return 99; }
     int8_t res = thisModem().streamGetIntBefore(',');
@@ -242,7 +265,8 @@ class TinyGsmModem {
     return res;
   }
 
-  String getLocalIPImpl() {
+  String getLocalIPImpl() 
+  {
     thisModem().sendAT(GF("+CGPADDR=1"));
     if (thisModem().waitResponse(GF("+CGPADDR:")) != 1) { return ""; }
     thisModem().streamSkipUntil(',');  // Skip context id
@@ -251,24 +275,38 @@ class TinyGsmModem {
     return res;
   }
 
-  static inline IPAddress TinyGsmIpFromString(const String& strIP) {
+  static inline IPAddress TinyGsmIpFromString(const String& strIP) 
+  {
     int Parts[4] = {
-        0,
-    };
+                        0,
+                   };
+
     int Part = 0;
-    for (uint8_t i = 0; i < strIP.length(); i++) {
+    for (uint8_t i = 0; i < strIP.length(); i++) 
+    {
       char c = strIP[i];
-      if (c == '.') {
+      if (c == '.') 
+      {
         Part++;
-        if (Part > 3) { return IPAddress(0, 0, 0, 0); }
+        if (Part > 3) 
+        { 
+            return IPAddress(0, 0, 0, 0); 
+        }
+
         continue;
-      } else if (c >= '0' && c <= '9') {
+      } 
+      else if (c >= '0' && c <= '9') 
+      {
         Parts[Part] *= 10;
         Parts[Part] += c - '0';
-      } else {
-        if (Part == 3) break;
+      } 
+      else 
+      {
+        if (Part == 3) 
+            break;
       }
     }
+    
     return IPAddress(Parts[0], Parts[1], Parts[2], Parts[3]);
   }
 
@@ -278,17 +316,20 @@ class TinyGsmModem {
  public:
   // Utility templates for writing/skipping characters on a stream
   template <typename T>
-  inline void streamWrite(T last) {
+  inline void streamWrite(T last) 
+  {
     thisModem().stream.print(last);
   }
 
   template <typename T, typename... Args>
-  inline void streamWrite(T head, Args... tail) {
+  inline void streamWrite(T head, Args... tail) 
+  {
     thisModem().stream.print(head);
     thisModem().streamWrite(tail...);
   }
 
-  inline void streamClear() {
+  inline void streamClear() 
+  {
     while (thisModem().stream.available()) {
       thisModem().waitResponse(50, NULL, NULL);
     }
@@ -296,17 +337,20 @@ class TinyGsmModem {
 
  protected:
   inline bool streamGetLength(char* buf, int8_t numChars,
-                              const uint32_t timeout_ms = 1000L) {
+                              const uint32_t timeout_ms = 1000L)
+  {
     if (!buf) { return false; }
 
     int8_t   numCharsReady = -1;
     uint32_t startMillis   = millis();
     while (millis() - startMillis < timeout_ms &&
-           (numCharsReady = thisModem().stream.available()) < numChars) {
+           (numCharsReady = thisModem().stream.available()) < numChars) 
+    {
       TINY_GSM_YIELD();
     }
 
-    if (numCharsReady >= numChars) {
+    if (numCharsReady >= numChars) 
+    {
       thisModem().stream.readBytes(buf, numChars);
       return true;
     }
@@ -315,9 +359,11 @@ class TinyGsmModem {
   }
 
   inline int16_t streamGetIntLength(int8_t         numChars,
-                                    const uint32_t timeout_ms = 1000L) {
+                                    const uint32_t timeout_ms = 1000L)
+  {
     char buf[numChars + 1];
-    if (streamGetLength(buf, numChars, timeout_ms)) {
+    if (streamGetLength(buf, numChars, timeout_ms)) 
+    {
       buf[numChars] = '\0';
       return atoi(buf);
     }
@@ -325,12 +371,16 @@ class TinyGsmModem {
     return -9999;
   }
 
-  inline int16_t streamGetIntBefore(char lastChar) {
+  inline int16_t streamGetIntBefore(char lastChar)
+  {
     char   buf[7];
-    size_t bytesRead = thisModem().stream.readBytesUntil(
-        lastChar, buf, static_cast<size_t>(7));
+    size_t bytesRead = thisModem().stream.readBytesUntil( lastChar, 
+                                                          buf, 
+                                                          static_cast<size_t>(7));
+                                                          
     // if we read 7 or more bytes, it's an overflow
-    if (bytesRead && bytesRead < 7) {
+    if (bytesRead && bytesRead < 7) 
+    {
       buf[bytesRead] = '\0';
       int16_t res    = atoi(buf);
       return res;
@@ -340,9 +390,11 @@ class TinyGsmModem {
   }
 
   inline float streamGetFloatLength(int8_t         numChars,
-                                    const uint32_t timeout_ms = 1000L) {
+                                    const uint32_t timeout_ms = 1000L) 
+  {
     char buf[numChars + 1];
-    if (streamGetLength(buf, numChars, timeout_ms)) {
+    if (streamGetLength(buf, numChars, timeout_ms)) 
+    {
       buf[numChars] = '\0';
       return atof(buf);
     }
@@ -350,12 +402,16 @@ class TinyGsmModem {
     return -9999.0F;
   }
 
-  inline float streamGetFloatBefore(char lastChar) {
+  inline float streamGetFloatBefore(char lastChar) 
+  {
     char   buf[16];
-    size_t bytesRead = thisModem().stream.readBytesUntil(
-        lastChar, buf, static_cast<size_t>(16));
+    size_t bytesRead = thisModem().stream.readBytesUntil( lastChar, 
+                                                          buf, 
+                                                          static_cast<size_t>(16));
+
     // if we read 16 or more bytes, it's an overflow
-    if (bytesRead && bytesRead < 16) {
+    if (bytesRead && bytesRead < 16) 
+    {
       buf[bytesRead] = '\0';
       float res      = atof(buf);
       return res;
@@ -364,17 +420,26 @@ class TinyGsmModem {
     return -9999.0F;
   }
 
-  inline bool streamSkipUntil(const char c, const uint32_t timeout_ms = 1000L) {
+  inline bool streamSkipUntil(const char c, const uint32_t timeout_ms = 1000L) 
+  {
     uint32_t startMillis = millis();
-    while (millis() - startMillis < timeout_ms) {
+    while (millis() - startMillis < timeout_ms) 
+    {
       while (millis() - startMillis < timeout_ms &&
-             !thisModem().stream.available()) {
+             !thisModem().stream.available())
+      {
         TINY_GSM_YIELD();
       }
-      if (thisModem().stream.read() == c) { return true; }
+
+      if (thisModem().stream.read() == c) 
+      { 
+        return true; 
+      }
     }
+
     return false;
   }
-};
+
+};  // class TinyGsmModem
 
 #endif  // SRC_TINYGSMMODEM_H_
