@@ -63,6 +63,8 @@ namespace cfg7
         strcpy_P(cfg7::gprsapn, HOST_AIRCMS);
         strcpy_P(cfg7::gprsUser, WWW_USERNAME);
         strcpy_P(cfg7::gprsPass, WWW_PASSWORD);
+        strcpy_P(cfg7::s7000_type, SIM7_TYPE);
+        strcpy_P(cfg7::s7000_mode, SIM7_MODE);
     }
 }
 

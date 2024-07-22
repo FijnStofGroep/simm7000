@@ -16,13 +16,13 @@ String form_select_mode7()		// mode SIMM7000
 {
 	String s_select = F(" selected='selected'");
 	String s = F("<tr>"
-				 "<td>" INTL_MODE ":&nbsp;</td>"
+				 "<td>" INTL_TYPE ":&nbsp;</td>"
 				 "<td>"
 				 "<select id='s7000_mode' name='s7000_mode'>"
-				 "<option value='1'>Mode 1</option>"
-				 "<option value='2'>Mode 2</option>"
-				 "<option value='3'>Mode 3</option>"
-				 "<option value='4'>Mode 4</option>"
+				 "<option value='SIM7000'>SIM7000</option>"
+				 "<option value='SIM7070'>SIM7070</option>"
+				 "<option value='SIM7670'>SIM7670</option>"
+				 "<option value='SIM7XXX'>SIM7XXX</option>"
 				 "</select>"
 				 "</td>"
 				 "</tr>");
