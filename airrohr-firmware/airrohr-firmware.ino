@@ -169,7 +169,8 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include <DallasTemperature.h>
 #include <SparkFun_SCD30_Arduino_Library.h>
 #include <SensirionI2CSen5x.h>
-#include <TinyGPS++.h>					//  Arduino library for parsing NMEA data streams provided by GPS modules. 
+#include <TinyGPS++.h>					//  Arduino library for parsing NMEA data streams provided by GPS modules.
+#include <TinyGsmClientSIM7000.h>
 
 // local/modified header files.
 #include "./bmx280_i2c.h"
@@ -196,16 +197,16 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 // Temp language fields.
 #include "./intl_new.h"
 
-/******************************************************************
- * The variables inside the cfg namespace are persistent          *
- * configuration values. They have defaults which can be          *
- * configured at compile-time via the ext_def.h file              *
- * They can be changed by the user via the web interface, the     *
- * changes are persisted to the flash and read back after reboot. *
- * Note that the names of these variables can't be easily changed *
- * as they are part of the json format used to persist the data.  *
- ******************************************************************/
-namespace cfg
+	/******************************************************************
+	 * The variables inside the cfg namespace are persistent          *
+	 * configuration values. They have defaults which can be          *
+	 * configured at compile-time via the ext_def.h file              *
+	 * They can be changed by the user via the web interface, the     *
+	 * changes are persisted to the flash and read back after reboot. *
+	 * Note that the names of these variables can't be easily changed *
+	 * as they are part of the json format used to persist the data.  *
+	 ******************************************************************/
+	namespace cfg
 {
 	unsigned debug = DEBUG;
 	
@@ -2407,6 +2408,7 @@ static void sendHttpRedirect()
 							 );
 
 	String defaultAddress = F("http://") + defaultIP.toString() + F("/config");
+	debug_outln_info(F("--- void sendHttpRedirect ---"));
 	server.sendHeader(F("Location"), defaultAddress);
 	server.send(302, FPSTR(TXT_CONTENT_TYPE_TEXT_HTML), emptyString);
 }
@@ -2416,17 +2418,21 @@ static void sendHttpRedirect()
  *****************************************************************/
 static void webserver_root()
 {
-	if (WiFi.status() != WL_CONNECTED)
-	{
-		sendHttpRedirect();
-	}
-	else
-	{
+		if (WiFi.status() != WL_CONNECTED)
+		{
+			debug_outln_info(F("--- void webserver_root ---"));
+			if (cfg::has_s7000 == 0) // Allways AP mode for LTE
+			{
+				sendHttpRedirect(); 
+			}
+		}
+		else
+		{
 		if (!webserver_request_auth())
 		{
 			return;
 		}
-
+		}
 		RESERVE_STRING(page_content, XLARGE_STR);
 		start_html_page(page_content, emptyString);
 		debug_outln_info(F("ws: root ..."));
@@ -2450,7 +2456,7 @@ static void webserver_root()
 		page_content.replace(F("{update}"), FPSTR(INTL_UPDATE_FIRMWARE));
 
 		end_html_page(page_content);
-	}
+	
 }
 
 /*****************************************************************
@@ -2866,7 +2872,6 @@ static void webserver_config_send_body_get7(String &page_content)
 	add_form_input7(page_content, Config7000_gprsapn, FPSTR(INTL_SIM_APN), LEN_SIMM7000 - 1);
     add_form_input7(page_content, Config7000_gprsUser, FPSTR(INTL_SIM_USER), LEN_SIMM7000 - 1);
     add_form_input7(page_content, Config7000_gprsPass, FPSTR(INTL_SIM_PASS), LEN_SIMM7000 - 1);
-	add_form_input7(page_content, Config7000_type, FPSTR(INTL_SIM_TYPE), LEN_SIMM7000 - 1);
 	page_content += form_select_mode7();
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	page_content += FPSTR(WEB_BR_BR);
@@ -3226,11 +3231,15 @@ static void webserver_firmware_update()
  *****************************************************************/
 static void webserver_values()
 {
-	if (WiFi.status() != WL_CONNECTED)
+	if (cfg::has_s7000 == 0) // Allways AP mode for LTE
 	{
-		sendHttpRedirect();
-		return;
-	}
+		if (WiFi.status() != WL_CONNECTED)
+		{
+			debug_outln_info(F("--- webserver_values ---"));
+			sendHttpRedirect();
+			return;
+		}
+ 	}
 
 	RESERVE_STRING(page_content, XLARGE_STR);
 	start_html_page(page_content, FPSTR(INTL_CURRENT_DATA));
@@ -3518,12 +3527,15 @@ static void webserver_values()
  *****************************************************************/
 static void webserver_status()
 {
-	if (WiFi.status() != WL_CONNECTED)
+	if (cfg::has_s7000 == 0) // Allways AP mode for LTE
 	{
-		sendHttpRedirect();
-
-		debug_outln_info(F("ws: status => WiFi not connected ..."));
-		return;
+		debug_outln_info(F("--- void webserver_status ---"));
+		if (WiFi.status() != WL_CONNECTED)
+		{
+			sendHttpRedirect();
+			debug_outln_info(F("ws: status => WiFi not connected ..."));
+			return;
+		}
 	}
 
 	RESERVE_STRING(page_content, XLARGE_STR);
@@ -4076,6 +4088,7 @@ static void webserver_not_found()
 		}
 		else
 		{
+			debug_outln_info(F("--- void webserver_not_found ---"));
 			sendHttpRedirect();
 		}
 	}
@@ -4313,15 +4326,17 @@ static void wifi_AP_Config()
 	// 10 minutes timeout for wifi config.
 	last_page_load = millis();
 
-	while ((millis() - last_page_load) < cfg::time_for_wifi_config + 500)
+	if (cfg::has_s7000 == 0) // Allways AP mode for LTE
 	{
-		dnsServer.processNextRequest();
-		server.handleClient();
+		while ((millis() - last_page_load) < cfg::time_for_wifi_config + 500)
+		{
+			dnsServer.processNextRequest();
+			server.handleClient();
 
-#if defined(ESP8266)
+ #if defined(ESP8266)
 		wdt_reset(); 		// nodemcu is alive
 		MDNS.update();
-#endif
+ #endif
 
 		yield();
 
@@ -4334,7 +4349,8 @@ static void wifi_AP_Config()
 
 	debug_outln_info(emptyString);			// LF/CR char.
 
-// after 10 minutes waiting on server commando's => restart current configuration settings.
+// after 10 minutes waiting on server commando's => restart current configuration settings. 
+
 	WiFi.softAPdisconnect(true);
 
 	wifi.policy = WIFI_COUNTRY_POLICY_MANUAL;
@@ -4356,20 +4372,20 @@ static void wifi_AP_Config()
 	dnsServer.stop();
 	delay(100);
 
-	if (cfg::has_fix_ip)
-	{
-		WiFi.begin(cfg::wlanssid, cfg::wlanpwd);
-		waitForWifiToConnect(20);
-	}
-	else
-	{
-		// Register multi WiFi networks
-		RegisterMultiWiFiNetworks(WIFI_MAX_RETRY);
-	}
+		if (cfg::has_fix_ip)
+		{
+			WiFi.begin(cfg::wlanssid, cfg::wlanpwd);
+			waitForWifiToConnect(20);
+		}
+		else
+		{
+			// Register multi WiFi networks
+			RegisterMultiWiFiNetworks(WIFI_MAX_RETRY);
+		}
 
 	// debug_outln_info(FPSTR(DBG_TXT_CONNECTING_TO), cfg::wlanssid);
+}	
 	debug_outln_info(FPSTR(DBG_TXT_CONNECTING_TO), WiFi.SSID());
-
 	debug_outln_info(F("---- Result Webconfig ----"));
 	debug_outln_info(F("WLANSSID: "), cfg::wlanssid);
 	debug_outln_info(F("WLANSSID_2: "), cfg::wlanssid_2);
@@ -4552,14 +4568,15 @@ static void connectWifi()
 	WiFi.hostname(cfg::fs_ssid);
 
 	if (cfg::has_fix_ip &&
-		addr_static_ip.fromString(cfg::static_ip) && 
-		addr_static_subnet.fromString(cfg::static_subnet) && 
-		addr_static_gateway.fromString(cfg::static_gateway) && 
-		addr_static_dns.fromString(cfg::static_dns))
+		addr_static_ip.fromString(cfg::static_ip) &&
+		addr_static_subnet.fromString(cfg::static_subnet) &&
+		addr_static_gateway.fromString(cfg::static_gateway) &&
+		addr_static_dns.fromString(cfg::static_dns) &&
+		cfg::has_s7000 == 0) // AP mode ip  192.168.4.1
 	{
 		//WiFi.config(addr_static_ip, addr_static_gateway, addr_static_subnet, addr_static_dns, addr_static_dns);
+
 		WiFi.config(addr_static_ip, addr_static_gateway, addr_static_subnet, addr_static_dns);
-		
 		WiFi.begin(cfg::wlanssid, cfg::wlanpwd); 				// Open/Start WiFI coonection to router/modem.
 
 		waitForWifiToConnect(40);
@@ -4568,7 +4585,10 @@ static void connectWifi()
 	else
 	{
 		// Register multi WiFi networks.
-		RegisterMultiWiFiNetworks(WIFI_MAX_RETRY);
+		if (cfg::has_s7000 == 0) // Allways AP mode for LTE
+		{
+			RegisterMultiWiFiNetworks(WIFI_MAX_RETRY);
+		}
 	}
 #endif
 
@@ -4597,10 +4617,13 @@ static void connectWifi()
 		// start Server Configuration website.
 		wifi_AP_Config();
 
-		if (WiFi.status() != WL_CONNECTED)
+		if (cfg::has_s7000 == 0) // Allways AP mode for LTE
 		{
-			waitForWifiToConnect(20);
-			debug_outln_info(emptyString);
+			if (WiFi.status() != WL_CONNECTED)
+			{
+				waitForWifiToConnect(20);
+				debug_outln_info(emptyString);
+			}
 		}
 	}
 
@@ -4763,9 +4786,24 @@ static unsigned long sendSensorCommunity(const String &data, const int pin, cons
 		data_sensorcommunity.replace(replace_str, emptyString);
 		data_sensorcommunity += "]}";
 
-		sum_send_time = sendData(LoggerSensorCommunity, data_sensorcommunity, pin, HOST_SENSORCOMMUNITY, URL_SENSORCOMMUNITY);
+		if (cfg::has_s7000) // Data  LTE
+		{
+		// hier code for LTE
+		debug_outln_info(F("Sending LTE ?? "));
+		//TinyGsmSim7000::modemConnect(HOST_SENSORCOMMUNITY, 80, 0, false, 75);
+		//uint8_t port = 80;
+		//uint8_t mux = 0;
+		//bool ssl = 0;
+		//int delay = 75;
+		// sum_send_time = LTEmodem.modemConnect(HOST_SENSORCOMMUNITY, port, mux, ssl, delay);
 
+		//modemConnect;
+		}
+		else 
+		{
+		sum_send_time = sendData(LoggerSensorCommunity, data_sensorcommunity, pin, HOST_SENSORCOMMUNITY, URL_SENSORCOMMUNITY);	
 		debug_outln_verbose( F("Sensor.Community data:\n"), data_sensorcommunity);
+		}
 	}
 
 	return sum_send_time;
@@ -5195,7 +5233,6 @@ static void fetchSensorBMX280(String &s)
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
 
 		last_value_BMX280_T = t + readCorrectionOffset(cfg::temp_correction);
-
 		last_value_BMX280_P = p;
 
 		if (bmx280.sensorID() == BME280_SENSOR_ID)
@@ -8768,7 +8805,9 @@ void setup(void)
 	init_display();
 	setupNetworkTime();			// set Callback function ptr into NTPSERVER function callback table.
 	connectWifi();
+	
 	setup_webserver();
+
 	createLoggerConfigs();
 
 	debug_outln_info(F("\nChipId: "), esp_chipid);
@@ -9241,9 +9280,10 @@ void loop(void)
 		}
 
 		// reconnect to WiFi if disconnected
-		if (WiFi.status() != WL_CONNECTED)
+		if (cfg::has_s7000 == 0) // Allways AP mode for LTE
 		{
-			debug_outln_info(F("Connection lost, reconnecting "));
+			if (WiFi.status() != WL_CONNECTED) {
+				debug_outln_info(F("Connection lost, reconnecting "));
 
 			WiFi_error_count++;
 
@@ -9255,6 +9295,7 @@ void loop(void)
 			else
 			{
 				waitForMultiWiFiToConnect(20, WIFI_SCAN_TIMEOUT_MS);
+			}
 			}
 		}
 
