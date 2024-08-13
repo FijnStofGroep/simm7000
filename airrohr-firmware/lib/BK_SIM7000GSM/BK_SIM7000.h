@@ -10,6 +10,7 @@
   Written by Limor Fried/Ladyada for Adafruit Industries.
   BSD license, all text above must be included in any redistribution
  ************************************************************************************/
+
 #ifndef BK_SIM7000_MODEM_H
 #define BK_SIM7000_MODEM_H
 

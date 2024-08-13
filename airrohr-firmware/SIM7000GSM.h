@@ -8,18 +8,6 @@
  *
  * Copyright (C) 2024
  *
- * This source code is provided 'as-is', without any express or implied
- * warranty. In no event will the author be held liable for any damages
- * arising from the use of this software.
- *
- * Permission is granted to anyone to use this software for any purpose,
- * including commercial applications, and to alter it and redistribute it
- * freely, subject to the following restrictions:
- *
- * TinyGSM a small Arduino library for GPRS modules, that just works.
- * Support SIM7000E/G GSM, LTE, and WiFi modules with AT command interfaces.
- * based on TinyGSM @ ^0.11.7
- *
  */
 
 #ifndef _SIM7000GSM_H
@@ -31,13 +19,13 @@
 #include "defines.h"
 #include "ext_def.h"
 
-
 // external define cfg::member type.
 namespace cfg 
 {
     extern unsigned sending_intervall_ms;
 
     extern bool gps_read;
+    extern bool send2mqtt;
 
     extern char fs_ssid[LEN_FS_SSID];           // sensor device ID
 
@@ -48,7 +36,6 @@ namespace cfg
 	extern char mqtt_pwd[LEN_PASS_INFLUX];
 	extern char mqtt_topic[LEN_MQTT_HEADER];
 }
-
 
 /*
     BK-SIM7000 settings.

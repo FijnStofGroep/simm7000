@@ -1,9 +1,9 @@
 /*
- * Modem.h -- platform definitions.
+ *  BK_Common.h -- platform definitions.
  */
 
-#ifndef BK_SIM7000_MODEMSTD_H
-#define BK_SIM7000_MODEMSTD_H
+#ifndef BK_COMMON_H
+#define BK_COMMON_H
 
 #if ESP8266 && (ARDUINO >= 100)
     // VS: Convert Arduino file to C++ manually.
@@ -47,5 +47,5 @@ typedef const   __FlashStringHelper             *FStringPtr;
 //define prog_char_strncpy(to, from, len)		strncpy_P((to), (fromprogmem), (len))
 #define prog_char_strcat(to, fromprogmem)       strcat_P((to), (fromprogmem))
 
-#endif /* BK_SIM7000_MODEMSTD_H */
+#endif /* BK_COMMON_H */
 

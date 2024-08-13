@@ -17,9 +17,9 @@
  * including commercial applications, and to alter it and redistribute it
  * freely, subject to the following restrictions:
  *
- * TinyGSM a small Arduino library for GPRS modules, that just works.
+ * BK_SIM7000 library for GPRS modules, that just works.
  * Support SIM7000E/G GSM, LTE, and WiFi modules with AT command interfaces.
- * based on TinyGSM @ ^0.11.7
+ * based on Adafruit_FONA
  *
  *  AND Technologies Co., ltd, Breakout SIM7000 PCB board
  *  https://www.and-global.com
@@ -448,7 +448,7 @@ boolean BK_modem::setNetLED(bool onoff, uint8_t mode, uint16_t timer_on, uint16_
 {
     if (onoff)
     {
-        getReply(F("AT+CSGS?")); // Netlight Indication of GPRS Status
+        getReply(F("AT+CSGS?")); // Netlight Indication of GPRS Status.
 
         uint16_t stsMode;
         parseReply(F("+CSGS:"), &stsMode);
@@ -456,10 +456,9 @@ boolean BK_modem::setNetLED(bool onoff, uint8_t mode, uint16_t timer_on, uint16_
             <stsMode>
                 0 Disable
                 1 Enable, the netlight will be forced to enter into 64ms on/300ms off
-                blinking state in GPRS data transmission service. Otherwise, the
-                netlight state is not restricted. 2 Enable, the netlight will blink according to AT+SLEDS in GPRS data
-                transmission service.
-
+                  blinking state in GPRS data transmission service. 
+                  Otherwise, the netlight state is not restricted.
+                2 Enable, the netlight will blink according to AT+SLEDS in GPRS data transmission service.
         */
 
         if (stsMode == 2)
@@ -474,7 +473,6 @@ boolean BK_modem::setNetLED(bool onoff, uint8_t mode, uint16_t timer_on, uint16_
                 char auxStr[25];
 
                 sprintf(auxStr, "AT+SLEDS=%i,%i,%i", mode, timer_on, timer_off);
-
                 return sendCheckReply(auxStr, m_ok_reply);
             }
             else
@@ -3343,13 +3341,16 @@ boolean BK_modem::HTTP_action(uint8_t method, uint16_t *status,
                               uint16_t *datalen, int32_t timeout)
 {
     // Send GET/POST request to Server website.
-    if (!sendCheckReply(F("AT+HTTPACTION="), method, m_ok_reply, 15000))
+    if (!sendCheckReply(F("AT+HTTPACTION="), method, m_ok_reply, timeout))
     {
         return false;
     }
 
     // Parse response status and size.
     readline(timeout);
+
+    BK_DEBUG_PRINTLN( F("HTTPACTION responce: ") + String(m_replybuffer));
+
     if (!parseReply(F("+HTTPACTION:"), status, ',', 1))
     {
         return false;
@@ -3453,7 +3454,7 @@ boolean BK_modem::HTTP_POST_start(char *url,
     }
 
     // HTTP POST
-    if (!HTTP_action(_HTTP_POST, status, datalen))
+    if (!HTTP_action(_HTTP_POST, status, datalen, 15000))
     {
         return false;
     }
@@ -3602,7 +3603,7 @@ void BK_modem::flushInput()
         while (available())
         {
             read();
-            timeoutloop = 0; // If char was received reset the timer.
+            timeoutloop = 0;    // If char was received reset the timer.
         }
 
         delay(1);
@@ -4456,7 +4457,9 @@ String BK_modem_LTE::MQTT_getParameters(void)
     return res.substring(7, res.length());
 }
 
-// Connect or disconnect MQTT
+/// @brief Connect or disconnect MQTT
+/// @param yesno 
+/// @return 
 boolean BK_modem_LTE::MQTT_connect(bool yesno)
 {
     if (yesno)
@@ -4469,7 +4472,9 @@ boolean BK_modem_LTE::MQTT_connect(bool yesno)
     }
 }
 
-// Query MQTT connection status
+/// @brief : Query MQTT connection status
+/// @param  
+/// @return 
 boolean BK_modem_LTE::MQTT_connectionStatus(void)
 {
     if (!sendCheckReply(F("AT+SMSTATE?"), F("+SMSTATE: 1")))

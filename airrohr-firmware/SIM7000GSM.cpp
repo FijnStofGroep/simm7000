@@ -1,7 +1,7 @@
 /*
  * @file SIM7000GSM.cpp
  *
- * Written by R.Dieperink, Rolenco Leusden
+ * Written by R.Dieperink, Rolenco Leusden.
  * Date: 2024-04-26
  *
  * Version: 1.0.13
@@ -16,9 +16,9 @@
  * including commercial applications, and to alter it and redistribute it
  * freely, subject to the following restrictions:
  *
- * TinyGSM a small Arduino library for GPRS modules, that just works.
+ * a small BK_SIM7000 library for GPRS modules, that just works.
  * Support SIM7000E/G GSM, LTE, and WiFi modules with AT command interfaces.
- * based on TinyGSM @ ^0.11.7
+ * based on Adafruit_FONA
  *
  *  AND Technologies Co., ltd, Breakout SIM7000 PCB board
  *  https://www.and-global.com
@@ -45,6 +45,11 @@ extern String SOFTWARE_VERSION;
 extern int last_sendData_returncode;
 extern String esp_chipid;
 extern String esp_mac_id;
+
+extern char mqtt_client_id[LEN_MQTT_HEADER];
+extern char mqtt_header[LEN_MQTT_LARGE_HEADER];
+extern char mqtt_lwt_header[LEN_MQTT_LARGE_HEADER];
+extern const char mqtt_lwt[5] = MQTT_LWT;
 
 // original in html-content.h
 extern const char TXT_CONTENT_TYPE_JSON[] PROGMEM = "application/json";
@@ -187,23 +192,6 @@ void GPRSModemInfo()
     debug_outln_info(F("--- End of GPRS Information ---\n"));
 }
 
-/*****************************************************************
-    GPS function will be enabled.
-******************************************************************/
-void enableGPS(void)
-{
-    // Set Modem GPS Power Control Pin to HIGH, turn on GPS power
-    GSMmodem.enableGPS();
-}
-
-/*****************************************************************
-    GPS function will be disabled.
-******************************************************************/
-void disableGPS(void)
-{
-    GSMmodem.disableGPS();
-}
-
 /// @brief BK-SIM7000 PCB Power OFF.
 void modemPowerOff()
 {
@@ -240,7 +228,7 @@ inline boolean GPRSConnect()
     debug_outln_info(F("Connected to LTE cell network!"));
 
     // Disable data just to make sure it was actually off so that we can turn it on
-    //  modem.openWirelessConnection(false);
+    // GSMmodem.openWirelessConnection(false);
 
     // Open wireless connection if not already activated.
     if (!GSMmodem.wirelessConnStatus())
@@ -260,12 +248,6 @@ inline boolean GPRSConnect()
             GSMmodem.openWirelessConnection(false);
             return false;
         }
-
-    // if(cfg::debug > DEBUG_MED_INFO)
-    // {
-    //     String local = GSMmodem.getGPRSIP();
-    //     debug_outln_info(F("Local IP: "), local);
-    // }
 
         debug_outln_info( F("GPRS-IP address: ") + GSMmodem.getGPRSIP());
 
@@ -355,10 +337,11 @@ bool BK_Sim7000_setup()
         GSMmodem.setNetworkSettings(FPSTR(cfg7::gprsapn));
     }
 
-    if (cfg::gps_read)
+    if (cfg7::s7000_has_gps)
     { // Perform first-time GPS/data setup if the shield is going to remain on,
       // otherwise these won't be enabled in loop() and it won't work!
       // Enable GPS, first time take some time to start GPS process in sim7000 module
+
         while ( !GSMmodem.enableGPS() )
         {
             debug_outln_info(F("SETUP(): Failed to turn on GPS, retrying..."));
@@ -366,6 +349,21 @@ bool BK_Sim7000_setup()
         }
 
         debug_outln_info(F("GPS is Turned on."));
+    }
+
+    if (cfg::send2mqtt)
+    {
+        // ++ Set-Up Topic header for MQTT Broker.
+        strcpy(mqtt_client_id, SSID_BASENAME);
+		strcat(mqtt_client_id, esp_chipid.c_str());			// airRohr-<chipid>
+
+        RESERVE_STRING(_header, MED_STR);
+        _header = String(cfg::mqtt_topic) + "/" + String(mqtt_client_id);
+        strcpy(mqtt_header, _header.c_str());
+
+        _header += "/" + String(mqtt_lwt);
+        strcpy(mqtt_lwt_header, _header.c_str());
+        // -- Set-Up Topic header for MQTT Broker
     }
 
       // Set the network status LED blinking pattern while connected to a network (see AT+SLEDS command)
@@ -390,6 +388,7 @@ bool BK_Sim7000_setup()
 
 /*****************************************************************
     Get GPS Location. timeout = max. 5 sec.
+    to fast now.
 ******************************************************************/
 void GetGPSLocation(float *latitude, float *longitude, float *altitude, String &timestamp)
 {
@@ -404,6 +403,7 @@ void GetGPSLocation(float *latitude, float *longitude, float *altitude, String &
     // turn on NMEA output
     // GSMmodem.enableGPSNMEA(255);
 
+    // GPS function will be enabled.
     while (!GSMmodem.enableGPS())
     {
         debug_outln_info(F("LOOP(1): Failed to turn on GPS, retrying..."));
@@ -429,6 +429,7 @@ void GetGPSLocation(float *latitude, float *longitude, float *altitude, String &
             debug_outln_info(F("latitude: "), String(*latitude));
             debug_outln_info(F("longitude: "), String(*longitude));
             timestamp = String(year) + "-" + String(month) + "-" + String(day) + "-" + String(hour) + "-" + String(min) + "-" + String(sec) + ".000";
+            debug_outln_info(F("Date time: "), timestamp);
 
             break;
         }
@@ -436,7 +437,8 @@ void GetGPSLocation(float *latitude, float *longitude, float *altitude, String &
         delay(100); // max. 5 sec.
     }
 
-    disableGPS();
+    // GPS function will be disable.
+    GSMmodem.disableGPS();
 }
 
 /// @brief
@@ -450,6 +452,8 @@ uint8_t sendDataByMQTT(const char *topic, const char *payload)
         debug_outln_info(F("GSM module (GPRS) \"NOT\" connected.. "));
         return -100;
     }
+
+    debug_outln_info(F("Start send Data By MQTT process."));
 
     GPRSConnect();
 
@@ -496,18 +500,10 @@ uint8_t sendDataByMQTT(const char *topic, const char *payload)
         debug_outln_info(F("Failed to publish!")); // Send GPS location
     }
 
-    // Note the command below may error out if you're already subscribed to the topic!
-    // #define SUB_TOPIC       "command"             // Subscribe topic name
-    // GSMmodem.MQTT_subscribe( SUB_TOPIC, 1);       // Topic name, QoS
-
-    // Unsubscribe from topics if wanted:
-    // GSMmodem.MQTT_unsubscribe(SUB_TOPIC);
-
-    // Enable MQTT data format to hex
-    // GSMmodem.MQTT_dataFormatHex(true); // Input "false" to reverse
-
     // Disconnect from MQTT
-    // GSMmodem.MQTT_connect(false);
+    GSMmodem.MQTT_connect(false);
+
+    debug_outln_info(F("End send Data By MQTT process."));
 
     return 0;
 }

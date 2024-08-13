@@ -99,6 +99,10 @@
  * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
  * RAM:     [=====     ]  47.9% (used 39264 bytes from 81920 bytes)		*
  * PROGRAM: [======    ]  64.4% (used 672501 bytes from 1044464 bytes)	*
+ *                                                                      *
+ * * latest build 2024-08-13											* 
+ * RAM:     [=====     ]  48.5% (used 39728 bytes from 81920 bytes)     *
+ * PROGRAM: [=======   ]  65.5% (used 684089 bytes from 1044464 bytes)  *
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -4154,11 +4158,9 @@ static void setup_mqtt_broker(const char *host, const int port)
 		debug_outln_info(F("\n** Start Initialize MQTT Broker connection **"));
 
 		// ++ Set-Up Topic header for MQTT Broker
-		String _header = String(cfg::mqtt_topic) + "/" + String(mqtt_client_id);
-		if (_header.length() <= LEN_MQTT_LARGE_HEADER)
-		{
-			strcpy(mqtt_header, _header.c_str());
-		}
+        RESERVE_STRING(_header, MED_STR);
+		_header = String(cfg::mqtt_topic) + "/" + String(mqtt_client_id);
+		strcpy(mqtt_header, _header.c_str());
 
 		_header += "/" + String(mqtt_lwt);
 		strcpy(mqtt_lwt_header, _header.c_str());
@@ -4931,7 +4933,7 @@ static void sendmqtt(const String &data)
             }
             else
             {
-                //sendDataByMQTT(status_header.c_str(), payload_status.c_str());
+                sendDataByMQTT(status_header.c_str(), payload_status.c_str());
             }
 
             // default LWT online
@@ -4955,7 +4957,7 @@ static void sendmqtt(const String &data)
             }
             else
             {
-                //sendDataByMQTT(mqtt_lwt_header, payload_mess_on.c_str());
+                sendDataByMQTT(mqtt_lwt_header, payload_mess_on.c_str());
             }
         }
 	}
@@ -8704,7 +8706,7 @@ static unsigned long sendDataToOptionalApis(const String &data)
 	}
 
 #if defined(ESP8266)
-	if ( cfg::has_s7000 || cfg::send2mqtt)
+	if ( cfg::send2mqtt)
 	{ // MQTT send process.
 		unsigned long  starttime_MQTT = millis();
 
@@ -8830,13 +8832,6 @@ void setup(void)
 	delay(50);
 	digitalWrite(RST_OLED, HIGH);
 #endif
-
-/*	Debug -Tijdelijk verplaatst naar regel 8212 ivm Wifi start langzaam/actief ... 5 minuten..?
-	if(cfg::has_s7000)
-	{
-		SIM700LTEConnect();
-	}
-*/
 
 	init_display();
 	setupNetworkTime();			// set Callback function ptr into NTPSERVER function callback table.
