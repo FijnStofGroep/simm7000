@@ -1,4 +1,6 @@
 
+#ifndef html_content_h
+#define html_content_h
 
 #define INTL_FORUM "Forum Sensor.Community"
 const char TXT_CONTENT_TYPE_JSON[] PROGMEM = "application/json";
@@ -201,3 +203,4 @@ const char WEB_NC10[]  PROGMEM = "NC10";
 const char WEB_TPS[]   PROGMEM = "TPS";
 const char WEB_GPS[]   PROGMEM = "GPS";
 
+#endif // html_content_h

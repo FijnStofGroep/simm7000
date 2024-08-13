@@ -78,6 +78,8 @@
  * New Debug level code 88 ("DEBUG_ENGINEER_INFO"):						*
  * 		Special engineer Debug lines send to USB port					*
  * 																		*
+ * documentation Exception error list                                   *
+ *https://arduino-esp8266.readthedocs.io/en/latest/exception_causes.html*
  ************************************************************************
  * 																		*
  * latest build using lib 3.1.0											*
@@ -169,8 +171,7 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include <DallasTemperature.h>
 #include <SparkFun_SCD30_Arduino_Library.h>
 #include <SensirionI2CSen5x.h>
-#include <TinyGPS++.h>					//  Arduino library for parsing NMEA data streams provided by GPS modules.
-#include <TinyGsmClientSIM7000.h>
+#include <TinyGPS++.h>					//  Arduino library for parsing NMEA data streams provided by GPS modules. 
 
 // local/modified header files.
 #include "./bmx280_i2c.h"
@@ -183,8 +184,8 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include "./RCWL-0516.h"
 
 #if defined(ESP8266)
-// SIM7000 source code + header files located in ".\lib" folder.
-#include <SIM7000LTE.h>
+// BK-SIM7000 source code + header files located in ".\lib" folder.
+#include "./SIM7000GSM.h"
 #include "./airrohr-cfg7000.h"
 #include "./sim7000_html.h"
 
@@ -197,16 +198,16 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 // Temp language fields.
 #include "./intl_new.h"
 
-	/******************************************************************
-	 * The variables inside the cfg namespace are persistent          *
-	 * configuration values. They have defaults which can be          *
-	 * configured at compile-time via the ext_def.h file              *
-	 * They can be changed by the user via the web interface, the     *
-	 * changes are persisted to the flash and read back after reboot. *
-	 * Note that the names of these variables can't be easily changed *
-	 * as they are part of the json format used to persist the data.  *
-	 ******************************************************************/
-	namespace cfg
+/******************************************************************
+ * The variables inside the cfg namespace are persistent          *
+ * configuration values. They have defaults which can be          *
+ * configured at compile-time via the ext_def.h file              *
+ * They can be changed by the user via the web interface, the     *
+ * changes are persisted to the flash and read back after reboot. *
+ * Note that the names of these variables can't be easily changed *
+ * as they are part of the json format used to persist the data.  *
+ ******************************************************************/
+namespace cfg
 {
 	unsigned debug = DEBUG;
 	
@@ -925,6 +926,7 @@ static void display_debug(const String &text1, const String &text2)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #pragma GCC diagnostic ignored "-Wunused-function"
+
 static void readFileContents( String fileName)
 {
 	debug_outln_verbose(F("Reading file contents: "), fileName);
@@ -2374,11 +2376,11 @@ static void add_age_last_values(String &sourceStr)
 	sourceStr += FPSTR(WEB_B_BR_BR);
 }
 
-/*****************************************************************
+/*************************************************************************
  * Webserver request auth: prompt for BasicAuth
  *
- * -Provide BasicAuth for all page contexts except /values and images
- *****************************************************************/
+ * - Provide BasicAuth for all page contexts except /values and images
+ *************************************************************************/
 static bool webserver_request_auth()
 {
 	if (cfg::www_basicauth_enabled && !wificonfig_loop)
@@ -2408,7 +2410,8 @@ static void sendHttpRedirect()
 							 );
 
 	String defaultAddress = F("http://") + defaultIP.toString() + F("/config");
-	debug_outln_info(F("--- void sendHttpRedirect ---"));
+    debug_outln_info(F("--- void sendHttpRedirect ---"));
+
 	server.sendHeader(F("Location"), defaultAddress);
 	server.send(302, FPSTR(TXT_CONTENT_TYPE_TEXT_HTML), emptyString);
 }
@@ -2418,45 +2421,44 @@ static void sendHttpRedirect()
  *****************************************************************/
 static void webserver_root()
 {
-		if (WiFi.status() != WL_CONNECTED)
-		{
-			debug_outln_info(F("--- void webserver_root ---"));
-			if (cfg::has_s7000 == 0) // Allways AP mode for LTE
-			{
-				sendHttpRedirect(); 
-			}
-		}
-		else
-		{
-		if (!webserver_request_auth())
-		{
-			return;
-		}
-		}
-		RESERVE_STRING(page_content, XLARGE_STR);
-		start_html_page(page_content, emptyString);
-		debug_outln_info(F("ws: root ..."));
+    if (!cfg::has_s7000)
+    {
+        if (WiFi.status() != WL_CONNECTED)
+        {
+            sendHttpRedirect();
+        }
+        else
+        {
+            if (!webserver_request_auth())
+            {
+                return;
+            }
+        }
+    }
 
-		// Enable Pagination
-		if (cfg::has_s7000)
-		{
-		 	page_content += FPSTR(WEB_ROOT_PAGE_CONTENT_S7000);
-		}
-		else
-		{
-		 	page_content += FPSTR(WEB_ROOT_PAGE_CONTENT);	
-		}
+    RESERVE_STRING(page_content, XLARGE_STR);
+    start_html_page(page_content, emptyString);
+    debug_outln_info(F("ws: root ..."));
 
-		page_content.replace(F("{t}"), FPSTR(INTL_CURRENT_DATA));
-		page_content.replace(F("{s}"), FPSTR(INTL_DEVICE_STATUS));
-		page_content.replace(F("{conf}"), FPSTR(INTL_CONFIGURATION));
-		page_content.replace(F("{s7000}"), FPSTR(INTL_SIM7000_CONFIGURATION));
-		page_content.replace(F("{restart}"), FPSTR(INTL_RESTART_SENSOR));
-		page_content.replace(F("{debug}"), FPSTR(INTL_DEBUG_LEVEL));
-		page_content.replace(F("{update}"), FPSTR(INTL_UPDATE_FIRMWARE));
+    // Enable Pagination
+    if (cfg::has_s7000)
+    {
+        page_content += FPSTR(WEB_ROOT_PAGE_CONTENT_S7000);
+    }
+    else
+    {
+        page_content += FPSTR(WEB_ROOT_PAGE_CONTENT);
+    }
 
-		end_html_page(page_content);
-	
+    page_content.replace(F("{t}"), FPSTR(INTL_CURRENT_DATA));
+    page_content.replace(F("{s}"), FPSTR(INTL_DEVICE_STATUS));
+    page_content.replace(F("{conf}"), FPSTR(INTL_CONFIGURATION));
+    page_content.replace(F("{s7000}"), FPSTR(INTL_SIM7000_CONFIGURATION));
+    page_content.replace(F("{restart}"), FPSTR(INTL_RESTART_SENSOR));
+    page_content.replace(F("{debug}"), FPSTR(INTL_DEBUG_LEVEL));
+    page_content.replace(F("{update}"), FPSTR(INTL_UPDATE_FIRMWARE));
+
+    end_html_page(page_content);
 }
 
 /*****************************************************************
@@ -2872,6 +2874,7 @@ static void webserver_config_send_body_get7(String &page_content)
 	add_form_input7(page_content, Config7000_gprsapn, FPSTR(INTL_SIM_APN), LEN_SIMM7000 - 1);
     add_form_input7(page_content, Config7000_gprsUser, FPSTR(INTL_SIM_USER), LEN_SIMM7000 - 1);
     add_form_input7(page_content, Config7000_gprsPass, FPSTR(INTL_SIM_PASS), LEN_SIMM7000 - 1);
+//	add_form_input7(page_content, Config7000_type, FPSTR(INTL_SIM_TYPE), LEN_SIMM7000 - 1);
 	page_content += form_select_mode7();
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	page_content += FPSTR(WEB_BR_BR);
@@ -3028,13 +3031,13 @@ static void webserver_config7()
 
 	if (server.method() == HTTP_GET)
 	{
-		debug_outln_info(F("HTTP_GET"));
+		debug_outln_info(F("SIM7000: HTTP_GET."));
 		webserver_config_send_body_get7(page_content);
 
 	}
 	else
 	{
-		debug_outln_info(F("HTTP_POST7"));
+		debug_outln_info(F("SIM7000: HTTP_POST."));
 		webserver_config_send_body_post7(page_content);
 	}
 
@@ -3072,9 +3075,16 @@ static void webserver_config7()
 static void sensor_restart()
 {
 #if defined(ESP8266)
-	WiFi.disconnect();
-	WiFi.mode(WIFI_OFF);
-	delay(100);
+    if(!cfg::has_s7000)
+    {
+        WiFi.disconnect();
+        WiFi.mode(WIFI_OFF);
+        delay(100);
+    }
+    else
+    {// BK-Sim7000 Modem Power Off.
+        modemPowerOff();
+    }
 #endif
 
 #pragma GCC diagnostic push
@@ -3231,17 +3241,17 @@ static void webserver_firmware_update()
  *****************************************************************/
 static void webserver_values()
 {
-	if (cfg::has_s7000 == 0) // Allways AP mode for LTE
-	{
-		if (WiFi.status() != WL_CONNECTED)
-		{
-			debug_outln_info(F("--- webserver_values ---"));
-			sendHttpRedirect();
-			return;
-		}
- 	}
+    if (!cfg::has_s7000) // Allways AP mode for LTE
+    {
+        if (WiFi.status() != WL_CONNECTED)
+        {
+            debug_outln_info(F("--- webserver_values ---"));
+            sendHttpRedirect();
+            return;
+        }
+    }
 
-	RESERVE_STRING(page_content, XLARGE_STR);
+    RESERVE_STRING(page_content, XLARGE_STR);
 	start_html_page(page_content, FPSTR(INTL_CURRENT_DATA));
 	const String unit_Deg("°");
 	const String unit_P("hPa");
@@ -3527,18 +3537,18 @@ static void webserver_values()
  *****************************************************************/
 static void webserver_status()
 {
-	if (cfg::has_s7000 == 0) // Allways AP mode for LTE
-	{
-		debug_outln_info(F("--- void webserver_status ---"));
-		if (WiFi.status() != WL_CONNECTED)
-		{
-			sendHttpRedirect();
-			debug_outln_info(F("ws: status => WiFi not connected ..."));
-			return;
-		}
-	}
+    if (!cfg::has_s7000) // Allways AP mode for LTE
+    {
+        debug_outln_info(F("--- void webserver_status ---"));
+        if (WiFi.status() != WL_CONNECTED)
+        {
+            sendHttpRedirect();
+            debug_outln_info(F("ws: status => WiFi not connected ..."));
+            return;
+        }
+    }
 
-	RESERVE_STRING(page_content, XLARGE_STR);
+    RESERVE_STRING(page_content, XLARGE_STR);
 	start_html_page(page_content, FPSTR(INTL_DEVICE_STATUS));
 
 	debug_outln_info(F("ws: status => create webpage ..."));
@@ -4088,7 +4098,7 @@ static void webserver_not_found()
 		}
 		else
 		{
-			debug_outln_info(F("--- void webserver_not_found ---"));
+            debug_outln_info(F("--- webserver_not_found ---"));
 			sendHttpRedirect();
 		}
 	}
@@ -4256,7 +4266,7 @@ static void wifi_AP_Config()
 
 	if (scanReturnCode < 0)
 	{
-		debug_outln_error(F("WiFi scan failed. Treating as empty. "));
+		debug_outln_error(F("WiFi scan failed. Treating as empty."));
 		count_wifiInfo = 0;
 	}
 	else
@@ -4315,28 +4325,33 @@ static void wifi_AP_Config()
 	// In case we create a unique password at first start
 	debug_outln_info(F("AP Password is: "), cfg::fs_pwd);
 
+    if (cfg::has_s7000) 
+    {// Wifi interface allways in AP mode in case of GSM mode.
+        wificonfig_loop = false;
+        return;
+    }
+
 	DNSServer dnsServer;
 	// Ensure we don't poison the client DNS cache
 	dnsServer.setTTL(0);
 	dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
 	dnsServer.start(53, "*", apIP); 					// 53 is port for DNS server
 
-	setup_webserver();
+    // Webserver setup menu function table list.
+    setup_webserver();
 
-	// 10 minutes timeout for wifi config.
+    // 10 minutes timeout for wifi config.
 	last_page_load = millis();
 
-	if (cfg::has_s7000 == 0) // Allways AP mode for LTE
+	while ((millis() - last_page_load) < cfg::time_for_wifi_config + 500)
 	{
-		while ((millis() - last_page_load) < cfg::time_for_wifi_config + 500)
-		{
-			dnsServer.processNextRequest();
-			server.handleClient();
+		dnsServer.processNextRequest();
+		server.handleClient();
 
- #if defined(ESP8266)
-		wdt_reset(); 		// nodemcu is alive
+#if defined(ESP8266)
+		wdt_reset(); 		// watchdog timer reset => nodemcu is still alive.
 		MDNS.update();
- #endif
+#endif
 
 		yield();
 
@@ -4349,8 +4364,7 @@ static void wifi_AP_Config()
 
 	debug_outln_info(emptyString);			// LF/CR char.
 
-// after 10 minutes waiting on server commando's => restart current configuration settings. 
-
+// after 10 minutes waiting on server commando's => restart current configuration settings.
 	WiFi.softAPdisconnect(true);
 
 	wifi.policy = WIFI_COUNTRY_POLICY_MANUAL;
@@ -4372,20 +4386,20 @@ static void wifi_AP_Config()
 	dnsServer.stop();
 	delay(100);
 
-		if (cfg::has_fix_ip)
-		{
-			WiFi.begin(cfg::wlanssid, cfg::wlanpwd);
-			waitForWifiToConnect(20);
-		}
-		else
-		{
-			// Register multi WiFi networks
-			RegisterMultiWiFiNetworks(WIFI_MAX_RETRY);
-		}
+	if (cfg::has_fix_ip)
+	{
+		WiFi.begin(cfg::wlanssid, cfg::wlanpwd);
+		waitForWifiToConnect(20);
+	}
+	else
+	{
+		// Register multi WiFi networks
+		RegisterMultiWiFiNetworks(WIFI_MAX_RETRY);
+	}
 
 	// debug_outln_info(FPSTR(DBG_TXT_CONNECTING_TO), cfg::wlanssid);
-}	
 	debug_outln_info(FPSTR(DBG_TXT_CONNECTING_TO), WiFi.SSID());
+
 	debug_outln_info(F("---- Result Webconfig ----"));
 	debug_outln_info(F("WLANSSID: "), cfg::wlanssid);
 	debug_outln_info(F("WLANSSID_2: "), cfg::wlanssid_2);
@@ -4507,7 +4521,7 @@ static WiFiEventHandler disconnectEventHandler;
 ******************************************************************/
 static void connectWifi()
 {
-	display_debug(F("Connecting to"), String(cfg::wlanssid));
+	display_debug(F("Start connectWifi() method.."), String(cfg::wlanssid));
 
 #if defined(ESP8266)
 	// Enforce Rx/Tx calibration
@@ -4542,7 +4556,7 @@ static void connectWifi()
 		WiFi.setAutoReconnect(true);
 	}
 
-	// Use 13 channels for connect to known AP
+	// Use 13 channels for connect to known AP/STA mode
 	wifi_country_t wifi;
 	wifi.policy = WIFI_COUNTRY_POLICY_MANUAL;
 	strcpy(wifi.cc, INTL_LANG);
@@ -4568,15 +4582,15 @@ static void connectWifi()
 	WiFi.hostname(cfg::fs_ssid);
 
 	if (cfg::has_fix_ip &&
-		addr_static_ip.fromString(cfg::static_ip) &&
-		addr_static_subnet.fromString(cfg::static_subnet) &&
-		addr_static_gateway.fromString(cfg::static_gateway) &&
-		addr_static_dns.fromString(cfg::static_dns) &&
-		cfg::has_s7000 == 0) // AP mode ip  192.168.4.1
+		addr_static_ip.fromString(cfg::static_ip) && 
+		addr_static_subnet.fromString(cfg::static_subnet) && 
+		addr_static_gateway.fromString(cfg::static_gateway) && 
+		addr_static_dns.fromString(cfg::static_dns))
+        
 	{
 		//WiFi.config(addr_static_ip, addr_static_gateway, addr_static_subnet, addr_static_dns, addr_static_dns);
-
 		WiFi.config(addr_static_ip, addr_static_gateway, addr_static_subnet, addr_static_dns);
+		
 		WiFi.begin(cfg::wlanssid, cfg::wlanpwd); 				// Open/Start WiFI coonection to router/modem.
 
 		waitForWifiToConnect(40);
@@ -4585,10 +4599,7 @@ static void connectWifi()
 	else
 	{
 		// Register multi WiFi networks.
-		if (cfg::has_s7000 == 0) // Allways AP mode for LTE
-		{
-			RegisterMultiWiFiNetworks(WIFI_MAX_RETRY);
-		}
+		RegisterMultiWiFiNetworks(WIFI_MAX_RETRY);
 	}
 #endif
 
@@ -4617,13 +4628,10 @@ static void connectWifi()
 		// start Server Configuration website.
 		wifi_AP_Config();
 
-		if (cfg::has_s7000 == 0) // Allways AP mode for LTE
+		if (WiFi.status() != WL_CONNECTED)
 		{
-			if (WiFi.status() != WL_CONNECTED)
-			{
-				waitForWifiToConnect(20);
-				debug_outln_info(emptyString);
-			}
+			waitForWifiToConnect(20);
+			debug_outln_info(emptyString);
 		}
 	}
 
@@ -4681,8 +4689,8 @@ static WiFiClient *getNewLoggerWiFiClient(const LoggerEntry logger)
  * send data to rest api => By Wifi                              *
  * return: total send time										 *
  *****************************************************************/
-static unsigned long sendData(const LoggerEntry logger, const String &data, const int pin,
-							  const char *host, const char *url)
+static unsigned long sendDataByWifi(const LoggerEntry logger, const String &data, const int pin,
+							        const char *host, const char *url)
 {
 	unsigned long start_send = millis();
 	const __FlashStringHelper *contentType;
@@ -4736,7 +4744,7 @@ static unsigned long sendData(const LoggerEntry logger, const String &data, cons
 			http.addHeader(F("X-PIN"), String(pin));
 		}
 
-		// POST sensor data to sensor.community server.
+		// POST sensor data to ex. sensor.community server.
 		result = http.POST(data);
 
 		if (result >= HTTP_CODE_OK && result <= HTTP_CODE_ALREADY_REPORTED)
@@ -4767,6 +4775,23 @@ static unsigned long sendData(const LoggerEntry logger, const String &data, cons
 }
 
 /*****************************************************************
+ * send data to rest api => By Wifi or LTE (4G)                  *
+ * return: total send time										 *
+ *****************************************************************/
+static unsigned long sendData(const LoggerEntry logger, const String &data, const int pin,
+							  const char *host, const char *url)
+{
+    if(!cfg::has_s7000)
+    {
+        return sendDataByWifi( logger, data, pin, host, url);
+    }
+    else
+    {
+        return sendDataByGSM( logger, data, pin, host, loggerConfigs[logger].destport, url);
+    }
+}
+
+/*****************************************************************
  * send single sensor data to sensor.community api               *
  *****************************************************************/
 static unsigned long sendSensorCommunity(const String &data, const int pin, const __FlashStringHelper *sensorname, const char *replace_str)
@@ -4786,24 +4811,9 @@ static unsigned long sendSensorCommunity(const String &data, const int pin, cons
 		data_sensorcommunity.replace(replace_str, emptyString);
 		data_sensorcommunity += "]}";
 
-		if (cfg::has_s7000) // Data  LTE
-		{
-		// hier code for LTE
-		debug_outln_info(F("Sending LTE ?? "));
-		//TinyGsmSim7000::modemConnect(HOST_SENSORCOMMUNITY, 80, 0, false, 75);
-		//uint8_t port = 80;
-		//uint8_t mux = 0;
-		//bool ssl = 0;
-		//int delay = 75;
-		// sum_send_time = LTEmodem.modemConnect(HOST_SENSORCOMMUNITY, port, mux, ssl, delay);
+		sum_send_time = sendData(LoggerSensorCommunity, data_sensorcommunity, pin, HOST_SENSORCOMMUNITY, URL_SENSORCOMMUNITY);
 
-		//modemConnect;
-		}
-		else 
-		{
-		sum_send_time = sendData(LoggerSensorCommunity, data_sensorcommunity, pin, HOST_SENSORCOMMUNITY, URL_SENSORCOMMUNITY);	
 		debug_outln_verbose( F("Sensor.Community data:\n"), data_sensorcommunity);
-		}
 	}
 
 	return sum_send_time;
@@ -4817,12 +4827,12 @@ static void sendmqtt(const String &data)
 {
 #if defined(ESP8266)
 
-	if ( !mqtt_client.connected())
+	if ( !cfg::has_s7000 && !mqtt_client.connected())
 	{// after x time MQTT connection will be lost wifi connection.... but why ????
 		setup_mqtt_broker( cfg::mqtt_server, cfg::mqtt_port);
 	}
 
-	if (mqtt_client.connected())
+	if ( cfg::has_s7000 || mqtt_client.connected())
 	{
 		// data is ~ 1550 bytes, max_size for publish is MQTT_MAX_PACKET_SIZE (128)
 		// upgrading to ArduinoJson version 6.21.2.
@@ -4866,18 +4876,25 @@ static void sendmqtt(const String &data)
 			debug_outln_info(F("- topic = "), (String &)header);
 			debug_outln_verbose(F("- payload = "), (String &)payload);
 
-			if (mqtt_client.publish(header.c_str(), payload.c_str()))
-			{
-				debug_outln_info(F("Sensor send ok..."));
-				mqtt_error = "ok";
-			}
-			else
-			{
-				debug_outln_info(F("Sensor send failed..."));
-				mqtt_error = "failed";
-			}
+            if ( !cfg::has_s7000)
+            {
+                if (mqtt_client.publish(header.c_str(), payload.c_str()))
+                {
+                    debug_outln_info(F("Sensor send ok..."));
+                    mqtt_error = "ok";
+                }
+                else
+                {
+                    debug_outln_info(F("Sensor send failed..."));
+                    mqtt_error = "failed";
+                }
+            }
+            else
+            {
+                sendDataByMQTT(header.c_str(), payload.c_str());
+            }
 
-			status_header = mqtt_header;
+            status_header = mqtt_header;
 			status_header += "/status";
 
 			payload_status = "{\"";
@@ -4899,33 +4916,48 @@ static void sendmqtt(const String &data)
 			debug_outln_info(F("- status topic = "), (String &)status_header);
 			debug_outln_verbose(F("- status payload = "), (String &)payload_status);
 
-			if(mqtt_client.publish(status_header.c_str(), payload_status.c_str()))
-			{
-				debug_outln_info(F("Status send ok..."));
-				//mqtt_error = "ok";
-			}
-			else
-			{
-				debug_outln_info(F("Status send failed..."));
-				//mqtt_error = "failed";
-			}
+            if ( !cfg::has_s7000)
+            {
+                if (mqtt_client.publish(status_header.c_str(), payload_status.c_str()))
+                {
+                    debug_outln_info(F("Status send ok..."));
+                    // mqtt_error = "ok";
+                }
+                else
+                {
+                    debug_outln_info(F("Status send failed..."));
+                    // mqtt_error = "failed";
+                }
+            }
+            else
+            {
+                //sendDataByMQTT(status_header.c_str(), payload_status.c_str());
+            }
 
-			// default LWT online
+            // default LWT online
 			debug_outln_info(F("- LWT topic = "), mqtt_lwt_header);
 
 			String payload_mess_on = INTL_ONLINE;
-			if( mqtt_client.publish(mqtt_lwt_header, payload_mess_on.c_str()))
-			{
-				debug_outln_verbose(F("- LWT payload = "), (String &)payload_mess_on);
-				debug_outln_info(F("LWT send ok..."));
-				//mqtt_error = "ok";
-			}
-			else
-			{
-				debug_outln_info(F("LWT send failed..."));
-				//mqtt_error = "failed";
-			}
-		}
+
+            if ( !cfg::has_s7000)
+            {
+                if (mqtt_client.publish(mqtt_lwt_header, payload_mess_on.c_str()))
+                {
+                    debug_outln_verbose(F("- LWT payload = "), (String &)payload_mess_on);
+                    debug_outln_info(F("LWT send ok..."));
+                    // mqtt_error = "ok";
+                }
+                else
+                {
+                    debug_outln_info(F("LWT send failed..."));
+                    // mqtt_error = "failed";
+                }
+            }
+            else
+            {
+                //sendDataByMQTT(mqtt_lwt_header, payload_mess_on.c_str());
+            }
+        }
 	}
 
 #endif
@@ -6594,65 +6626,69 @@ static __noinline void fetchSensorGPS(String &s)
 {
 	debug_outln_verbose(FPSTR(DBG_TXT_START_READING), "GPS");
 
-	if (gps.location.isUpdated())
-	{
-		if (gps.location.isValid())
-		{
-			last_value_GPS_lat = gps.location.lat();
-			last_value_GPS_lon = gps.location.lng();
-		}
-		else
-		{
-			last_value_GPS_lat = -200;
-			last_value_GPS_lon = -200;
-			debug_outln_verbose(F("Lat/Lng INVALID"));
-		}
+    if (!cfg7::s7000_has_gps)
+    {
+        if (gps.location.isUpdated())
+        {
+            if (gps.location.isValid())
+            {
+                last_value_GPS_lat = gps.location.lat();
+                last_value_GPS_lon = gps.location.lng();
+            }
+            else
+            {
+                last_value_GPS_lat = -200;
+                last_value_GPS_lon = -200;
+                debug_outln_verbose(F("Lat/Lng INVALID"));
+            }
 
-		if (gps.altitude.isValid())
-		{
-			last_value_GPS_alt = gps.altitude.meters();
-		}
-		else
-		{
-			last_value_GPS_alt = -1000;
-			debug_outln_verbose(F("Altitude INVALID"));
-		}
+            if (gps.altitude.isValid())
+            {
+                last_value_GPS_alt = gps.altitude.meters();
+            }
+            else
+            {
+                last_value_GPS_alt = -1000;
+                debug_outln_verbose(F("Altitude INVALID"));
+            }
 
-		if (!gps.date.isValid())
-		{
-			debug_outln_verbose(F("Date INVALID"));
-		}
+            if (!gps.date.isValid())
+            {
+                debug_outln_verbose(F("Date INVALID"));
+            }
 
-		if (!gps.time.isValid())
-		{
-			debug_outln_verbose(F("Time: INVALID"));
-		}
+            if (!gps.time.isValid())
+            {
+                debug_outln_verbose(F("Time: INVALID"));
+            }
 
-		if (gps.date.isValid() && gps.time.isValid())
-		{
-			char gps_datetime[37];
-			snprintf_P(gps_datetime, sizeof(gps_datetime), PSTR("%04d-%02d-%02dT%02d:%02d:%02d.%03d"),
-					   gps.date.year(), gps.date.month(), gps.date.day(), gps.time.hour(), gps.time.minute(), gps.time.second(), gps.time.centisecond());
-			last_value_GPS_timestamp = gps_datetime;
-		}
-		else
-		{
-			// define a default value
-			last_value_GPS_timestamp = F("2023-01-01T00:00:00.000");
-		}
-	}
+            if (gps.date.isValid() && gps.time.isValid())
+            {
+                char gps_datetime[37];
+                snprintf_P(gps_datetime, sizeof(gps_datetime), PSTR("%04d-%02d-%02dT%02d:%02d:%02d.%03d"),
+                           gps.date.year(), gps.date.month(), gps.date.day(), gps.time.hour(), gps.time.minute(), gps.time.second(), gps.time.centisecond());
+                last_value_GPS_timestamp = gps_datetime;
+            }
+            else
+            {
+                // define a default value
+                last_value_GPS_timestamp = F("2023-01-01T00:00:00.000");
+            }
+        }
+    }
     else
     {
         float latitude, longitude, altitude;
-
-        GetGPSLocation(&latitude, &longitude, &altitude);
+        RESERVE_STRING(gps_datetime, 20);
+        GetGPSLocation(&latitude, &longitude, &altitude, gps_datetime);
 
         last_value_GPS_lat = latitude;
 		last_value_GPS_lon = longitude;
-
         last_value_GPS_alt = altitude;
+        last_value_GPS_timestamp = gps_datetime;
+
         // define a default value
-		last_value_GPS_timestamp = F("2023-01-01T00:00:00.000");
+		//last_value_GPS_timestamp = F("2023-01-01T00:00:00.000");
     }
 
 	if (send_now)
@@ -7823,7 +7859,6 @@ static void display_values()
 	// PM10/2.5: 1999/999
 	// T/H: -10.0°C/100.0%
 	// T/P: -10.0°C/1000hPa
-
 	if (lcd_1602)
 	{
 		switch (screens[next_display_count % screen_count])
@@ -8669,7 +8704,7 @@ static unsigned long sendDataToOptionalApis(const String &data)
 	}
 
 #if defined(ESP8266)
-	if (cfg::send2mqtt)
+	if ( cfg::has_s7000 || cfg::send2mqtt)
 	{ // MQTT send process.
 		unsigned long  starttime_MQTT = millis();
 
@@ -8691,13 +8726,14 @@ static unsigned long sendDataToOptionalApis(const String &data)
 
 		sendmqtt(data_sensemap);
 
-		if (mqtt_client.connected())
+		if ( !cfg::has_s7000 && mqtt_client.connected())
 		{
 			mqtt_client.loop();
 		}
 
 		sum_send_time += millis() - starttime_MQTT;				//  micros() - starttime_MQTT;
 	}
+
 #endif
 
 	return sum_send_time;
@@ -8804,10 +8840,28 @@ void setup(void)
 
 	init_display();
 	setupNetworkTime();			// set Callback function ptr into NTPSERVER function callback table.
-	connectWifi();
-	
-	setup_webserver();
 
+    if (!cfg::has_s7000)
+    { 
+        connectWifi();
+    }
+    else
+    { // Wifi mode allways in "AP" mode in case of GSM.
+      // Start Server Configuration website.
+        wifi_AP_Config();
+
+		debug_outln_info(F("** Start BK-SIM7000 PCB communication... **"));
+		if( BK_Sim7000_setup())
+		{
+			debug_outln_info(F("** BK-SIM7000 Board connected. **"));
+		}
+		else
+		{
+			debug_outln_info(F("** BK-SIM7000 Board \"NOT\" connected. **"));
+		}
+    }
+
+    setup_webserver();
 	createLoggerConfigs();
 
 	debug_outln_info(F("\nChipId: "), esp_chipid);
@@ -8830,18 +8884,6 @@ void setup(void)
 		}
 	}
 
-	if (cfg::has_s7000)
-	{
-		debug_outln_info(F("Start with SIM7000 PCB communication..."));
-		if( SIM7000LTEConnect())
-		{
-			debug_outln_info(F("SIM7000 connected."));
-		}
-		else
-		{
-			debug_outln_info(F("SIM7000 NOT connected."));
-		}
-	}
 
 #endif
 
@@ -9025,23 +9067,28 @@ void loop(void)
 		}
 	}
 
-	if (cfg::gps_read && !gps_init_failed)
-	{
-		// process serial GPS data..
-		while (serialGPS->available() > 0)
-		{
-			gps.encode(serialGPS->read());
-		}
+    if (cfg::gps_read && !gps_init_failed)
+    {
+        // process serial GPS data..
+        while (serialGPS->available() > 0)
+        {
+            gps.encode(serialGPS->read());
+        }
 
-		if ((msSince(starttime_GPS) > SAMPLETIME_GPS_MS) || send_now)
-		{
-			// getting GPS coordinates
-			fetchSensorGPS(result_GPS);
-			starttime_GPS = act_milli;
-		}
-	}
+        if ((msSince(starttime_GPS) > SAMPLETIME_GPS_MS) || send_now)
+        {
+            // getting GPS coordinates
+            fetchSensorGPS(result_GPS);
+            starttime_GPS = act_milli;
+        }
+    }
 
-	if ( (msSince(last_display_millis) > DISPLAY_UPDATE_INTERVAL_MS) &&
+    if (cfg::has_s7000 && cfg7::s7000_has_gps)
+    {
+         fetchSensorGPS(result_GPS);
+    }
+
+    if ( (msSince(last_display_millis) > DISPLAY_UPDATE_INTERVAL_MS) &&
 		 (cfg::has_display || cfg::has_sh1106 || lcd_1602 || lcd_2004) )
 	{ // Update "OLED" Display lines.
 		display_values();
@@ -9279,27 +9326,28 @@ void loop(void)
 			debug_outln_info(F("Time for Sending (ms): "), String(sending_time));
 		}
 
-		// reconnect to WiFi if disconnected
-		if (cfg::has_s7000 == 0) // Allways AP mode for LTE
-		{
-			if (WiFi.status() != WL_CONNECTED) {
-				debug_outln_info(F("Connection lost, reconnecting "));
+        if (!cfg::has_s7000)
+        {
+            // reconnect to WiFi if disconnected
+            if (WiFi.status() != WL_CONNECTED)
+            {
+                debug_outln_info(F("Connection lost, reconnecting "));
 
-			WiFi_error_count++;
+                WiFi_error_count++;
 
-			if (cfg::has_fix_ip)
-			{
-				WiFi.reconnect();
-				waitForWifiToConnect(20);
-			}
-			else
-			{
-				waitForMultiWiFiToConnect(20, WIFI_SCAN_TIMEOUT_MS);
-			}
-			}
-		}
+                if (cfg::has_fix_ip)
+                {
+                    WiFi.reconnect();
+                    waitForWifiToConnect(20);
+                }
+                else
+                {
+                    waitForMultiWiFiToConnect(20, WIFI_SCAN_TIMEOUT_MS);
+                }
+            }
+        }
 
-		// only do a restart after finishing sending
+        // only do a restart after finishing sending
 		if (msSince(time_point_device_start_ms) > DURATION_BEFORE_FORCED_RESTART_MS)
 		{
 			sensor_restart();

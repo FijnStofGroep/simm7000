@@ -78,9 +78,11 @@ namespace cfg7
 	void initNonTrivials()
     {
         strcpy_P(gprsapn, GPRSAPNCODE);
-        strcpy_P(gprsUser, "");
-        strcpy_P(gprsPass, "");
-        strcpy_P(gprsPIN, "");
+        strcpy_P(gprsapn, HOST_AIRCMS);
+        strcpy_P(gprsUser, WWW_USERNAME);
+        strcpy_P(gprsPass, WWW_PASSWORD);
+        strcpy_P(s7000_type, SIM7_TYPE);
+        strcpy_P(s7000_mode, SIM7_MODE);
     }
 }
 
@@ -243,7 +245,7 @@ inline boolean GPRSConnect()
     // Open wireless connection if not already activated.
     if (!GSMmodem.wirelessConnStatus())
     {
-        int retry = 50;
+        int retry = 5;
 
         while (retry > 0 && !GSMmodem.openWirelessConnection(true))
         {
@@ -255,7 +257,7 @@ inline boolean GPRSConnect()
 
         if (retry == 0)
         {
-            modem.openWirelessConnection(false);
+            GSMmodem.openWirelessConnection(false);
             return false;
         }
 
@@ -264,6 +266,7 @@ inline boolean GPRSConnect()
     //     String local = GSMmodem.getGPRSIP();
     //     debug_outln_info(F("Local IP: "), local);
     // }
+
         debug_outln_info( F("GPRS-IP address: ") + GSMmodem.getGPRSIP());
 
         debug_outln_info(F("GSM/LTE connection Enabled."));
