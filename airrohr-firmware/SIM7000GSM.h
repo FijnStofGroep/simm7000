@@ -77,7 +77,7 @@ void GetGPSLocation(float * latitude, float * longitude, float * altitude, Strin
 int32_t sendDataByGSM(const LoggerEntry logger, const String &data, const int pin,
 							const char *host, const int portnr, const char *url);
 
-uint8_t sendDataByMQTT( const char *topic, const char *payload);
+boolean sendDataByMQTT( const char *topic, const char *payload);
 
 /* 
     BK-Sim7000 Modem Power Off.

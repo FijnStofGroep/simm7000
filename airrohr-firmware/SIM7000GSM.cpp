@@ -445,7 +445,7 @@ void GetGPSLocation(float *latitude, float *longitude, float *altitude, String &
 /// @param topic
 /// @param payload
 /// @return
-uint8_t sendDataByMQTT(const char *topic, const char *payload)
+boolean sendDataByMQTT(const char *topic, const char *payload)
 {
     if (gsm_init_failed)
     {
@@ -485,7 +485,7 @@ uint8_t sendDataByMQTT(const char *topic, const char *payload)
         {
             debug_outln_info(F("Failed to connect to broker!"));
             GSMmodem.MQTT_connect(false);
-            return -1;
+            return false;
         }
     }
     else
@@ -505,7 +505,7 @@ uint8_t sendDataByMQTT(const char *topic, const char *payload)
 
     debug_outln_info(F("End send Data By MQTT process."));
 
-    return 0;
+    return true;
 }
 
 /// @brief send data to rest api => By GSM -> LTE (4G)

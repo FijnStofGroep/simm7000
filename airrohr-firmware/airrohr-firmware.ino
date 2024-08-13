@@ -4894,6 +4894,7 @@ static void sendmqtt(const String &data)
             else
             {
                 sendDataByMQTT(header.c_str(), payload.c_str());
+                mqtt_error = "ok";
             }
 
             status_header = mqtt_header;
