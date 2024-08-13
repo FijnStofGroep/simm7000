@@ -11,6 +11,9 @@
 #define SENSOR_BASENAME "esp8266-"
 #define OTA_BASENAME    "air.fijnstofleusden.nl"
 
+// Provider "APN" code for LTE BK-SIM7000 module.
+#define GPRSAPNCODE "iot.1nce.net"
+
 #define MY_TZ "CET-1CEST,M3.5.0/02,M10.5.0/03"  // Europe/Amsterdam, see Timezone: https://leo.leung.xyz/wiki/Timezone
 #endif
 
@@ -56,9 +59,6 @@
 #define LEN_STATIC_ADRESS  16
 #define LEN_SIMM7000 30
 #define LEN_SEN5X_SYM 6
-
-#define LTEMODEM_BAUD	9600
-#define SERIALSIM_BAUD	115200
 
 #define MAXBUF_REQUIREMENT 48
 

@@ -134,7 +134,8 @@ enum class PmSensorCmd3 { // for IPS7100
  * Debug output                                                  *
  *****************************************************************/
 
-class LoggingSerial : public HardwareSerial {
+class LoggingSerial : public HardwareSerial 
+{
 
 public:
 	LoggingSerial();
@@ -150,6 +151,7 @@ private:
 #if defined(ESP32)
 	QueueHandle_t m_buffer;
 #endif
+
 };
 
 extern class LoggingSerial Debug;

@@ -432,7 +432,8 @@ void debug_outln_info(const __FlashStringHelper* text, const String& option)
 	Debug.println(option);
 }
 
-void debug_outln_info(const __FlashStringHelper* text, float value) {
+void debug_outln_info(const __FlashStringHelper* text, float value) 
+{
 	debug_outln_info(text, String(value));
 }
 
