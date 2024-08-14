@@ -112,7 +112,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2024-05-B1"
+#define SOFTWARE_VERSION_STR "FWL-2024-08-B1"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -9079,7 +9079,7 @@ void loop(void)
         }
     }
 
-    if (cfg::has_s7000 && cfg7::s7000_has_gps)
+    if (cfg::has_s7000 && cfg7::s7000_has_gps && send_now)
     {
          fetchSensorGPS(result_GPS);
     }

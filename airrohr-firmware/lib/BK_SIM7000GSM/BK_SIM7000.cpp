@@ -200,7 +200,8 @@ boolean BK_modem::TestAT(void)
 
         if (sendCheckReply(F("AT"), F("AT")))
         {
-            break;
+            sendCheckReply(F("ATE0"), m_ok_reply); // Echo Off
+            //break;
         }
 
         delay(500);
@@ -233,6 +234,8 @@ boolean BK_modem::TestAT(void)
                 break;
             }
 
+            sendCheckReply(F("ATE0"), m_ok_reply); // Echo Off
+            
             return false;
 
         } while (false);

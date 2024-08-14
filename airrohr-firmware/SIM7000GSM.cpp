@@ -420,25 +420,25 @@ void GetGPSLocation(float *latitude, float *longitude, float *altitude, String &
     uint8_t min = 0;
     uint8_t sec = 0;
 
-    for (int cnt = 50; cnt > 0; cnt--)
+    for (int cnt = 20; cnt > 0; cnt--)
     {
         if (GSMmodem.getGPS(latitude, longitude, &speed, &heading, altitude,
                             &year, &month, &day, &hour, &min, &sec))
         {
             debug_outln_info(F("The location has been locked, the latitude and longitude are:"));
-            debug_outln_info(F("latitude: "), String(*latitude));
-            debug_outln_info(F("longitude: "), String(*longitude));
+            debug_outln_info(F("latitude: "), String(*latitude, 6));
+            debug_outln_info(F("longitude: "), String(*longitude,6));
             timestamp = String(year) + "-" + String(month) + "-" + String(day) + "-" + String(hour) + "-" + String(min) + "-" + String(sec) + ".000";
             debug_outln_info(F("Date time: "), timestamp);
 
             break;
         }
 
-        delay(100); // max. 5 sec.
+        delay(2000); // max. 5 sec.
     }
 
     // GPS function will be disable.
-    GSMmodem.disableGPS();
+    //GSMmodem.disableGPS();
 }
 
 /// @brief
@@ -466,7 +466,10 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
 
         GSMmodem.MQTT_setParameter("CLIENTID", "airRohr_001"); // Client connection id.
 
-        GSMmodem.MQTT_setParameter("URL", cfg::mqtt_server, cfg::mqtt_port); // MQTT_SERVER, MQTT_PORT
+       GSMmodem.MQTT_setParameter("URL", cfg::mqtt_server, cfg::mqtt_port); // MQTT_SERVER, MQTT_PORT
+       //char s_url[150];
+       //sprintf(s_url, "%s:%d", cfg::mqtt_server, cfg::mqtt_port); // Format URI
+       //GSMmodem.MQTT_setParameter("URL", s_url); // MQTT_SERVER, MQTT_PORT
 
         // Set up MQTT username and password if necessary
         GSMmodem.MQTT_setParameter("USERNAME", cfg::mqtt_user); // MQTT_USERNAME
