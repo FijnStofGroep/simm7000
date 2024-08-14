@@ -585,15 +585,15 @@ int32_t sendDataByGSM(const LoggerEntry logger, const String &str_JsonData, cons
 
     addHeader.clear();
     // format header: ('Content-Type: text/html; charset=utf-8');
-    addHeader = F("Content-Type: ") + String(contentType);
-    addHeader += F("; X-Sensor: ") + String(F(SENSOR_BASENAME)) + esp_chipid;
-    addHeader += F("; X-MAC-ID: ") + String(F(SENSOR_BASENAME)) + esp_mac_id;
-    //addHeader += F("; Connection: ") + String("Keep-Alive");                  // "Connection:" => geeft error. reuse ? F("keep-alive") : F("close");
-    //addHeader += F("; Keep-Alive: ") + String("timeout=20, max=1000");        // 20 * 1000
+    addHeader = F("Content-Type:") + String(contentType);
+    addHeader += F("; X-Sensor:") + String(F(SENSOR_BASENAME)) + esp_chipid;
+    addHeader += F("; X-MAC-ID:") + String(F(SENSOR_BASENAME)) + esp_mac_id;
+    //addHeader += F("; Connection:") + String("Keep-Alive");                  // "Connection:" => geeft error. reuse ? F("keep-alive") : F("close");
+    //addHeader += F("; Keep-Alive:") + String("timeout=20, max=1000");        // 20 * 1000
 
     if (pin)
     {
-        addHeader += (F("; X-PIN: ") + String(pin));
+        addHeader += (F("; X-PIN:") + String(pin));
     }
 
     String s_userAgent = SOFTWARE_VERSION + String('/') + esp_chipid + String('/') + esp_mac_id;
@@ -612,7 +612,7 @@ int32_t sendDataByGSM(const LoggerEntry logger, const String &str_JsonData, cons
     if (!GSMmodem.HTTP_POST_start(s_url, FPSTR(addHeader.c_str()), (uint8_t *)str_JsonData.c_str(), str_JsonData.length(), &statuscode, (uint16_t *)&length))
     {
         debug_outln_info("POST Failed!");
-        return 0;
+        //return 0;
     }
 
     if (statuscode >= HTTP_CODE_OK && statuscode <= HTTP_CODE_ALREADY_REPORTED)
