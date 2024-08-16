@@ -27,14 +27,14 @@
 
 #define WIFI_MAX_RETRY 5
 
-#define LEN_CFG_STRING 65
-#define LEN_CFG_PASSWORD 65
+#define LEN_CFG_STRING 30
+#define LEN_CFG_PASSWORD 30
 
-#define LEN_WLANSSID 35				// credentials for wifi connection
+#define LEN_WLANSSID 30				// credentials for wifi connection
 
-#define LEN_WWW_USERNAME 65			// credentials for basic auth of server internal website
+#define LEN_WWW_USERNAME 30			// credentials for basic auth of server internal website
 
-#define LEN_FS_SSID 33				// credentials for sensor access point mode
+#define LEN_FS_SSID 30				// credentials for sensor access point mode
 
 #define LEN_DNMS_CORRECTION 8
 #define LEN_TEMP_CORRECTION 8
@@ -42,19 +42,19 @@
 
 #define LEN_SENSEBOXID 30
 
-#define LEN_HOST_INFLUX 100         
-#define LEN_URL_INFLUX 100
-#define LEN_USER_INFLUX 65
-#define LEN_PASS_INFLUX 90
-#define LEN_MEASUREMENT_NAME_INFLUX 100
+#define LEN_HOST_INFLUX 30         
+#define LEN_URL_INFLUX 30
+#define LEN_USER_INFLUX 30
+#define LEN_PASS_INFLUX 30
+#define LEN_MEASUREMENT_NAME_INFLUX 30
 
-#define LEN_MQTT_LARGE_HEADER 90 
+#define LEN_MQTT_LARGE_HEADER 30 
 #define LEN_MQTT_HEADER 30
 
-#define LEN_HOST_CUSTOM 100
-#define LEN_URL_CUSTOM 100
-#define LEN_USER_CUSTOM 65
-#define MAX_PORT_DIGITS 5
+#define LEN_HOST_CUSTOM 30
+#define LEN_URL_CUSTOM 30
+#define LEN_USER_CUSTOM 30
+#define MAX_PORT_DIGITS 30
 
 #define LEN_STATIC_ADRESS  16
 #define LEN_SIMM7000 30

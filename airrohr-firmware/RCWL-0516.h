@@ -85,7 +85,7 @@ private:
   char m_serverHost[25] = "192.168.2.105";          // server has static IPAdres.
   uint m_port = 0;                                  // -1 = No communcation, 8080 default port nr.
 
-  #define LEN_MQTT_LARGE_HEADER 90
+  #define LEN_MQTT_LARGE_HEADER 30
   char mqtt_header[LEN_MQTT_LARGE_HEADER];
   char mqtt_lwt_header[LEN_MQTT_LARGE_HEADER];
   PubSubClient *mqtt_client;

@@ -69,8 +69,7 @@ td{vertical-align:top}	\
 .b{text-decoration:none;padding:10px;background:#055d52;color:#fff;display:block;width:auto;border-radius:5px;}	\
 .c{text-decoration:none;padding:10px;background:#5d0505;color:#fff;display:block;width:auto;border-radius:5px;}	\
 .wifi{background:0 0;color:#00f;padding:5px;display:inline;border:0;}	\
-input[type=text]{width:100%}	\
-input[type=password]{width:100%}	\
+input[type=text],input[type=password] {width:100%}	\
 input[type=submit]{color:#fff;text-align:left;cursor:pointer;border-radius:5px;font-size:medium;background:#b33;padding:9px!important;width:100%;border-style:none}	\
 input[type=submit]:hover{background:#167908}\
 .s_green{padding:9px !important;width:100%;border-style:none;background:#055d52;color:#fff;text-align:left}\
@@ -81,11 +80,7 @@ input[type=submit]:hover{background:#167908}\
 .canvas{min-height:118px;background:#055d52;margin-bottom:20px;}\
 #r4:checked~.panels>#panel4,#r1:checked~.panels>#panel1,#r3:checked~.panels>#panel3,#r2:checked~.panels>#panel2{display:block}\
 #r4:checked~.tabs>#tab4,#r1:checked~.tabs>#tab1,#r3:checked~.tabs>#tab3,#r2:checked~.tabs>#tab2{background:#055d52;color:#fff}\
-#sen5x_sym_pm{background:#055d52;color:#fff}\
-#sen5x_sym_th{background:#055d52;color:#fff}\
-#sen5x_pin{background:#055d52;color:#fff}\
-#s7000_mode{background:#055d52;color:#fff}\
-#current_lang{background:#055d52;color:#fff}\
+#sen5x_sym_pm, #sen5x_sym_th, #s7000_mode,#current_lang{background:#055d52;color:#fff}\
 input[type=checkbox]{accent-color: rgb(255, 255, 128);}";
 
 #define STATIC_PREFIX "/" INTL_LANG "_s1"
@@ -174,10 +169,10 @@ const char WEB_BR_LF[] PROGMEM = "<br/>\n";
 const char WEB_LF_B[] PROGMEM = "\n<b>";
 const char WEB_CSV[] PROGMEM = "CSV";
 const char WEB_FEINSTAUB_APP[] PROGMEM = "<a target='_blank' href='https://chillibits.com/pmapp'>Feinstaub-App</a>";
-const char WEB_OPENSENSEMAP[] PROGMEM = "<a target='_blank' href='https://opensensemap.org/about'>OpenSenseMap.org</a>";
-const char WEB_AIRCMS[] PROGMEM = "<a target='_blank' href='https://aircms.online/#/mission'>aircms.online</a>";
-const char WEB_MADAVI[] PROGMEM = "<a target='_blank' href='https://www.madavi.de/ok-lab-stuttgart/'>Madavi.de</a>";
-const char WEB_SENSORCOMMUNITY[] PROGMEM = "<a target='_blank' href='https://archive.sensor.community/00disclamer.md'>Sensor.Community</a>";
+const char WEB_OPENSENSEMAP[] PROGMEM = "<a target='_blank' href='https://opensensemap.org/'>OpenSenseMap.org</a>";
+const char WEB_AIRCMS[] PROGMEM = "<a target='_blank' href='https://aircms.online/#'>aircms.online</a>";
+const char WEB_MADAVI[] PROGMEM = "Madavi";
+const char WEB_SENSORCOMMUNITY[] PROGMEM = "<a target='_blank' href='https://sensor.community'>Sensor.Community</a>";
 const char WEB_HTTPS[] PROGMEM = "HTTPS";
 const char WEB_NBSP_NBSP_BRACE[] PROGMEM = "&nbsp;&nbsp;(";
 const char WEB_NBSP_NBSP[] PROGMEM = "&nbsp;&nbsp;-&nbsp;";
