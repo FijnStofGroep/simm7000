@@ -1627,7 +1627,7 @@ String BK_modem::getModemSoftware_Revision()
 {
     sendCheckReply(F("AT+GMR"), m_ok_reply);
 
-    // BK_DEBUG_PRINTLN(m_replybuffer);
+    //BK_DEBUG_PRINTLN(m_replybuffer);
 
     return String(m_replybuffer);
 }
@@ -1660,19 +1660,19 @@ int8_t BK_modem::getNetworkSystemMode(char *typeStringBuffer)
             strcpy_P(typeStringBuffer, (prog_char *)F("no service"));
             break;
         case 1:
-            strcpy(typeStringBuffer, (prog_char *)F("GSM"));
+            strcpy_P(typeStringBuffer, (prog_char *)F("GSM"));
             break;
         case 3:
-            strcpy(typeStringBuffer, (prog_char *)F("EGPRS"));
+            strcpy_P(typeStringBuffer, (prog_char *)F("EGPRS"));
             break;
         case 7:
-            strcpy(typeStringBuffer, (prog_char *)F("LTE M1"));
+            strcpy_P(typeStringBuffer, (prog_char *)F("LTE M1"));
             break;
         case 9:
-            strcpy(typeStringBuffer, (prog_char *)F("LTE NB"));
+            strcpy_P(typeStringBuffer, (prog_char *)F("LTE NB"));
             break;
         default:
-            strcpy(typeStringBuffer, (prog_char *)F("unknown"));
+            strcpy_P(typeStringBuffer, (prog_char *)F("unknown"));
             break;
         }
     }
