@@ -46,6 +46,8 @@ extern int last_sendData_returncode;
 extern String esp_chipid;
 extern String esp_mac_id;
 
+extern int last_signal_strength;
+
 extern char mqtt_client_id[LEN_MQTT_HEADER];
 extern char mqtt_header[LEN_MQTT_LARGE_HEADER];
 extern char mqtt_lwt_header[LEN_MQTT_LARGE_HEADER];
@@ -136,7 +138,7 @@ void GPRSModemInfo()
     debug_outln_info(F("Software ") + GSMmodem.getModemSoftware_Revision());
 
     imode = GSMmodem.getNetworkMode();
-    debug_outln_info(F("2 Automatic , 13 GSM only , 38 LTE only , 51 GSM and LTE only:\nCurrent Network Mode = "), String(imode));
+    debug_outln_info(F("Network Modes: \"2 Automatic , 13 GSM only , 38 LTE only , 51 GSM and LTE only\": Network Mode = "), String(imode));
 
     uint8_t epsStatus = GSMmodem.getNetworkStatus();
     debug_out(F("Network status code: ") + String(epsStatus) + F(" => "), DEBUG_MIN_INFO);
@@ -155,10 +157,8 @@ void GPRSModemInfo()
         debug_outln_info(F("Registered roaming"));
 
     smode = GSMmodem.getPreferredModes();
-    debug_outln_info("Availlable Preferred Modes: " + smode);
-
     imode = GSMmodem.getPreferredMode();
-    debug_outln_info("Current Preferred Mode = " + String(imode));
+    debug_outln_info("Availlable Preferred Modes: " + smode + ": Preferred Mode = " + String(imode));
 
     char status[13];
     imode = GSMmodem.getNetworkSystemMode(status);
@@ -179,10 +179,7 @@ void GPRSModemInfo()
     smode = GSMmodem.getSIMCOMATI();
     debug_outln_info(F("SIMCOMATI:\n"), smode);
     
-    uint8_t csq;
-    int8 dBm; 
-    GSMmodem.getSignalQuality(&csq, &dBm);
-    debug_outln_info(F("Signal quality: "), String(csq) + "%" + F(", RSSI dBm: ") + String(dBm) + "dBM");
+    last_signal_strength = GetWiFi_RSSI();
 
     // Get connection type and band.
     smode.clear();
@@ -190,6 +187,38 @@ void GPRSModemInfo()
     debug_outln_info(F("The current network parameter: "), smode);
 
     debug_outln_info(F("--- End of GPRS Information ---\n"));
+}
+
+/// @brief 
+/// @param  
+/// @return : RSSI value.
+int32_t GetWiFi_RSSI( void)
+{
+        if (gsm_init_failed)
+    {
+        debug_outln_info(F("GSM module (GPRS) \"NOT\" connected.. "));
+        return 0;
+    }
+
+    uint8_t csq;
+    int8 rssi = 0; 
+    GSMmodem.getSignalQuality(&csq, &rssi);
+    debug_outln_info( F("Wifi signal strength: ") + String(rssi) + F("dBM") + F(", Signal quality: ") + String(csq) + F("%"));
+
+    return rssi;
+}
+
+/// @brief 
+/// @return : IP address.
+String GetLocalIP(void)
+{
+    if (gsm_init_failed)
+    {
+        debug_outln_info(F("GSM module (GPRS) \"NOT\" connected.. "));
+        return String("0.0.0.0");
+    }
+
+    return GSMmodem.getGPRSIP();
 }
 
 /// @brief BK-SIM7000 PCB Power OFF.
@@ -271,7 +300,7 @@ inline boolean GPRSConnect()
 
           But 115200 works great with Hardware serial pins.
 ***************************************************************************************************************/
-bool BK_Sim7000_setup()
+bool Sim7000_setup()
 {
 #if defined(ESP8266)
     debug_outln_info(F("BK_Sim7000 Modem connect start process: "), "");
@@ -390,24 +419,34 @@ bool BK_Sim7000_setup()
     Get GPS Location. timeout = max. 5 sec.
     to fast now.
 ******************************************************************/
-void GetGPSLocation(float *latitude, float *longitude, float *altitude, String &timestamp)
+boolean GetGPSLocation(float *latitude, float *longitude, float *altitude, String &timestamp)
 {
     if (gsm_init_failed)
     {
         debug_outln_info(F("GSM module (GPRS) \"NOT\" connected.. "));
-        return;
+        return false;
     }
 
-    debug_outln_info(F("Start positioning . Make sure to locate outdoors."));
+    debug_outln_info(F("Start positioning. Make sure to locate outdoors."));
 
     // turn on NMEA output
-    // GSMmodem.enableGPSNMEA(255);
+    //GSMmodem.enableGPSNMEA(255);
 
     // GPS function will be enabled.
-    while (!GSMmodem.enableGPS())
+    int reply = 25;
+    while (--reply > 0)
     {
-        debug_outln_info(F("LOOP(1): Failed to turn on GPS, retrying..."));
+        if(GSMmodem.enableGPS())
+        {
+            break;
+        }
+
+        debug_outln_info(F("Failed to turn on GPS, retrying..."));
         delay(2000); // Retry every 2s
+    }
+    if(reply == 0)
+    {
+        return false;
     }
 
     float heading = 0;
@@ -419,6 +458,7 @@ void GetGPSLocation(float *latitude, float *longitude, float *altitude, String &
     uint8_t hour = 0;
     uint8_t min = 0;
     uint8_t sec = 0;
+    bool gpsOke = false;
 
     for (int cnt = 20; cnt > 0; cnt--)
     {
@@ -426,11 +466,12 @@ void GetGPSLocation(float *latitude, float *longitude, float *altitude, String &
                             &year, &month, &day, &hour, &min, &sec))
         {
             debug_outln_info(F("The location has been locked, the latitude and longitude are:"));
-            debug_outln_info(F("latitude: "), String(*latitude, 6));
-            debug_outln_info(F("longitude: "), String(*longitude,6));
+            debug_outln_info(F("latitude: "), String(*latitude, 8));
+            debug_outln_info(F("longitude: "), String(*longitude,8));
             timestamp = String(year) + "-" + String(month) + "-" + String(day) + "-" + String(hour) + "-" + String(min) + "-" + String(sec) + ".000";
             debug_outln_info(F("Date time: "), timestamp);
 
+            gpsOke = true;
             break;
         }
 
@@ -439,6 +480,8 @@ void GetGPSLocation(float *latitude, float *longitude, float *altitude, String &
 
     // GPS function will be disable.
     //GSMmodem.disableGPS();
+
+    return gpsOke;
 }
 
 /// @brief
@@ -455,7 +498,11 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
 
     debug_outln_info(F("Start send Data By MQTT process."));
 
-    GPRSConnect();
+    if (!GPRSConnect())
+    {
+        debug_outln_info(F("-------- MQTT connection ERROR (EINDE) -------------"));
+        return false;
+    }
 
     // If not already connected, connect to MQTT.
     if (!GSMmodem.MQTT_connectionStatus())
@@ -645,7 +692,9 @@ int32_t sendDataByGSM(const LoggerEntry logger, const String &str_JsonData, cons
     return millis() - start_send;;
 }
 
-void enableNTPTimeSync()
+/// @brief 
+/// @param  
+void enableNTPTimeSync(void)
 {
     // enable NTP time sync
     // if ( !GSMmodem.enableNTPTimeSync(true, NTP_SERVER_1) )       //F("pool.ntp.org")
@@ -654,7 +703,7 @@ void enableNTPTimeSync()
     // }
 }
 
-void getTime()
+void getTime(void)
 {
     // read the time
     // char buffer[23];

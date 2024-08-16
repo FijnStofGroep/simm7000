@@ -4903,7 +4903,7 @@ static void sendmqtt(const String &data)
 			payload_status = "{\"";
 			payload_status += FPSTR(INTL_STATIC_IP);
 			payload_status += "\":\"";
-			payload_status += WiFi.localIP().toString();
+			payload_status += !cfg::has_s7000 ? WiFi.localIP().toString() : GetLocalIP();
 			payload_status += "\",\"";
 			payload_status += INTL_FIRMWARE;
 			payload_status += "\":\"";
@@ -6683,7 +6683,15 @@ static __noinline void fetchSensorGPS(String &s)
     {
         float latitude, longitude, altitude;
         RESERVE_STRING(gps_datetime, 20);
-        GetGPSLocation(&latitude, &longitude, &altitude, gps_datetime);
+
+        if( !GetGPSLocation(&latitude, &longitude, &altitude, gps_datetime) )
+        {
+            gps_init_failed = true;
+        }
+        else
+        {
+            gps_init_failed = false;
+        }
 
         last_value_GPS_lat = latitude;
 		last_value_GPS_lon = longitude;
@@ -6708,13 +6716,16 @@ static __noinline void fetchSensorGPS(String &s)
 		debug_outln_info(FPSTR(DBG_TXT_SEP));
 	}
 
-	if (count_sends > 0 && gps.charsProcessed() < 10)
-	{
-		debug_outln_error(F("No GPS data received: check wiring"));
-		gps_init_failed = true;
-	}
+    if (count_sends > 0)
+    {
+        if ( !cfg7::s7000_has_gps && gps.charsProcessed() < 10 )
+        {
+            debug_outln_error(F("No GPS data received: check wiring"));
+            gps_init_failed = true;
+        }
+    }
 
-	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), "GPS");
+    debug_outln_verbose(FPSTR(DBG_TXT_END_READING), "GPS");
 }
 
 /*****************************************************************
@@ -7737,7 +7748,7 @@ static void display_values()
 		case 7:
 			display_header = F("Wifi info");
 			display_lines[0] = "IP: ";
-			display_lines[0] += WiFi.localIP().toString();
+			display_lines[0] += !cfg::has_s7000 ? WiFi.localIP().toString() : GetLocalIP();
 			display_lines[1] = "SSID: ";
 			display_lines[1] += WiFi.SSID();
 			display_lines[2] = std::move(tmpl(F("Signal: {v} %"), String(calcWiFiSignalQuality(last_signal_strength))));
@@ -7902,7 +7913,7 @@ static void display_values()
 			break;
 
 		case 7:
-			display_lines[0] = WiFi.localIP().toString();
+			display_lines[0] = !cfg::has_s7000 ? WiFi.localIP().toString() : GetLocalIP();
 			display_lines[1] = WiFi.SSID();
 			break;
 
@@ -8847,7 +8858,7 @@ void setup(void)
         wifi_AP_Config();
 
 		debug_outln_info(F("** Start BK-SIM7000 PCB communication... **"));
-		if( BK_Sim7000_setup())
+		if( Sim7000_setup())
 		{
 			debug_outln_info(F("** BK-SIM7000 Board connected. **"));
 		}
@@ -9073,15 +9084,19 @@ void loop(void)
 
         if ((msSince(starttime_GPS) > SAMPLETIME_GPS_MS) || send_now)
         {
-            // getting GPS coordinates
+            // getting GPS coordinates, each 1 sec.
             fetchSensorGPS(result_GPS);
             starttime_GPS = act_milli;
         }
     }
 
-    if (cfg::has_s7000 && cfg7::s7000_has_gps && send_now)
+    if (cfg::has_s7000 && cfg7::s7000_has_gps)
     {
-         fetchSensorGPS(result_GPS);
+        if ((msSince(starttime_GPS) > SAMPLETIME_MS) || send_now)
+        {// getting GPS coordinates, each 30 sec.
+            fetchSensorGPS(result_GPS);
+            starttime_GPS = act_milli;
+        }
     }
 
     if ( (msSince(last_display_millis) > DISPLAY_UPDATE_INTERVAL_MS) &&
@@ -9098,8 +9113,16 @@ void loop(void)
 
 	if (send_now)
 	{
-		last_signal_strength = WiFi.RSSI();
-		RESERVE_STRING(data, LARGE_STR);
+        if (!cfg::has_s7000)
+        {
+            last_signal_strength = WiFi.RSSI();
+        }
+        else
+        {
+            last_signal_strength = GetWiFi_RSSI();
+        }
+
+        RESERVE_STRING(data, LARGE_STR);
 		data = FPSTR(data_first_part);
 		RESERVE_STRING(result, MED_STR);
 
@@ -9276,14 +9299,20 @@ void loop(void)
 			result = emptyString;
 		}
 
-		if (cfg::gps_read)
+		if (cfg::gps_read && !gps_init_failed)
 		{
 			data += result_GPS;
 			sum_send_time += sendSensorCommunity(result_GPS, GPS_API_PIN, F("GPS"), "GPS_");
 			result = emptyString;
 		}
+        else if (cfg::has_s7000 && cfg7::s7000_has_gps && !gps_init_failed)
+        {
+            data += result_GPS;
+            sum_send_time += sendSensorCommunity(result_GPS, GPS_API_PIN, F("GPS"), "GPS_");
+            result = emptyString;
+        }
 
-		add_Value2Json(data, F("samples"), String(sample_count));
+        add_Value2Json(data, F("samples"), String(sample_count));
 		add_Value2Json(data, F("min_micro"), String(min_micro));
 		add_Value2Json(data, F("max_micro"), String(max_micro));
 		add_Value2Json(data, F("interval"), String(cfg::sending_intervall_ms));

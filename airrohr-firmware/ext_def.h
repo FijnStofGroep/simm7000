@@ -160,8 +160,8 @@ static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
 #define GPS_SERIAL_TX D6
 
 // SoftwareSerial communication port pins to SIM7000 unit => define pins for BK-SIM7000 board.
-#define SIM_PIN_RX  14              // Serial RX pin no: D6 -> GPIO12  <---- TX SIM7000
-#define SIM_PIN_TX  12              // Serial TX pin no: D5 -> GPIO14  ----> RX SIM7000
+#define SIM_PIN_RX  12              // Serial RX pin no: D6 -> GPIO12  <---- TX SIM7000
+#define SIM_PIN_TX  14              // Serial TX pin no: D5 -> GPIO14  ----> RX SIM7000
 #define SIM_PIN_PWR 13              // PowerPin no:      D7 -> GPIO13  ----> SIM7000 PWRPIN
 // #define PIN_DTR 25   xx
 

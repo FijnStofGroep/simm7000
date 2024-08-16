@@ -64,12 +64,12 @@ namespace cfg7
     NOTE: Software serial is not reliable on 115200 baud and therefore changes it to a lower value.
           9600 works well in almost all applications, but 115200 works great with Hardware serial.
 */
-boolean BK_Sim7000_setup();
+boolean Sim7000_setup();
 
 /*
     Get GPS Location. timeout = max. 10 sec.
 */
-void GetGPSLocation(float * latitude, float * longitude, float * altitude, String & timestamp);
+boolean GetGPSLocation(float * latitude, float * longitude, float * altitude, String & timestamp);
 
 /* 
     return: total send time.
@@ -84,6 +84,8 @@ boolean sendDataByMQTT( const char *topic, const char *payload);
 */
 void modemPowerOff();
 
+int32_t GetWiFi_RSSI( void);
+String GetLocalIP(void);
 
 #endif // _SIM7000GSM_H
 

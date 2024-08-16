@@ -1021,7 +1021,9 @@ boolean BK_modem::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver)
     if (onoff)
     {
         if (!sendCheckReply(F("AT+CNTPCID=1"), m_ok_reply))
+        {
             return false;
+        }
 
         SerialSIM->print(F("AT+CNTP=\""));
         if (ntpserver != 0)
@@ -1036,20 +1038,28 @@ boolean BK_modem::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver)
         SerialSIM->println(F("\",0"));
         readline(BK_SIM7000_DEFAULT_TIMEOUT_MS);
         if (strcmp(m_replybuffer, "OK") != 0)
+        {
             return false;
+        }
 
         if (!sendCheckReply(F("AT+CNTP"), m_ok_reply, 10000))
+        {
             return false;
+        }
 
         uint16_t status;
         readline(10000);
         if (!parseReply(F("+CNTP:"), &status))
+        {
             return false;
+        }
     }
     else
     {
         if (!sendCheckReply(F("AT+CNTPCID=0"), m_ok_reply))
+        {
             return false;
+        }
     }
 
     return true;
