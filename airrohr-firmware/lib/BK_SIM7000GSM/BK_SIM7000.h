@@ -54,7 +54,8 @@
 #define STTONE_INDIANDIALTONE 19
 #define STTONE_USADIALTONE 20
 
-#define BK_SIM7000_DEFAULT_TIMEOUT_MS 500       // wait responce time: 500msec.
+#define BK_SIM7000_DEFAULT_TIMEOUT_MS   500       // wait responce time: 500msec.
+#define BK_SIM7000_TIMEOUT_1500MS      1500       // wait responce time: 1500msec.
 
 #define _HTTP_GET 0
 #define _HTTP_POST 1
@@ -176,7 +177,7 @@ public:
     boolean sendUSSD(char *ussdmsg, char *ussdbuff, uint16_t maxlen, uint16_t *readlen);
 
     // Time
-    // boolean enableNetworkTimeSync(boolean onoff);
+    boolean enableNetworkTimeSync(boolean onoff);
     uint8_t getNTPstatus();
     boolean enableNTPTimeSync(boolean onoff, FStringPtr ntpserver = 0);
     boolean getTime(char *buff, uint16_t maxlen);
@@ -297,12 +298,14 @@ protected:
     FStringPtr m_ok_reply;
 
     boolean enableGPS(boolean onoff);
+    uint16_t getCME_ErrorCode();
 
     // HTTP helpers
     boolean HTTP_setup(char *url);
 
     void flushInput();
     uint16_t readRaw(uint16_t cnt);
+    uint16_t readRaw(uint8_t *rspbuffer, uint16_t cnt);
     uint16_t readline(uint16_t timeout = BK_SIM7000_DEFAULT_TIMEOUT_MS, boolean multiline = false);
 
     uint8_t getReply(const char *send, uint16_t timeout = BK_SIM7000_DEFAULT_TIMEOUT_MS, boolean multiline = false);
@@ -330,12 +333,16 @@ protected:
 
     boolean sendParseReply(FStringPtr tosend,
                            FStringPtr toreply,
-                           uint16_t *v, char divider = ',', 
-                           uint8_t index = 0, boolean multiline = false);
+                           uint16_t *v, 
+                           char divider = ',', 
+                           uint8_t index = 0, 
+                           boolean multiline = false);
 
     boolean sendParseReplyFloat(FStringPtr tosend,
                                 FStringPtr toreply,
-                                float *f, char divider = ',', uint8_t index = 0);
+                                float *f, 
+                                char divider = ',', 
+                                uint8_t index = 0);
 
     // Power, battery, and ADC
     void powerOn(uint8_t BK_PWRKEY);

@@ -48,10 +48,10 @@
 #pragma GCC diagnostic ignored "-Wattributes"
 
 #ifdef BK_SSL // #ifdef BK_SIM7000_SSL
-char *_server_CA;
-uint16_t _port_CA = 0;
-int _CID_CA = 0;
-char *_rootCA;
+char *m_server_CA;
+uint16_t m_port_CA = 0;
+int m_CID_CA = 0;
+char *m_rootCA;
 #endif
 
 //******************************************************************************************************************** */
@@ -121,7 +121,6 @@ boolean BK_modem::begin()
 
     // Pulse the reset pin only if it's not an LTE module
     // BK_DEBUG_PRINTLN(F("Resetting the module..."));
-
     // Restart takes internal quite some time.
     // modemRestart();
 
@@ -143,11 +142,11 @@ boolean BK_modem::begin()
         subscriber specific information.
     */
     // Enable Local Time Stamp for getting network time
-    if (!sendCheckReply(F("AT+CLTS=0"), m_ok_reply)) // TOPDO: disable Local Time Stamp for now.!!!!!!!
-    // if (!sendCheckReply(F("AT+CLTS=1"), m_ok_reply))
+    //if (!sendCheckReply(F("AT+CLTS=0"), m_ok_reply)) // TOPDO: disable Local Time Stamp for now.!!!!!!!
+    if ( !enableNetworkTimeSync(false) )
     {
         BK_DEBUG_PRINTLN(F("### Enable Local Time Stamp for getting network time faild. **"));
-        return false;
+        //return false;
     }
 
     // if the sim isn't ready and a pin has been provided, try to unlock the sim
@@ -161,7 +160,6 @@ boolean BK_modem::begin()
         // if the sim is ready, or it's locked but no pin has been provided,
         String tmp = ((ret == SIM_READY) ? F("SIM READY") : F("SIM LOCKED"));
         BK_DEBUG_PRINTLN(F("### Sim Status: ") + tmp);
-
         // return (ret == SIM_READY || ret == SIM_PUK);
     }
 
@@ -976,22 +974,33 @@ boolean BK_modem::sendUSSD(char *ussdmsg, char *ussdbuff, uint16_t maxlen, uint1
 
 /********* TIME **********************************************************/
 
-/*
+/// @brief  Get Local Timestamp
+///         Set AT+CLTS=1, it means user can receive network time updating and
+///         use AT+CCLK to show current time.
+/// @param onoff : true/false
+/// @return : true = OK
 boolean BK_modem::enableNetworkTimeSync(boolean onoff)
 {
-  if (onoff) {
+  if (onoff) 
+  {
     if (! sendCheckReply(F("AT+CLTS=1"), m_ok_reply))
+    {
       return false;
-  } else {
+    }
+  } 
+  else 
+  {
     if (! sendCheckReply(F("AT+CLTS=0"), m_ok_reply))
+    {
       return false;
+    }
   }
 
   flushInput(); // eat any 'Unsolicted Result Code'
 
   return true;
 }
-*/
+
 
 // Returns the status of the NTP module:
 // 1 Network time synchronization is successful
@@ -1020,11 +1029,13 @@ boolean BK_modem::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver)
 {
     if (onoff)
     {
+        // Set NTP Use bear profile 1
         if (!sendCheckReply(F("AT+CNTPCID=1"), m_ok_reply))
         {
             return false;
         }
 
+        // Set NTP service url and local time zone
         SerialSIM->print(F("AT+CNTP=\""));
         if (ntpserver != 0)
         {
@@ -1035,27 +1046,33 @@ boolean BK_modem::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver)
             SerialSIM->print(F("pool.ntp.org"));
         }
 
-        SerialSIM->println(F("\",0"));
+        SerialSIM->println(F("\",0"));              // time zone = 0 (time zone value multiplay by 4.)
         readline(BK_SIM7000_DEFAULT_TIMEOUT_MS);
         if (strcmp(m_replybuffer, "OK") != 0)
         {
             return false;
         }
 
+        // Start Synchrosize network time.
         if (!sendCheckReply(F("AT+CNTP"), m_ok_reply, 10000))
         {
             return false;
         }
 
         uint16_t status;
-        readline(10000);
+        readline(10000);                            // +CNTP: 1
         if (!parseReply(F("+CNTP:"), &status))
+        {
+            return false;
+        }
+
+        if( status == 0)
         {
             return false;
         }
     }
     else
-    {
+    {   // Reset NTP Use bear profile 1
         if (!sendCheckReply(F("AT+CNTPCID=0"), m_ok_reply))
         {
             return false;
@@ -1065,11 +1082,17 @@ boolean BK_modem::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver)
     return true;
 }
 
+/// @brief 
+/// @param buff 
+/// @param maxlen 
+/// @return 
 boolean BK_modem::getTime(char *buff, uint16_t maxlen)
 {
     getReply(F("AT+CCLK?"), (uint16_t)10000);
     if (strncmp(m_replybuffer, "+CCLK: ", 7) != 0)
+    {
         return false;
+    }
 
     char *p = m_replybuffer + 7;
     uint16_t lentocopy = min(maxlen - 1, (int)strlen(p));
@@ -1433,7 +1456,7 @@ boolean BK_modem::enableGPRS(boolean onoff)
 
         // set bearer profile access point name
         if (m_apn)
-        {
+        {// Configure bearer profile 1
             // Send command AT+SAPBR=3,1,"APN","<apn value>" where <apn value> is the configured APN value.
             if (!sendCheckReplyQuoted(F("AT+SAPBR=3,1,\"APN\","), m_apn, m_ok_reply, 10000))
             {
@@ -1522,13 +1545,16 @@ boolean BK_modem::enableGPRS(boolean onoff)
         //      return false;
         // }
 
-        // bring up wireless connection
-        // if (!sendCheckReply(F("AT+CIICR"), m_ok_reply, 10000))
-        // {
-        //     return false;
-        // }
+        // bring up wireless connection.
+        if (!sendCheckReply(F("AT+CIICR"), m_ok_reply, 10000))
+        {
+            return false;
+        }
 
-        openWirelessConnection(true);
+        if( !wirelessConnStatus())
+        {
+            openWirelessConnection(true);
+        }
     }
     else
     {
@@ -1543,11 +1569,14 @@ boolean BK_modem::enableGPRS(boolean onoff)
         // close bearer
         if (!sendCheckReply(F("AT+SAPBR=0,1"), m_ok_reply, 10000))
         {
-            return false;
+            if( getCME_ErrorCode() != 3)
+            {
+                return false;
+            }
         }
 
         delay(200);
-
+ 
         // Close wireless data connection.
         openWirelessConnection(false);
     }
@@ -2009,7 +2038,7 @@ boolean BK_modem::postData(const char *request_type, const char *URL, const char
     // NOTE: Need to open socket/enable GPRS before using this function
     // char auxStr[64];
 
-    // Make sure HTTP service is terminated so initialization will run
+    // Make sure HTTP service is terminated so initialization will run.
     sendCheckReply(F("AT+HTTPTERM"), m_ok_reply, 10000);
 
     // Initialize HTTP service
@@ -2209,6 +2238,7 @@ boolean BK_modem::postData(const char *server, uint16_t port, const char *connTy
     {
         connTypeNum = 1;
     }
+
     if (strcmp(connType, "HTTPS") == 0)
     {
         connTypeNum = 2;
@@ -2848,9 +2878,9 @@ boolean BK_modem::addRootCA(const char *root_cert)
 {
     char rootCA[10240];
     strcpy(rootCA, root_cert);
-    _rootCA = rootCA;
+    m_rootCA = rootCA;
 
-    if (!strlen(_rootCA))
+    if (!strlen(m_rootCA))
     {
         return false;
     }
@@ -2932,7 +2962,7 @@ boolean BK_modem::TCPconnect(char *server, uint16_t port)
             return false;
         }
 
-        _CID_CA = 1;
+        m_CID_CA = 1;
 
         // Configure SSL Parameters of a Context Identifier
         if (!sendCheckReply(F("AT+CSSLCFG=\"sslversion\",1,3"), m_ok_reply))
@@ -2952,6 +2982,7 @@ boolean BK_modem::TCPconnect(char *server, uint16_t port)
             return false;
         }
 
+        // Init FS AT command
         if (!sendCheckReply(F("AT+CFSINIT"), m_ok_reply))
         {
             return false;
@@ -2959,7 +2990,7 @@ boolean BK_modem::TCPconnect(char *server, uint16_t port)
 
         // Load CA
         SerialSIM->print(F("AT+CFSWFILE=3,\"ca.crt\",0,\""));
-        SerialSIM->print(strlen(_rootCA));
+        SerialSIM->print(strlen(m_rootCA));
         SerialSIM->print(F("\",\""));
         SerialSIM->print(5000);
         SerialSIM->println(F("\""));
@@ -2969,28 +3000,38 @@ boolean BK_modem::TCPconnect(char *server, uint16_t port)
             return false;
         }
 
-        SerialSIM->print(_rootCA);
-        readline(2000, true);
+        SerialSIM->print(m_rootCA);     // After 'download', sent certificate file through the "SerialSIM" serial port.
+        readline(2000, true);           // wait for "OK"
+
         if (!((m_replybuffer[0] == 'O') && (m_replybuffer[1] == 'K')))
         {
             return false;
         }
 
+        // Free data buffer
         if (!sendCheckReply(F("AT+CFSTERM"), m_ok_reply))
+        {
             return false;
+        }
 
+        // Init FS AT command
         if (!sendCheckReply(F("AT+CFSINIT"), m_ok_reply))
+        {
             return false;
+        }
 
         char CF[20] = "+CFSGFIS: ";
-        itoa((int)strlen(_rootCA), CF + 10, 10);
+        itoa((int)strlen(m_rootCA), CF + 10, 10);
 
-        // if (! sendCheckReply(F("AT+CFSGFIS=3,\"ca.crt\""), (char*)CF, 300)) return false; // Get cert file size
+        // if (! sendCheckReply(F("AT+CFSGFIS=3,\"ca.crt\""), (char*)CF, 300)) return false; // Get cert file size.
         if (!sendCheckReply(F("AT+CFSTERM"), m_ok_reply))
             return false;
 
+        // Conversion CA certificate format. 2 means CA type. 
         if (!sendCheckReply(F("AT+CSSLCFG=\"convert\",2,\"ca.crt\""), m_ok_reply))
+        {
             return false;
+        }
 
         // Set SSL certificate and timeout parameters
         if (!sendCheckReply(F("AT+CASSLCFG=1,\"cacert\",\"ca.crt\""), m_ok_reply))
@@ -3007,16 +3048,19 @@ boolean BK_modem::TCPconnect(char *server, uint16_t port)
 
         char server_f[100];
         strcpy(server_f, server);
-        _server_CA = server_f;
-        _port_CA = port;
+        m_server_CA = server_f;
+        m_port_CA = port;
 
         SerialSIM->print(F("AT+CAOPEN=1,\""));
         SerialSIM->print(server);
         SerialSIM->print(F("\",\""));
         SerialSIM->print(port);
         SerialSIM->println(F("\""));
+
         if (!expectReply(F("+CAOPEN: 1,0")))
+        {
             return false;
+        }
     }
     else
     { // http:
@@ -3053,9 +3097,14 @@ boolean BK_modem::TCPconnect(char *server, uint16_t port)
         SerialSIM->println(F("\""));
 
         if (!expectReply(m_ok_reply))
+        {
             return false;
+        }
+
         if (!expectReply(F("CONNECT OK")))
+        {
             return false;
+        }
     }
 
     // looks like it was a success (?)
@@ -3078,12 +3127,12 @@ boolean BK_modem::TCPconnected(void)
     if (BK_SSL)
     {
         char CA[100] = "+CAOPEN: ";
-        itoa(_CID_CA, CA + 9, 10);
+        itoa(m_CID_CA, CA + 9, 10);
         strcat(CA, ",\"");
-        strcat(CA, _server_CA);
+        strcat(CA, m_server_CA);
         strcat(CA, "\",");
         char _port_CA_p[10];
-        itoa((int)_port_CA, _port_CA_p, 10);
+        itoa((int)m_port_CA, _port_CA_p, 10);
         strcat(CA, _port_CA_p);
 
         getReply(F("AT+CAOPEN?"));
@@ -3389,6 +3438,13 @@ boolean BK_modem::HTTP_readall(uint16_t *datalen)
         return false;
     }
 
+    uint8_t m_responcebuffer[RECEIVE_BUFFER_LENGHT_MAX];
+    readRaw( &m_responcebuffer[0], *datalen);
+
+    BK_DEBUG_PRINTLN(F("Responce message: "));
+    BK_DEBUG_PRINTLN((char*)m_responcebuffer);
+    //BK_DEBUG_PRINTLN(m_replybuffer);
+ 
     return true;
 }
 
@@ -3408,7 +3464,9 @@ boolean BK_modem::HTTP_GET_start(char *url, uint16_t *status, uint16_t *datalen)
 
     // HTTP GET
     if (!HTTP_action(_HTTP_GET, status, datalen, 30000))
+    {
         return false;
+    }
 
     BK_DEBUG_PRINT(F("Status: "));
     BK_DEBUG_PRINTLN(*status);
@@ -3417,7 +3475,9 @@ boolean BK_modem::HTTP_GET_start(char *url, uint16_t *status, uint16_t *datalen)
 
     // HTTP response data
     if (!HTTP_readall(datalen))
+    {
         return false;
+    }
 
     return true;
 }
@@ -3477,18 +3537,15 @@ boolean BK_modem::HTTP_POST_start(char *url,
     BK_DEBUG_PRINT(F("Len: "));
     BK_DEBUG_PRINTLN(*datalen);
 
-    if (*status != HTTP_CODE_OK)
-    {
-        return false;
-    }
-
     // HTTP response data ?
     if (*datalen > 0)
     {
-        if (!HTTP_readall(datalen))
-        {
-            return false;
-        }
+        HTTP_readall(datalen);
+    }
+
+    if (*status != HTTP_CODE_OK)
+    {
+        return false;
     }
 
     return true;
@@ -3625,7 +3682,7 @@ void BK_modem::flushInput()
 
 /// @brief :
 /// @param cnt
-/// @return
+/// @return : xx char in m_replybuffer.
 uint16_t BK_modem::readRaw(uint16_t cnt)
 {
     uint16_t idx = 0;
@@ -3644,6 +3701,18 @@ uint16_t BK_modem::readRaw(uint16_t cnt)
     m_replybuffer[idx] = 0;
 
     return idx;
+}
+
+/// @brief 
+/// @param rspbuffer 
+/// @param cnt 
+/// @return : xx char in rspbuffer.
+uint16_t BK_modem::readRaw(uint8_t *rspbuffer, uint16_t cnt)
+{
+    uint16_t len = readRaw(cnt);
+    memcpy(rspbuffer, m_replybuffer, len);
+
+    return len;
 }
 
 /*
@@ -3855,7 +3924,7 @@ uint8_t BK_modem::getReply(FStringPtr prefix, int32_t suffix1, int32_t suffix2, 
     // to besure SerialSIM receive buffer is empty.
     flushInput();
 
-    BK_DEBUG_PRINT(F("\t---> "));
+    BK_DEBUG_PRINT(F("\tS6---> "));
     BK_DEBUG_PRINT(prefix);
     BK_DEBUG_PRINT(suffix1, DEC);
     BK_DEBUG_PRINT(',');
@@ -3868,7 +3937,7 @@ uint8_t BK_modem::getReply(FStringPtr prefix, int32_t suffix1, int32_t suffix2, 
 
     uint8_t l = readline(timeout);
 
-    BK_DEBUG_PRINT(F("\t<--- "));
+    BK_DEBUG_PRINT(F("\tR6<--- "));
     BK_DEBUG_PRINTLN(m_replybuffer);
 
     return l;
@@ -3879,7 +3948,7 @@ uint8_t BK_modem::getReplyQuoted(FStringPtr prefix, FStringPtr suffix, uint16_t 
 {
     flushInput();
 
-    BK_DEBUG_PRINT(F("\t---> "));
+    BK_DEBUG_PRINT(F("\tS7---> "));
     BK_DEBUG_PRINT(prefix);
     BK_DEBUG_PRINT('"');
     BK_DEBUG_PRINT(suffix);
@@ -3892,7 +3961,7 @@ uint8_t BK_modem::getReplyQuoted(FStringPtr prefix, FStringPtr suffix, uint16_t 
 
     uint8_t l = readline(timeout);
 
-    BK_DEBUG_PRINT(F("\t<--- "));
+    BK_DEBUG_PRINT(F("\tR7<--- "));
     BK_DEBUG_PRINTLN(m_replybuffer);
 
     return l;
@@ -4146,14 +4215,14 @@ boolean BK_modem::sendParseReply(FStringPtr tosend,
                                  uint8_t index,
                                  boolean multiline)
 {
-    getReply(tosend, uint16_t(BK_SIM7000_DEFAULT_TIMEOUT_MS), multiline);
+    getReply(tosend, uint16_t(BK_SIM7000_TIMEOUT_1500MS), multiline);
 
     if (!parseReply(toreply, value, divider, index))
     {
         return false;
     }
 
-    // readline(); // eat 'OK'
+    readline(); // eat 'OK'
 
     return true;
 }
@@ -4219,6 +4288,20 @@ boolean BK_modem::sendParseReplyFloat(FStringPtr tosend,
 
     return true;
 }
+
+/// @brief 
+/// @return 
+uint16_t BK_modem::getCME_ErrorCode()
+{
+    uint16_t error = -1;
+    if(parseReply(F("+CME ERROR: "), &error))
+    {
+        return error;
+    }
+
+    return UINT16_MAX;
+}
+
 
 //************************** BK_modem_LTE ***************************************
 
@@ -4395,8 +4478,19 @@ uint8_t BK_modem_LTE::waitForNetworkConnection(bool check_signal, uint32_t timeo
 /// @return
 boolean BK_modem_LTE::isNetworkConnected()
 {
-    RegStatus epsStatus = (RegStatus)getNetworkStatus();
-    return (epsStatus == REG_OK_HOME || epsStatus == REG_OK_ROAMING);
+    for(int reply = 5; reply; reply--)
+    {
+        RegStatus epsStatus = (RegStatus)getNetworkStatus();
+        if(epsStatus == REG_SEARCHING)
+        {
+            delay(2000);
+            continue;
+        }
+
+        return (epsStatus == REG_OK_HOME || epsStatus == REG_OK_ROAMING);
+    }
+
+    return false;
 }
 
 /********* SIM7000 MQTT FUNCTIONS  ************************************/
@@ -4543,7 +4637,7 @@ boolean BK_modem_LTE::MQTT_publish(const char *topic, const char *payload, uint1
         return false; // Wait for "> " to send message
     }
 
-    if (!sendCheckReply(payload, m_ok_reply, 5000))
+    if (!sendCheckReply(payload, m_ok_reply, 15000))
     {
         return false; // Now send the message
     }
@@ -4558,8 +4652,7 @@ boolean BK_modem_LTE::MQTT_dataFormatHex(bool yesno)
     return sendCheckReply(F("AT+SMPUBHEX="), yesno, m_ok_reply);
 }
 
-//***********************  HTTP / HTTPS ****************************************/
-
+//********************************  HTTP / HTTPS ****************************************/
 /// @brief
 /// @param type
 /// @param value
@@ -4634,9 +4727,11 @@ boolean BK_modem_LTE::HTTP_connect(const char *server)
     if (BK_SSL)
     {
         sendCheckReply(F("AT+CSSLCFG=\"sslversion\",1,3"), m_ok_reply);
+        // Set HTTP SSL Configure
         sendCheckReply(F("AT+SHSSL=1,\"\""), m_ok_reply, 10000);
     }
 
+    // URL format must "http://xxx.xx.xx" or "https://xxx.xx.xx:pppp"
     sprintf(urlBuff, "AT+SHCONF=\"URL\",\"%s\"", server);
 
     if (!sendCheckReply(urlBuff, m_ok_reply, 10000))
@@ -4644,11 +4739,14 @@ boolean BK_modem_LTE::HTTP_connect(const char *server)
         return false;
     }
 
+    // Hold once request time. Unit is second. Default 60s. range: 30-1800
+    sendCheckReply(F("AT+SHCONF=\"TIMEOUT\",90"), m_ok_reply, 10000);   
+
     // Set max HTTP body length
-    sendCheckReply(F("AT+SHCONF=\"BODYLEN\",1024"), m_ok_reply, 10000); // Max 1024 for SIM7070G
+    sendCheckReply(F("AT+SHCONF=\"BODYLEN\",1024"), m_ok_reply, 10000); // Max 1024.
 
     // Set max HTTP header length
-    sendCheckReply(F("AT+SHCONF=\"HEADERLEN\",350"), m_ok_reply, 10000); // Max 350 for SIM7070G
+    sendCheckReply(F("AT+SHCONF=\"HEADERLEN\",350"), m_ok_reply, 10000); // Max 350.
 
     // HTTP(s) Connection
     sendCheckReply(F("AT+SHCONN"), m_ok_reply, 20000);
@@ -4751,9 +4849,9 @@ boolean BK_modem_LTE::HTTP_POST(const char *URI, const char *body, uint8_t bodyl
         delay(200);
     }
 
-    sendCheckReply(body, m_ok_reply, 2000); // Now send the JSON body
+    sendCheckReply(body, m_ok_reply, 2000);         // Now send the JSON body
 
-    memset(cmdBuff, 0, sizeof(cmdBuff)); // Clear URI char array
+    memset(cmdBuff, 0, sizeof(cmdBuff));            // Clear URI char array
     sprintf(cmdBuff, "AT+SHREQ=\"%s\",3", URI);
 
     if (!sendCheckReply(cmdBuff, m_ok_reply, 10000))

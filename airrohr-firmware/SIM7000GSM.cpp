@@ -242,6 +242,9 @@ inline boolean GPRSConnect()
         if (--retry < 0)
         {
             debug_outln_info(F("Failed to connect to cell network, restart connection with SIM7000 module..."));
+
+            GSMmodem.TestAT();
+
             if (GSMmodem.openWirelessConnection(false))
             {
                 break;
@@ -403,10 +406,10 @@ bool Sim7000_setup()
 
     GPRSModemInfo();
 
-    if (gsm_init_failed)
-    {
-        return false;
-    }
+    // if (gsm_init_failed)
+    // {
+    //     return false;
+    // }
 
     return true;
 
@@ -466,16 +469,20 @@ boolean GetGPSLocation(float *latitude, float *longitude, float *altitude, Strin
                             &year, &month, &day, &hour, &min, &sec))
         {
             debug_outln_info(F("The location has been locked, the latitude and longitude are:"));
-            debug_outln_info(F("latitude: "), String(*latitude, 8));
-            debug_outln_info(F("longitude: "), String(*longitude,8));
-            timestamp = String(year) + "-" + String(month) + "-" + String(day) + "-" + String(hour) + "-" + String(min) + "-" + String(sec) + ".000";
+            debug_outln_info(F("latitude: "),  String(*latitude, 8));
+            debug_outln_info(F("longitude: "), String(*longitude, 8));
+
+            char gps_timestamp[37];
+            sprintf_P(gps_timestamp, PSTR("%04d-%02d-%02dT%02d:%02d:%02d.000"),year, month, day, hour, min, sec);
+            timestamp = String(gps_timestamp);
+
             debug_outln_info(F("Date time: "), timestamp);
 
             gpsOke = true;
             break;
         }
 
-        delay(2000); // max. 5 sec.
+        delay(2000);
     }
 
     // GPS function will be disable.
@@ -585,23 +592,27 @@ int32_t sendDataByGSM(const LoggerEntry logger, const String &str_JsonData, cons
         return 0;
     }
 
-    if (GSMmodem.getBearerStatus() > 1)
+    int res;
+    if ((res = GSMmodem.getBearerStatus()) > 1)
     {
-        // Bearer is closed.
-        // disable data
-        int reply = 5;
-        while (--reply)
-        {
-            if (GSMmodem.enableGPRS(false))
-            {
-                break;
-            }
+        // // Bearer is closed.
+        // // disable data
+        // int reply = 5;
+        // while (--reply)
+        // {
+        //     if (GSMmodem.enableGPRS(false))
+        //     {
+        //         break;
+        //     }
 
-            debug_outln_info(F("Failed to turn off"));
+        //     debug_outln_info(F("Failed to turn off"));
+        //     delay(2000);
+        // }
+
+        if( res == 2)
+        {// bearer is closing.
             delay(2000);
         }
-
-        delay(200);
 
         // enable data
         if (!GSMmodem.enableGPRS(true))
@@ -611,7 +622,7 @@ int32_t sendDataByGSM(const LoggerEntry logger, const String &str_JsonData, cons
     }
 
     uint16_t statuscode;
-    int16_t length;
+    int16_t respLength;
     bool send_success = false;
     const __FlashStringHelper *contentType;
 
@@ -659,7 +670,7 @@ int32_t sendDataByGSM(const LoggerEntry logger, const String &str_JsonData, cons
     debug_outln_info(F("**** HTTP body: "), str_JsonData);
 
     // POST sensor data to ex. sensor.community server.
-    if (!GSMmodem.HTTP_POST_start(s_url, FPSTR(addHeader.c_str()), (uint8_t *)str_JsonData.c_str(), str_JsonData.length(), &statuscode, (uint16_t *)&length))
+    if (!GSMmodem.HTTP_POST_start(s_url, FPSTR(addHeader.c_str()), (uint8_t *)str_JsonData.c_str(), str_JsonData.length(), &statuscode, (uint16_t *)&respLength))
     {
         debug_outln_info("POST Failed!");
         //return 0;
@@ -676,7 +687,7 @@ int32_t sendDataByGSM(const LoggerEntry logger, const String &str_JsonData, cons
         //debug_outln_info(F("Details:"), http.getString());
     }
 
-    debug_outln_info(F("\n  POST end ****"));
+    debug_outln_info(F("POST end ****"));
 
     // Http close
     GSMmodem.HTTP_POST_end();
@@ -689,7 +700,7 @@ int32_t sendDataByGSM(const LoggerEntry logger, const String &str_JsonData, cons
 
     debug_outln_info(F("-------- HTTP EINDE -------------"));
 
-    return millis() - start_send;;
+    return millis() - start_send;
 }
 
 /// @brief 

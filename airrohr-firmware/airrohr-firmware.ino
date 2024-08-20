@@ -6680,7 +6680,7 @@ static __noinline void fetchSensorGPS(String &s)
         }
     }
     else
-    {
+    {   // SIM7000 GPS
         float latitude, longitude, altitude;
         RESERVE_STRING(gps_datetime, 20);
 
@@ -8512,16 +8512,6 @@ static void logEnabledAPIs()
 		debug_outln_info(F("\tcustom API"));
 	}
 	
-	if (cfg::send2mqtt)
-	{
-		debug_outln_info(F("\tMQTT broker: "), String(cfg::mqtt_server));
-		debug_outln_info(F("\t\t- Port: "), String(cfg::mqtt_port));
-		debug_outln_info(F("\t\t- User: "), String(cfg::mqtt_user));
-//		debug_outln_info(F("\t\t- Pasword: "), String(cfg::mqtt_pwd));
-		debug_outln_info(F("\t\t- Topic: "), String(cfg::mqtt_topic));
-		debug_outln_info(F("\t\t- MQTT-client: "), String(mqtt_client_id));
-	}
-
 	if (cfg::send2aircms)
 	{
 		debug_outln_info(F("\taircms API"));
@@ -8537,12 +8527,20 @@ static void logEnabledAPIs()
 		debug_outln_info(F("\tOpenSenseMap.org"));
 	}
 
-/*
+	if (cfg::send2mqtt)
+	{
+		debug_outln_info(F("\tMQTT broker: "), String(cfg::mqtt_server));
+		debug_outln_info(F("\t\t- Port: "), String(cfg::mqtt_port));
+		debug_outln_info(F("\t\t- User: "), String(cfg::mqtt_user));
+//		debug_outln_info(F("\t\t- Pasword: "), String(cfg::mqtt_pwd));
+		debug_outln_info(F("\t\t- Topic: "), String(cfg::mqtt_topic));
+		debug_outln_info(F("\t\t- MQTT-client: "), String(mqtt_client_id));
+	}
+
 	if (cfg::auto_update)
 	{
 		debug_outln_info(F("Auto-Update active..."));
 	}
-*/
 
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 
@@ -8880,7 +8878,7 @@ void setup(void)
 	{// MQTT => set Client_id.
 		strcpy(mqtt_client_id, SSID_BASENAME);
 		strcat(mqtt_client_id, esp_chipid.c_str());			// airRohr-<chipid>
-		debug_outln_info(F("MQTT Client_id = ") + String(mqtt_client_id));
+		//debug_outln_info(F("MQTT Client_id = ") + String(mqtt_client_id));
 
 		if (cfg::has_radarmotion)
 		{
@@ -9370,6 +9368,11 @@ void loop(void)
                     waitForMultiWiFiToConnect(20, WIFI_SCAN_TIMEOUT_MS);
                 }
             }
+        }
+        else if (cfg7::s7000_has_gps)
+        {
+            // set nieuwe GPS time.
+            starttime_GPS = act_milli;
         }
 
         // only do a restart after finishing sending
