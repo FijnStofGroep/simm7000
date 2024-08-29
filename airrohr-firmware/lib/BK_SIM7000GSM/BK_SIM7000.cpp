@@ -1074,7 +1074,7 @@ boolean BK_modem::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, uint16 
             return false;
         }
 
-        // Start Synchrosize network time.
+        // Start Synchronize network time.
         if (!sendCheckReply(F("AT+CNTP"), m_ok_reply, 10000))
         {
             return false;
