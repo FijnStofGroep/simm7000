@@ -135,6 +135,7 @@ public:
     String getOperator(void);
     String getManufacturer_Identification();
     String getSIMCOMATI(void);
+    String getNTPgetserver(void);
 
     // Power, battery, and ADC
     void modemPowerOn();

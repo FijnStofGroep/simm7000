@@ -1012,6 +1012,27 @@ boolean BK_modem::enableNetworkTimeSync(boolean onoff)
   return true;
 }
 
+/// @brief : TODO: Function not finisch yet
+/// @param  
+String BK_modem::getNTPgetserver(void)
+{
+    if (!sendCheckReply(F("AT+CNTP?"), m_ok_reply, 10000))
+    {
+        return "";
+    }
+
+    // Response:   + CNTP: <ntp sever>,<time zone>,<cid>,<mode>
+    String ntp_sever;
+    readline(10000);        // wait for +CNTP: ......
+
+    // if (!parseReply(F("+CNTP: "), &status))
+    // {
+    //     return 0;
+    // }
+
+    return "";
+}
+
 
 // Returns the status of the NTP module:
 // 1 Network time synchronization is successful
@@ -3611,7 +3632,7 @@ boolean BK_modem::HTTP_POST_start(char *url,
     }
 
     // HTTP POST
-    HTTP_action(_HTTP_POST, status, datalen, 15000)
+    HTTP_action(_HTTP_POST, status, datalen, 15000);
 
     BK_DEBUG_PRINT(F("Status: "));
     BK_DEBUG_PRINTLN(*status);
