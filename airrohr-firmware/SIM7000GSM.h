@@ -8,6 +8,8 @@
  *
  * Copyright (C) 2024
  *
+ * 
+ * https://www.w3.org/Protocols/rfc2616/rfc2616.html
  */
 
 #ifndef _SIM7000GSM_H
@@ -56,6 +58,11 @@ namespace cfg7
     extern void initNonTrivials();
 }
 
+extern unsigned long act_milli;
+
+// internal defines.
+
+
 //***************************************************************************************************************************************************
 
 /*
@@ -79,6 +86,16 @@ int32_t sendDataByGSM(const LoggerEntry logger, const String &data, const int pi
 
 boolean sendDataByMQTT( const char *topic, const char *payload);
 
+/// @brief 
+/// @param  
+void SyncNTPTime(void);
+
+
+//--------------  Internal use ----------
+/// @brief 
+/// @param  
+void setNTPTimeSync(void);
+
 /* 
     BK-Sim7000 Modem Power Off.
 */
@@ -86,6 +103,8 @@ void modemPowerOff();
 
 int32_t GetWiFi_RSSI( void);
 String GetLocalIP(void);
+
+time_t parseDateTime(const char* datetimeString, const char* format);
 
 #endif // _SIM7000GSM_H
 

@@ -69,6 +69,7 @@
 
 // see ESP8266HTTPClient.H
 #define HTTP_CODE_OK 200
+#define HTTP_CODE_REQUEST_TIMEOUT    408
 
 enum PinStatus
 {
@@ -138,7 +139,9 @@ public:
     // Power, battery, and ADC
     void modemPowerOn();
     void modemPowerOff();
+    void restartPowerOff();
     void modemRestart();
+    
 
     boolean getADCVoltage(uint16_t *v);
     boolean getBattPercent(uint16_t *p);
@@ -179,7 +182,7 @@ public:
     // Time
     boolean enableNetworkTimeSync(boolean onoff);
     uint8_t getNTPstatus();
-    boolean enableNTPTimeSync(boolean onoff, FStringPtr ntpserver = 0);
+    boolean enableNTPTimeSync(boolean onoff, FStringPtr ntpserver = 0, uint16 timeZone = 0);
     boolean getTime(char *buff, uint16_t maxlen);
 
     // RTC
@@ -265,7 +268,10 @@ public:
     // HTTP high level interface (easier to use, less flexible).
     boolean HTTP_GET_start(char *url, uint16_t *status, uint16_t *datalen);
     void HTTP_GET_end(void);
-    boolean HTTP_POST_start(char *url, FStringPtr contenttype, const uint8_t *postdata, uint16_t postdatalen, uint16_t *status, uint16_t *datalen);
+    boolean HTTP_POST_start(char *url, FStringPtr contenttype, 
+                            const uint8_t *headerdata, uint16_t headerdatalen, 
+                            const uint8_t *postdata, uint16_t postdatalen, 
+                            uint16_t *status, uint16_t *datalen);
     void HTTP_POST_end(void);
     void setUserAgent(FStringPtr useragent);
     void setClientID(uint32_t clientID);
@@ -346,7 +352,7 @@ protected:
 
     // Power, battery, and ADC
     void powerOn(uint8_t BK_PWRKEY);
-    boolean powerDown(void);
+    void powerDown(void);
 
     static boolean _incomingCall;
     static void onIncomingCall();

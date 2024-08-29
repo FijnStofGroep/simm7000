@@ -78,6 +78,9 @@
  * New Debug level code 88 ("DEBUG_ENGINEER_INFO"):						*
  * 		Special engineer Debug lines send to USB port					*
  * 																		*
+ * 2024-08-28 															*
+ *   SIM7000 LTE communication module: send data to the API's and MQTT  *
+ *                                                                      *
  * documentation Exception error list                                   *
  *https://arduino-esp8266.readthedocs.io/en/latest/exception_causes.html*
  ************************************************************************
@@ -100,9 +103,9 @@
  * RAM:     [=====     ]  47.9% (used 39264 bytes from 81920 bytes)		*
  * PROGRAM: [======    ]  64.4% (used 672501 bytes from 1044464 bytes)	*
  *                                                                      *
- * * latest build 2024-08-13											* 
- * RAM:     [=====     ]  48.5% (used 39728 bytes from 81920 bytes)     *
- * PROGRAM: [=======   ]  65.5% (used 684089 bytes from 1044464 bytes)  *
+ * latest build 2024-08-28  											*
+ * RAM:     [=====     ]  48.4% (used 39616 bytes from 81920 bytes)     *
+ * PROGRAM: [=======   ]  65.7% (used 685865 bytes from 1044464 bytes)  *
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -112,7 +115,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2024-08-B1"
+#define SOFTWARE_VERSION_STR "FWL-2024-09-B2"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -8574,7 +8577,8 @@ static void setupNetworkTime()
 	static char ntpServer1[18], ntpServer2[18];
 
 #if defined(ESP8266)
-	settimeofday_cb([]()						// optional: set callback function if time was sent from NTPSERVER.
+        // optional: set callback function if time was sent from NTPSERVER.
+	settimeofday_cb([]()	
 						{
 							if (!sntp_time_set)
 							{
@@ -8913,7 +8917,8 @@ void setup(void)
 
 	delay(50);
 
-	starttime = millis(); // store the start time
+    // store the start time.
+	starttime = millis();      
 	last_update_attempt = time_point_device_start_ms = starttime;
 	
 	if (cfg::npm_read)
@@ -9090,8 +9095,9 @@ void loop(void)
 
     if (cfg::has_s7000 && cfg7::s7000_has_gps)
     {
-        if ((msSince(starttime_GPS) > SAMPLETIME_MS) || send_now)
-        {// getting GPS coordinates, each 30 sec.
+        //if ((msSince(starttime_GPS) > SAMPLETIME_MS) || send_now)         // getting GPS coordinates, each 30 sec.
+        if ( send_now )
+        {// ones per send data cycle.
             fetchSensorGPS(result_GPS);
             starttime_GPS = act_milli;
         }
@@ -9369,10 +9375,10 @@ void loop(void)
                 }
             }
         }
-        else if (cfg7::s7000_has_gps)
+        else if (cfg::has_s7000 && cfg7::s7000_has_gps)
         {
-            // set nieuwe GPS time.
-            starttime_GPS = act_milli;
+            // set nieuwe GPS wait time.
+            starttime_GPS = millis();
         }
 
         // only do a restart after finishing sending
@@ -9447,6 +9453,12 @@ void loop(void)
 
 		RCWL0516.loop();
 	}
+
+    if(cfg::has_s7000 && !gps_init_failed)
+    {
+        SyncNTPTime();
+    }
+
 #endif
 
 	// Sleep if all of the tasks have an event in the future. The chip can then
