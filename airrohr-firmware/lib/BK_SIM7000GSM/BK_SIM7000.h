@@ -136,6 +136,7 @@ public:
     String getManufacturer_Identification();
     String getSIMCOMATI(void);
     String getNTPgetserver(void);
+    String getResponseMessage(void);
 
     // Power, battery, and ADC
     void modemPowerOn();
@@ -270,7 +271,7 @@ public:
     boolean HTTP_GET_start(char *url, uint16_t *status, uint16_t *datalen);
     void HTTP_GET_end(void);
     boolean HTTP_POST_start(char *url, FStringPtr contenttype, 
-                            const uint8_t *headerdata, uint16_t headerdatalen, 
+                            String &headerdata, 
                             const uint8_t *postdata, uint16_t postdatalen, 
                             uint16_t *status, uint16_t *datalen);
     void HTTP_POST_end(void);
@@ -296,6 +297,8 @@ protected:
     uint8_t m_PIN_PWR;
 
     char m_replybuffer[RECEIVE_BUFFER_LENGHT_MAX];
+    char m_responcebuffer[RECEIVE_BUFFER_LENGHT_MAX];
+
     FStringPtr m_apn;
     FStringPtr m_apnusername;
     FStringPtr m_apnpassword;
@@ -312,7 +315,7 @@ protected:
 
     void flushInput();
     uint16_t readRaw(uint16_t cnt);
-    uint16_t readRaw(uint8_t *rspbuffer, uint16_t cnt);
+    uint16_t readRaw(char *rspbuffer, uint16_t cnt);
     uint16_t readline(uint16_t timeout = BK_SIM7000_DEFAULT_TIMEOUT_MS, boolean multiline = false);
 
     uint8_t getReply(const char *send, uint16_t timeout = BK_SIM7000_DEFAULT_TIMEOUT_MS, boolean multiline = false);
@@ -391,6 +394,7 @@ public:
     boolean setBaudrate(uint32_t baud);
     boolean hangUp(void);
     String  getGPRSIP(void);
+    boolean GetHTTP_status(void);
 
     // MQTT
     String  MQTT_getParameters(void);
@@ -409,7 +413,7 @@ public:
     boolean HTTP_addBody(const char *body, uint16_t bodylen);
     boolean HTTP_addPara(const char *key, const char *value, uint16_t maxlen);    // max length of value
     boolean HTTP_GET(const char *URI);
-    boolean HTTP_POST(const char *URI, const char *body, uint8_t bodylen);
+    boolean HTTP_POST(const char *URI, const char *body, uint8_t bodylen, uint16_t *status, uint16_t *datalen);
 };
 
 #endif // BK_SIM7000_MODEM_H

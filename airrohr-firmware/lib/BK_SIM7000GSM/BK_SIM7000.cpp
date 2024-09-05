@@ -17,9 +17,12 @@
  * including commercial applications, and to alter it and redistribute it
  * freely, subject to the following restrictions:
  *
- * BK_SIM7000 library for GPRS modules, that just works.
+ * BK_SIM7000 library for GPRS/GSM modules, that just works.
+ * GPRS stands for "General Packet Radio Service". 
+ * It’s a mobile data standard that enhances the existing GSM (Global System for Mobile Communications) network. 
+ * 
  * Support SIM7000E/G GSM, LTE, and WiFi modules with AT command interfaces.
- * based on Adafruit_FONA
+ * based on Adafruit_FONA.
  *
  *  AND Technologies Co., ltd, Breakout SIM7000 PCB board
  *  https://www.and-global.com
@@ -142,7 +145,6 @@ boolean BK_modem::begin()
         subscriber specific information.
     */
     // Enable Local Time Stamp for getting network time
-    //if (!sendCheckReply(F("AT+CLTS=0"), m_ok_reply)) // TOPDO: disable Local Time Stamp for now.!!!!!!!
     if ( !enableNetworkTimeSync(false) )
     {
         BK_DEBUG_PRINTLN(F("### Enable Local Time Stamp for getting network time faild. **"));
@@ -656,9 +658,9 @@ uint8_t BK_modem::getIMEI(char *imei)
 
 /********* NETWORK *******************************************************/
 
-/// @brief : get Network registration status.
+/// @brief : Gets the current network status
 /// @param
-/// @return :
+/// @return : uint8_t The nework status:
 ///             0 = Not registered
 ///             1 = Registered (home network)
 ///             2 = Not registered (searching)
@@ -895,6 +897,7 @@ boolean BK_modem::sendSMS(const char *smsaddr, const char *smsmsg)
     {
         return false;
     }
+
     readline(1000); // read OK
     // DEBUG_PRINT("* "); DEBUG_PRINTLN(m_replybuffer);
 
@@ -1009,6 +1012,9 @@ boolean BK_modem::enableNetworkTimeSync(boolean onoff)
 
   flushInput(); // eat any 'Unsolicted Result Code'
 
+ //   String res; res.replace("\r\nOK\r\n", "");
+ //   res.replace("\r\n", "");
+
   return true;
 }
 
@@ -1068,7 +1074,7 @@ boolean BK_modem::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, uint16 
 {
     if (onoff)
     {
-        // Set NTP Use bear profile 1
+        // Set GPRS bearer = 1 profile to associate with NTP sync.
         if (!sendCheckReply(F("AT+CNTPCID=1"), m_ok_reply))
         {
             return false;
@@ -1085,9 +1091,9 @@ boolean BK_modem::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, uint16 
             SerialSIM->print(F("pool.ntp.org"));
         }
 
-        char format[8];
-        sprintf(format, PSTR("\",%0d"), timeZone * 4);  // time zone = 0 (time zone value multiplay by 4.)
-        SerialSIM->println(format);                 
+        char _timezone[8];
+        sprintf(_timezone, PSTR("\",%0d"), timeZone * 4);  // time zone = 0 (time zone value multiplay by 4.)
+        SerialSIM->println(_timezone);                 
 
         readline(BK_SIM7000_DEFAULT_TIMEOUT_MS);
         if (strcmp_P(m_replybuffer, String(m_ok_reply).c_str()) != 0)
@@ -1186,6 +1192,9 @@ boolean BK_modem::readRTC(uint8_t *year, uint8_t *month, uint8_t *date, uint8_t 
     return true;
 }
 
+/// @brief 
+/// @param i 
+/// @return 
 boolean BK_modem::enableRTC(uint8_t i)
 {
     if (!sendCheckReply(F("AT+CLTS="), i, m_ok_reply))
@@ -1488,14 +1497,6 @@ boolean BK_modem::enableGPRS(boolean onoff)
         sendCheckReply(F("AT+CIPSHUT"), F("SHUT OK"), 20000);
         delay(100);
 
-        // Attach to GPRS service.
-        if (!sendCheckReply(F("AT+CGATT=1"), m_ok_reply, (uint16_t)75000))
-        {
-            return false;
-        }
-
-        delay(100);
-
         // set bearer profile! connection type GPRS
         if (!sendCheckReply(F("AT+SAPBR=3,1,\"CONTYPE\",\"GPRS\""), m_ok_reply, 10000))
         {
@@ -1534,7 +1535,7 @@ boolean BK_modem::enableGPRS(boolean onoff)
 
             flushInput();
 
-            // send AT+CSTT,"apn","user","pass"
+            // Start the TCP application toolkit task and set APN, USER NAME, PASSWORD
             SerialSIM->print(F("AT+CSTT=\""));
             SerialSIM->print(m_apn);
 
@@ -1578,6 +1579,12 @@ boolean BK_modem::enableGPRS(boolean onoff)
             }
         }
 
+        // Attach to GPRS service.
+        if (!sendCheckReply(F("AT+CGATT=1"), m_ok_reply, (uint16_t)75000))
+        {
+            return false;
+        }
+
         // Query the GPRS bearer context status
         int8_t status = getBearerStatus();
         BK_DEBUG_PRINTLN(F("Bearer Status: ") + String(status));
@@ -1595,7 +1602,7 @@ boolean BK_modem::enableGPRS(boolean onoff)
         //      return false;
         // }
 
-        // bring up wireless connection.
+        // Bring up the TCP application toolkit wireless connection with GPRS or CSD.
         if (!sendCheckReply(F("AT+CIICR"), m_ok_reply, 10000))
         {
             return false;
@@ -1776,6 +1783,7 @@ int8_t BK_modem::getNetworkSystemMode(char *typeStringBuffer)
 }
 
 // Bearer Settings for Applications Based on IP
+//   Query the GPRS bearer context status
 // cid = 1  => Bearer profile identifier:
 // Returns bearer status
 //                       -1 Command returned with an error
@@ -1850,7 +1858,9 @@ void BK_modem::getNetworkInfo(String &infoLine)
     // infoLine += getOperator();
 }
 
-// Gets the current network operator via the TS command AT+COPS
+/// @brief : Gets the current network operator via the TS command "AT+COPS"
+/// @param  
+/// @return 
 String BK_modem::getOperator(void)
 {
     if (!sendCheckReply(F("AT+COPS?"), F("+COPS:")))
@@ -1866,8 +1876,7 @@ String BK_modem::getOperator(void)
         res = String(m_replybuffer).substring(12, len - 3);
     }
 
-    // Eat 'OK'
-    readline();
+     readline();     // Eat 'OK'
 
     return res;
 }
@@ -1910,7 +1919,22 @@ bool BK_modem::getNetworkInfoLong(void)
     return true;
 }
 
-/// @brief: Attach or Detach from GPRS Service.
+/// @brief 
+/// @param  
+/// @return 
+String BK_modem::getResponseMessage(void)
+{
+    if(m_responcebuffer[0] != 0x00)
+    {
+        return String(m_responcebuffer);
+    }
+    else
+    {
+        return F("");
+    }
+}
+
+/// @brief: Attach or Detach to GPRS/EPS service.
 /// @param
 /// @return: 0 = Detached, 1 = Attached
 int8_t BK_modem::GPRSstate(void)
@@ -2987,11 +3011,11 @@ boolean BK_modem::UDPconnect(char *server, uint16_t port)
 }
 
 /**************** TCP FUNCTIONS + SSL *************************/
-/// @brief
-///
-/// @param server
-/// @param port
-/// @return
+
+ /// @brief Start a TCP connection
+ /// @param server Pointer to a buffer with the server to connect to
+ /// @param port Pointer to a buffer witht the port to connect to
+ /// @return true: success, false: failure
 boolean BK_modem::TCPconnect(char *server, uint16_t port)
 {
     if (BK_SSL)
@@ -3197,7 +3221,9 @@ boolean BK_modem::TCPconnected(void)
         getReply(F("AT+CAOPEN?"));
 
         if (strstr(m_replybuffer, CA) == NULL)
+        {
             return false;
+        }
     }
     else
     {
@@ -3522,7 +3548,8 @@ boolean BK_modem::HTTP_readall(uint16_t *datalen)
         return false;
     }
 
-    uint8_t m_responcebuffer[RECEIVE_BUFFER_LENGHT_MAX] = {0};
+    // Clear buffer.
+    memset( m_responcebuffer, 0x00, RECEIVE_BUFFER_LENGHT_MAX-1);
     readRaw( &m_responcebuffer[0], *datalen);
 
     BK_DEBUG_PRINT(F("Responce message: "));
@@ -3585,7 +3612,6 @@ void BK_modem::HTTP_GET_end(void)
 /// @param url              ; Server URL string
 /// @param contenttype      
 /// @param headerdata       : HTTP User header.
-/// @param headerdatalen 
 /// @param postdata         : HTTP Body.
 /// @param postdatalen 
 /// @param status           ; HTTP response status code
@@ -3593,7 +3619,7 @@ void BK_modem::HTTP_GET_end(void)
 /// @return 
 boolean BK_modem::HTTP_POST_start(char *url,
                                   FStringPtr contenttype,
-                                  const uint8_t *headerdata, uint16_t headerdatalen,
+                                  String &headerdata,
                                   const uint8_t *postdata, uint16_t postdatalen,
                                   uint16_t *status, uint16_t *datalen)
 {
@@ -3611,9 +3637,26 @@ boolean BK_modem::HTTP_POST_start(char *url,
     }
 
     // set HTTP customer header contents.
-    char headerStr[headerdatalen + 30];
-    sprintf(headerStr, PSTR("AT+HTTPPARA=\"USERDATA\", %s"), headerdata);
-    sendCheckReply(headerStr, m_ok_reply, 10000);
+    //BK_DEBUG_PRINTLN(F("HTTP Header info: ") + headerdata);
+
+    int endIdx = 0;
+    for(uint startIdx = 0; startIdx < headerdata.length(); startIdx++)
+    {
+        if( (endIdx = headerdata.indexOf(';', startIdx)) < 0)
+        {
+            break;
+        }
+
+        char headerStr[ 30 + (endIdx - startIdx)];
+
+        String sendbuf = headerdata.substring( startIdx, endIdx);
+        sprintf(headerStr, PSTR("AT+HTTPPARA=\"USERDATA\",\"%s\""), sendbuf.c_str());
+
+        //BK_DEBUG_PRINTLN(F("\t---> Send header: ") + String(headerStr));
+        sendCheckReply(headerStr, m_ok_reply, 10000);
+    
+        startIdx = endIdx;
+    }
 
     // HTTP POST data
     if (!HTTP_data(postdatalen, 10000))
@@ -3820,10 +3863,10 @@ uint16_t BK_modem::readRaw(uint16_t cnt)
 }
 
 /// @brief 
-/// @param SIM7000 receive buffer.
+/// @param  : SIM7000 receive buffer.
 /// @param cnt 
 /// @return : xx char in rspbuffer.
-uint16_t BK_modem::readRaw(uint8_t *rspbuffer, uint16_t cnt)
+uint16_t BK_modem::readRaw(char *rspbuffer, uint16_t cnt)
 {
     uint16_t len = readRaw(cnt);
     memcpy(rspbuffer, m_replybuffer, len);
@@ -3841,7 +3884,7 @@ uint16_t BK_modem::readline(uint16_t timeout, boolean multiline)
     uint8_t ready = false;
     uint8_t svtimeout = timeout;
 
-    // for (uint32_t start = millis(); millis() - start < timeout_ms;)
+    // for (uint32_t start = millis(); millis() - start < timeout;)
 
 #ifdef BK_MODEM_HEXDEBUG
     BK_DEBUG_PRINT(F("\t\t<")); // start pos. receive chars. --> HEX format.
@@ -4515,7 +4558,7 @@ int16_t BK_modem_LTE::getPreferredMode(void)
 
 // 2  - Automatic
 // 13 - GSM only
-// 38 - LTE only
+// 38 - LTE only 
 // 51 - GSM and LTE only
 boolean BK_modem_LTE::setPreferredMode(uint8_t mode)
 {
@@ -4803,9 +4846,9 @@ boolean BK_modem_LTE::HTTP_addHeader(const char *type, const char *value, uint16
     sprintf(cmdStr, "AT+SHAHEAD=\"%s\",\"%s\"", type, value);
 
     if (!sendCheckReply(cmdStr, m_ok_reply, 10000))
-            {
-                return false;
-            }
+    {
+        return false;
+    }
 
     return true;
 }
@@ -4889,7 +4932,7 @@ boolean BK_modem_LTE::HTTP_connect(const char *server)
     // HTTP(s) Connection
     sendCheckReply(F("AT+SHCONN"), m_ok_reply, 20000);
 
-    // Get HTTP status
+    // Get HTTP status: 1 = connected, 0 = Not connected.
     if (!sendCheckReply(F("AT+SHSTATE?"), F("+SHSTATE: 1")))
     {
         return false;
@@ -4902,6 +4945,22 @@ boolean BK_modem_LTE::HTTP_connect(const char *server)
     {
         return false;
     }
+
+    return true;
+}
+
+/// @brief 
+/// @param  
+/// @return 
+boolean BK_modem_LTE::GetHTTP_status(void)
+{
+    // Get HTTP status
+    if (!sendCheckReply(F("AT+SHSTATE?"), F("+SHSTATE: 1")))
+    {
+        return false;
+    }
+
+    readline(); // Eat 'OK'
 
     return true;
 }
@@ -4965,14 +5024,14 @@ boolean BK_modem_LTE::HTTP_GET(const char *URI)
 /// @param body
 /// @param bodylen
 /// @return
-boolean BK_modem_LTE::HTTP_POST(const char *URI, const char *body, uint8_t bodylen)
+boolean BK_modem_LTE::HTTP_POST(const char *URI, const char *body, uint8_t bodylen, uint16_t *status, uint16_t *datalen)
 {
     // Use .HTTP_addHeader() as needed before using this function
     // Then use .HTTP_connect() to connect to the server first
     char cmdBuff[150]; // Make sure this is large enough for URI
     uint8_t reply = 10;
 
-    sprintf(cmdBuff, "AT+SHBOD=%i,10000", bodylen);
+    sprintf(cmdBuff, "AT+SHBOD=%i, 10000", bodylen);
     getReply(cmdBuff, 10000);
 
     while (reply--)
@@ -4999,34 +5058,39 @@ boolean BK_modem_LTE::HTTP_POST(const char *URI, const char *body, uint8_t bodyl
 
     // Parse response status and size
     // Example reply --> "+SHREQ: "POST",200,452"
-    uint16_t status, datalen;
     readline(10000);
 
     BK_DEBUG_PRINT("\t<--- ");
     BK_DEBUG_PRINTLN(m_replybuffer);
 
     // AT+SHREQ="/post",3
-    if (!parseReply(F("+SHREQ: \"POST\""), &status, ',', 1))
+    if (!parseReply(F("+SHREQ: \"POST\""), status, ',', 1))
         return false;
-    if (!parseReply(F("+SHREQ: \"POST\""), &datalen, ',', 2))
+
+    if (!parseReply(F("+SHREQ: \"POST\""), datalen, ',', 2))
         return false;
 
     BK_DEBUG_PRINT("HTTP POST status: ");
-    BK_DEBUG_PRINTLN(status);
+    BK_DEBUG_PRINTLN(*status);
     BK_DEBUG_PRINT("Data length: ");
-    BK_DEBUG_PRINTLN(datalen);
+    BK_DEBUG_PRINTLN(*datalen);
 
-    if (status != HTTP_CODE_OK)
+    if (*status != HTTP_CODE_OK)
+    {
         return false;
+    }
 
     // Read server response
-    getReply(F("AT+SHREAD=0,"), datalen, 10000);
+    getReply(F("AT+SHREAD=0,"), *datalen, 10000);
     readline();
 
     BK_DEBUG_PRINT("\t<--- ");
     BK_DEBUG_PRINTLN(m_replybuffer); // +SHREAD: <datalen>
 
     readline(10000);
+
+    memset( m_responcebuffer, 0x00, *datalen);
+    memcpy( m_responcebuffer, m_replybuffer, *datalen);
 
     BK_DEBUG_PRINT("\t<--- ");
     BK_DEBUG_PRINTLN(m_replybuffer); // Print out server reply

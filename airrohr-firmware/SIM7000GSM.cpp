@@ -67,6 +67,10 @@ extern const char TXT_CONTENT_TYPE_TEXT_PLAIN[] PROGMEM = "text/plain";
 
 // internal defines.
 unsigned long m_starttime;
+boolean flg_SyncNTPTime = true;
+boolean m_firsttime = true;
+
+unsigned long last_status_attempt = 0;
 
 /*
     BK-SIM7000 settings.
@@ -198,7 +202,7 @@ void GPRSModemInfo()
 /// @return : RSSI value.
 int32_t GetWiFi_RSSI( void)
 {
-        if (gsm_init_failed)
+    if (gsm_init_failed)
     {
         debug_outln_info(F("RSSI: GSM module (GPRS) \"NOT\" connected.. "));
         return 0;
@@ -373,8 +377,8 @@ bool Sim7000_setup()
         GSMmodem.setNetworkSettings(FPSTR(cfg7::gprsapn));
     }
 
-    GSMmodem.setPreferredMode(38);              // Use LTE only.
-    GSMmodem.setPreferredLTEMode(1);            // Use LTE CAT-M only, not NB-IoT
+    GSMmodem.setPreferredMode(38);              // Use GPRS/LTE  only.
+    GSMmodem.setPreferredLTEMode(1);            // Use GPRS/LTE CAT-M, not NB-IoT
     //GSMmodem.setOperatingBand("CAT-M", 12);   // ex. AT&T uses band 12.
 
     if (cfg7::s7000_has_gps)
@@ -505,7 +509,7 @@ boolean GetGPSLocation(float *latitude, float *longitude, float *altitude, Strin
     return gpsOke;
 }
 
-/// @brief
+/// @brief  : send sensor data, status message one /hour, LWT only by start-up
 /// @param topic
 /// @param payload
 /// @return
@@ -515,6 +519,33 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
     {
         debug_outln_info(F("MQTT: GSM module (GPRS) \"NOT\" connected.. "));
         return -100;
+    }
+
+    char *ptr = strstr(topic, "/sensor");
+    if (ptr == 0)
+    {
+        if (m_firsttime)
+        {// only after start-up send all data to MQTT server.
+            last_status_attempt = act_milli;
+            m_firsttime = false;
+        }
+        else
+        {
+            ptr = strstr(topic, "/status");
+            if (ptr > 0)
+            {// send "status" one time/hour
+                if ((act_milli - last_status_attempt) < 60000 * 60)
+                {
+                    return true;
+                }
+
+                last_status_attempt = act_milli;
+            }
+            else
+            {// no MQTT action.
+                return true;
+            }
+        }
     }
 
     debug_outln_info(F("Start send Data By MQTT process."));
@@ -609,31 +640,28 @@ int32_t sendDataByGSM(const LoggerEntry logger, const String &str_JsonData, cons
     int res;
     if ((res = GSMmodem.getBearerStatus()) > 1)
     {
-        // // Bearer is closed.
-        // // disable data
-        // int reply = 5;
-        // while (--reply)
-        // {
-        //     if (GSMmodem.enableGPRS(false))
-        //     {
-        //         break;
-        //     }
-
-        //     debug_outln_info(F("Failed to turn off"));
-        //     delay(2000);
-        // }
-
         if( res == 2)
         {// bearer is closing.
             delay(2000);
         }
 
+        // Bearer is closed.
         // enable data
         if (!GSMmodem.enableGPRS(true))
         {
             debug_outln_info(F("Failed to turn on"));
         }
     }
+
+    if( flg_SyncNTPTime )
+    {// only one time after start-up. 
+     // SIM7000 firmware needs some time to connect to NTP servder.
+         setNTPTimeSync();
+         delay(200);
+    }
+
+    debug_outln_info(F("-------- HTTP process under construction -------------"));
+    return millis() - start_send;
 
     uint16_t statuscode = -1;
     int16_t respLength;
@@ -661,16 +689,17 @@ int32_t sendDataByGSM(const LoggerEntry logger, const String &str_JsonData, cons
     addUserHeader.clear();
 
     // SIM7000 firmware can't handle these settings.
-    //addUserHeader += F(" Connection: ") + String(F("close"));                 // reuse ? F("keep-alive") : F("close");
-    //addUserHeader += F(" Keep-Alive: ") + String("timeout=20, max=1000");     // 20 * 1000
-    //addUserHeader += F(" cache-control: ") + String(F("no-cache"));
+    //addUserHeader = F("Connection:") + String(F("close"));                 // reuse ? F("keep-alive") : F("close");
+    //addUserHeader += F("Keep-Alive:") + String("timeout=20, max=1000");    // 20 * 1000
+    //addUserHeader += F("cache-control:") + String(F("no-cache"));
+    //addUserHeader += F("Authorization: Bearer Fijnstof_19570913-191800;");
 
-    addUserHeader  = F(" X-Sensor: ") + String(F(SENSOR_BASENAME)) + esp_chipid;
-    addUserHeader += F(" X-MAC-ID: ") + String(F(SENSOR_BASENAME)) + esp_mac_id;
+    addUserHeader += F("X-Sensor: ") + String(F(SENSOR_BASENAME)) + esp_chipid + F(";");
+    addUserHeader += F("X-MAC-ID: ") + String(F(SENSOR_BASENAME)) + esp_mac_id + F(";");
 
     if (pin)
     {
-        addUserHeader += (F(" X-PIN: ") + String(pin));
+        addUserHeader += F("X-PIN: ") + String(pin) + F(";");
     }
    
     String s_userAgent = SOFTWARE_VERSION + String('/') + esp_chipid + String('/') + esp_mac_id;
@@ -689,13 +718,16 @@ int32_t sendDataByGSM(const LoggerEntry logger, const String &str_JsonData, cons
     }
 
     debug_outln_info(F("**** URL: "), s_url);
-    debug_outln_info(F("**** Header: "), F("Content-Type: ") + String(contentType) + String(" ") +FPSTR(addUserHeader.c_str()));
+    debug_outln_info(F("**** Header: "), F("Content-Type: ") + String(contentType) + String(" ") + FPSTR(addUserHeader.c_str()));
     debug_outln_info(F("**** Body lengte: "), String(str_JsonData.length()));
     debug_outln_info(F("**** Body: "), str_JsonData);
 
+    //addUserHeader.replace(";","\r\n");
+    //String contentTmp = String(contentType) + String("\r\n") + addUserHeader + String("\r\n");
+
     // POST sensor data to ex. sensor.community server.
-    if ( !GSMmodem.HTTP_POST_start(s_url, contentType, 
-                                   (uint8_t *)addUserHeader.c_str(), addUserHeader.length() , 
+    if ( !GSMmodem.HTTP_POST_start(s_url, contentType,                  // FPSTR(contentTmp.c_str()),
+                                   addUserHeader, 
                                    (uint8_t *)str_JsonData.c_str(), str_JsonData.length(), 
                                    &statuscode, (uint16_t *)&respLength) )
     {
@@ -711,7 +743,7 @@ int32_t sendDataByGSM(const LoggerEntry logger, const String &str_JsonData, cons
     else // if (result >= HTTP_CODE_BAD_REQUEST)
     {
         debug_outln_info(F("Request failed with error: "), String(statuscode));
-        //debug_outln_info(F("Details:"), http.getString());
+        debug_outln_info(F("Details: "), GSMmodem.getResponseMessage());
     }
 
     debug_outln_info(F("POST end ****"));
@@ -746,8 +778,11 @@ void setNTPTimeSync(void)
 
     debug_outln_info(F("NTP Time value: ") + String(timeBuffer));
 
-    // set terminator char. for each field.
     timeBuffer[3] = 0x00;
+    if(atoi(&timeBuffer[1]) == 80) return;      // NTP could not connect to network.
+
+    // set terminator char. for each field.
+    //timeBuffer[3] = 0x00;
     timeBuffer[6] = 0x00;
     timeBuffer[9] = 0x00;
     timeBuffer[12] = 0x00;
@@ -790,6 +825,8 @@ void setNTPTimeSync(void)
 
     // Set internal timer value.
     settimeofday(&tv,NULL);
+
+    flg_SyncNTPTime = false;
 }
 
 /// @brief : sync NTP time one time a day.
