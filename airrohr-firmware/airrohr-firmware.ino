@@ -4896,7 +4896,12 @@ static void sendmqtt(const String &data)
             }
             else
             {
-                sendDataByMQTT(header.c_str(), payload.c_str());
+                if (!sendDataByMQTT(header.c_str(), payload.c_str()))
+                {
+                    debug_outln_info(F("Lost connection to MQTT broker..."));
+                    return;
+                }
+
                 mqtt_error = "ok";
             }
 

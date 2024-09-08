@@ -518,7 +518,7 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
     if (gsm_init_failed)
     {
         debug_outln_info(F("MQTT: GSM module (GPRS) \"NOT\" connected.. "));
-        return -100;
+        return false;
     }
 
     char *ptr = strstr(topic, "/sensor");
@@ -565,10 +565,10 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
 
         GSMmodem.MQTT_setParameter("CLIENTID", "airRohr_001"); // Client connection id.
 
-       GSMmodem.MQTT_setParameter("URL", cfg::mqtt_server, cfg::mqtt_port); // MQTT_SERVER, MQTT_PORT
-       //char s_url[150];
-       //sprintf(s_url, "%s:%d", cfg::mqtt_server, cfg::mqtt_port); // Format URI
-       //GSMmodem.MQTT_setParameter("URL", s_url); // MQTT_SERVER, MQTT_PORT
+        GSMmodem.MQTT_setParameter("URL", cfg::mqtt_server, cfg::mqtt_port); // MQTT_SERVER, MQTT_PORT
+        //char s_url[150];
+        //sprintf(s_url, "%s:%d", cfg::mqtt_server, cfg::mqtt_port); // Format URI
+        //GSMmodem.MQTT_setParameter("URL", s_url); // MQTT_SERVER, MQTT_PORT
 
         // Set up MQTT username and password if necessary
         GSMmodem.MQTT_setParameter("USERNAME", cfg::mqtt_user); // MQTT_USERNAME
@@ -587,6 +587,14 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
         {
             debug_outln_info(F("Failed to connect to broker!"));
             GSMmodem.MQTT_connect(false);
+
+            // check network status.
+            // if lost network connection then set flag to restart SIM7000 firmware.
+            // Pulse the reset pin.
+            // Restart takes internal quite some time.
+            // move to LOOP()
+            GSMmodem.modemRestart();
+
             return false;
         }
     }

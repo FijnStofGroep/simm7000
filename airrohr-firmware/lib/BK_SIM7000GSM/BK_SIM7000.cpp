@@ -122,14 +122,9 @@ boolean BK_modem::begin()
         return false;
     }
 
-    // Pulse the reset pin only if it's not an LTE module
-    // BK_DEBUG_PRINTLN(F("Resetting the module..."));
-    // Restart takes internal quite some time.
-    // modemRestart();
-
-    // Send AT command to modem.
+    // Send 'AT' command to modem, to check communication or to wake-up.
     if (!TestAT())
-    { // no reslay from modem.
+    { // no replay from modem. (could be PCB power down, wrong Buadrate, sim7000 firmware in dead loop, ....)
         return false;
     }
 
@@ -287,10 +282,10 @@ void BK_modem::modemRestart()
 {
     BK_DEBUG_PRINTLN(F("BK-Sim7000 Restart process START"));
 
-    flush();
+    flushInput();
 
     // disconnect all sockets and close bearer and detach from GPRS Service.
-    sendCheckReply(F("AT+CIPSHUT"), F("SHUT OK"), 20000);
+    sendCheckReply(F("AT+CIPSHUT"), F("SHUT OK"), 10000);
     delay(200);
 
     powerDown();
@@ -299,8 +294,8 @@ void BK_modem::modemRestart()
     modemPowerOn();
     delay(1000);
 
-    // wake-up modem.
-    TestAT();
+    // restart send network settings to sim7000 firmware.
+    begin();
 
     BK_DEBUG_PRINTLN(F("BK-Sim7000 Restart process ENDED"));
 }
@@ -4157,6 +4152,11 @@ boolean BK_modem::sendCheckReply(const char *send, const char *reply, uint16_t t
     return (strncmp(m_replybuffer, reply, len) == 0);
 }
 
+/// @brief 
+/// @param send 
+/// @param reply 
+/// @param timeout 
+/// @return : return 0 then timeout else receive data.
 boolean BK_modem::sendCheckReply(FStringPtr send, FStringPtr reply, uint16_t timeout)
 {
     if (!getReply(send, timeout))
