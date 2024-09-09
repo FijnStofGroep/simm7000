@@ -216,7 +216,6 @@ public:
     boolean disableGPS()    { return enableGPS(false); }
 
     int8_t GPSstatus(void);
-    uint8_t getGPS_Navigation_Information(uint8_t arg, char *buffer, uint8_t maxbuff);
     boolean getGPS(float *lat, float *lon, float *speed_kph, float *heading, float *altitude,
                    uint16_t *year = NULL, uint8_t *month = NULL, uint8_t *day = NULL, 
                    uint8_t *hour = NULL,  uint8_t *min = NULL, uint8_t *sec = NULL);
@@ -309,6 +308,8 @@ protected:
 
     boolean enableGPS(boolean onoff);
     uint16_t getCME_ErrorCode();
+
+    uint8_t getGPS_Navigation_Information(uint8_t arg, char *buffer, uint8_t maxbuff);
 
     // HTTP helpers
     boolean HTTP_setup(char *url);

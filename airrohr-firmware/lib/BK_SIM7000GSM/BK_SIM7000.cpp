@@ -1458,8 +1458,8 @@ boolean BK_modem::getGPS(float *lat, float *lon, float *speed_kph, float *headin
     return true;
 }
 
-/// @brief  :
-/// @param  : input
+/// @brief  : GNSS NMEA Out configure
+/// @param  : input = 0, 1 or 2
 /// @return :
 boolean BK_modem::enableGPSNMEA(uint8_t input)
 {
@@ -1468,14 +1468,14 @@ boolean BK_modem::enableGPSNMEA(uint8_t input)
 
     if( input )
     {
-        sendCheckReply(F("AT+CGNSCFG=1"), m_ok_reply);
-        sendCheckReply(F("AT+CGNSTST=1"), m_ok_reply);
+        sendCheckReply(F("AT+CGNSCFG=1"), m_ok_reply);  // Turn on GNSS NMEA Data Output to USB port.
+        sendCheckReply(F("AT+CGNSTST=1"), m_ok_reply);  // Turn on GNSS NMEA Data Output to AT port.
 
         return true;
     }
     else
     {
-        return sendCheckReply(F("AT+CGNSTST=0"), m_ok_reply);
+        return sendCheckReply(F("AT+CGNSTST=0"), m_ok_reply);   // Turn off GNSS NMEA Data Output to AT port
     }
 }
 
