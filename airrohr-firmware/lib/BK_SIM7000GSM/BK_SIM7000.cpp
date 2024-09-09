@@ -2038,7 +2038,7 @@ boolean BK_modem::openWirelessConnection(bool onoff)
 {
     if (!onoff)
     { // Disconnect wireless.
-        char buff[strlen((prog_char *)m_apn) + 2];
+        char buff[strlen_P((prog_char *)m_apn) + 2];
         sprintf(buff, "AT+CNACT=0,\"%s\"", (prog_char *)m_apn);
 
         if (!sendCheckReply(buff, m_ok_reply, 10000))
@@ -2062,7 +2062,7 @@ boolean BK_modem::openWirelessConnection(bool onoff)
     else
     { // Connect wireless.
 
-        char buff[strlen((prog_char *)m_apn) + 2];
+        char buff[strlen_P((prog_char *)m_apn) + 2];
         sprintf(buff, "AT+CNACT=1,\"%s\"", (prog_char *)m_apn);
 
         if (!sendCheckReply(buff, m_ok_reply, 10000)) // if (!sendCheckReply(F("AT+CNACT=0,1"), m_ok_reply))
