@@ -1,3 +1,8 @@
+FWL-2024-10-B3
+* Set ESP8266 Serial pins for connection to SIM7000 board:
+*   -PIN_RX to D5 (GPIO14)  <---- TX SIM7000
+*   -PIN_TX to D6 (GPIO12)  ----> RX SIM7000
+
 FWL-2024-04-B5_7
 * Add own SIM7000LTE library to project.
 * Debug level 88 => Only for Engineer more Debug info.

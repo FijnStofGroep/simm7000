@@ -115,7 +115,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2024-09-B2"
+#define SOFTWARE_VERSION_STR "FWL-2024-10-B3"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -6750,8 +6750,7 @@ static void GetSen5XSensorData()
 		{
 			if (!cfg::sen5x_on)
 			{
-				debug_outln_verbose(F("SEN5X STOP Measurement. time: "), String(msSince(starttime)));
-	
+                debug_outln_verbose(F("SEN5X STOP Reading Measurement."));
 				sen5x.stopMeasurement();
 			}
 
@@ -6850,7 +6849,7 @@ static void GetSen5XSensorData()
 		{
 			if (!cfg::sen5x_on)
 			{
-				debug_outln_verbose(F("SEN5X START Measurement. Time: "), String(msSince(starttime)));
+				debug_outln_verbose(F("SEN5X START Reading Measurement. Time: "), String(msSince(starttime)));
 				sen5x.startMeasurement();
 			}
 
@@ -7366,7 +7365,7 @@ static String displayGenerateFooter(unsigned int screen_count)
  *****************************************************************/
 static void display_values()
 {
-	#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 
 	float t_value = -128.0;
 	float h_value = -1.0;
@@ -8922,8 +8921,8 @@ void setup(void)
 
 	delay(50);
 
-    // store the start time.
-	starttime = millis();      
+    // set start time.
+	starttime = millis();
 	last_update_attempt = time_point_device_start_ms = starttime;
 	
 	if (cfg::npm_read)
@@ -9408,7 +9407,7 @@ void loop(void)
 		min_micro = 1000000000;
 		max_micro = 0;
 		sum_send_time = 0;
-		starttime = millis(); 					// store the start time.
+		starttime = millis(); 					// set new start time.
 		count_sends++;
 	}
 	else
