@@ -4591,7 +4591,8 @@ String BK_modem_LTE::getGPRSIP(void)
     // Format of response:
     // +CNACT: <status>,<ip_addr>   (+CNACT: 1,"10.36.213.2")
     String res = String(m_replybuffer);
-    return res.substring(10, res.length());
+    String tmpstr = res.substring(10, res.length());    // input: "10.36.213.2"
+    return tmpstr.substring(1, tmpstr.length()-1);      // skip '"' chars
 }
 
 // Useful for choosing a certain carrier only

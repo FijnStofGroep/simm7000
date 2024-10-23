@@ -481,7 +481,7 @@ boolean GetGPSLocation(float *latitude, float *longitude, float *altitude, Strin
                             &year, &month, &day, &hour, &min, &sec))
         {
             char gps_timestamp[37] = {0};
-            sprintf_P(gps_timestamp, PSTR("%02d-%02d-%04d  %02d:%02d:%02d.000"), day, month, year, hour, min, sec);
+            sprintf_P(gps_timestamp, PSTR("%04d-%02d-%02dT%02d:%02d:%02d.000"),year, month, day, hour, min, sec);
             timestamp = String(gps_timestamp);
 
             debug_outln_info(F("GPS location has been locked..."));
