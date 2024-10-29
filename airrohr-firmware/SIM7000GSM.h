@@ -84,12 +84,15 @@ boolean GetGPSLocation(float * latitude, float * longitude, float * altitude, St
 int32_t sendDataByGSM(const LoggerEntry logger, const String &data, const int pin,
 							const char *host, const int portnr, const char *url);
 
+/// @brief 
+/// @param topic 
+/// @param payload 
+/// @return 
 boolean sendDataByMQTT( const char *topic, const char *payload);
 
 /// @brief 
 /// @param  
 void SyncNTPTime(void);
-
 
 //--------------  Internal use ----------
 /// @brief 
@@ -101,9 +104,20 @@ void setNTPTimeSync(void);
 */
 void modemPowerOff();
 
+/// @brief 
+/// @param  
+/// @return 
 int32_t GetWiFi_RSSI( void);
+
+/// @brief 
+/// @param  
+/// @return 
 String GetLocalIP(void);
 
+/// @brief 
+/// @param datetimeString 
+/// @param format 
+/// @return 
 time_t parseDateTime(const char* datetimeString, const char* format);
 
 #endif // _SIM7000GSM_H

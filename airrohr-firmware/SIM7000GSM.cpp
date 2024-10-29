@@ -60,10 +60,10 @@ extern const char TXT_CONTENT_TYPE_TEXT_PLAIN[] PROGMEM = "text/plain";
 
 //***************************************************************************************************************************************************
  /// HTTP codes see RFC7231
- #define    HTTP_CODE_OK                200
- #define    HTTP_CODE_ALREADY_REPORTED  208
- #define    HTTP_CODE_BAD_REQUEST       400
- #define    HTTP_CODE_REQUEST_TIMEOUT   408
+#define    HTTP_CODE_OK                200
+#define    HTTP_CODE_ALREADY_REPORTED  208
+#define    HTTP_CODE_BAD_REQUEST       400
+#define    HTTP_CODE_REQUEST_TIMEOUT   408
 
 // internal defines.
 unsigned long m_starttime;
@@ -71,6 +71,7 @@ boolean flg_SyncNTPTime = true;
 boolean m_firsttime = true;
 
 unsigned long last_status_attempt = 0;
+unsigned long wait_NTP_sync_time = ONE_DAY_IN_MS;
 
 /*
     BK-SIM7000 settings.
@@ -338,6 +339,9 @@ bool Sim7000_setup()
         return false;
     }
 
+    // Flush: SerialSIM receive buffer.
+    GSMmodem.flush();
+
     String name = GSMmodem.getModemName();
     debug_outln_info(F("Modem Name: "), name);
 
@@ -414,13 +418,13 @@ bool Sim7000_setup()
       //GSMmodem.setNetLED(true, 2, 64, 3000);        // on/off, mode, timer_on, timer_off
       //GSMmodem.setNetLED(false);                    // Disable network status LED
 
-    wdt_reset();                                        // watchdog timer reset => nodemcu ESP8266 still alive.
+    wdt_reset();                                      // watchdog timer reset => nodemcu ESP8266 still alive.
 
     GPRSModemInfo();
 
     setNTPTimeSync();
 
-    m_starttime = millis();                             // store the start time
+    m_starttime = millis();                           // store the start time
 
     return true;
 
@@ -661,12 +665,12 @@ int32_t sendDataByGSM(const LoggerEntry logger, const String &str_JsonData, cons
         }
     }
 
-    if( flg_SyncNTPTime )
-    {// only one time after start-up. 
-     // SIM7000 firmware needs some time to connect to NTP servder.
-         setNTPTimeSync();
-         delay(200);
-    }
+    // if( flg_SyncNTPTime )
+    // {// only one time after start-up. 
+    //  // SIM7000 firmware needs some time to connect to NTP servder.
+    //      setNTPTimeSync();
+    //      delay(200);
+    // }
 
     debug_outln_info(F("-------- HTTP process under construction -------------"));
     return millis() - start_send;
@@ -774,6 +778,28 @@ int32_t sendDataByGSM(const LoggerEntry logger, const String &str_JsonData, cons
 /// @param  : NTP server : 2.pool.ntp.org
 void setNTPTimeSync(void)
 {
+    if (!GPRSConnect())
+    {
+        debug_outln_info(F("--- GPRS Failed to connection (EINDE) ---"));
+        return;
+    }
+
+    int res;
+    if ((res = GSMmodem.getBearerStatus()) > 1)
+    {
+        if( res == 2)
+        {// bearer is closing.
+            delay(2000);
+        }
+
+        // Bearer is closed.
+        // enable data
+        if (!GSMmodem.enableGPRS(true))
+        {
+            debug_outln_info(F("--- enable GPRS Failed to turn on ---"));
+        }
+    }
+
     //enable NTP time sync. + time zone.
     if ( !GSMmodem.enableNTPTimeSync(true, FPSTR((String(NTP_SERVER_1)).c_str()), 1) )
     {
@@ -784,10 +810,14 @@ void setNTPTimeSync(void)
     char timeBuffer[25];
     GSMmodem.getTime(timeBuffer, 24); // "24/08/28,11:21:26+04"
 
-    debug_outln_info(F("NTP Time value: ") + String(timeBuffer));
+    debug_outln_info(F("Raw NTP Date/Time value: ") + String(timeBuffer));
 
     timeBuffer[3] = 0x00;
-    if(atoi(&timeBuffer[1]) == 80) return;      // NTP could not connect to network.
+    if(atoi(&timeBuffer[1]) == 80)
+    {// return value = base date/time.
+        wait_NTP_sync_time = cfg::sending_intervall_ms + 5000;
+        return;                        // NTP server timed out.
+    }
 
     // set terminator char. for each field.
     //timeBuffer[3] = 0x00;
@@ -835,13 +865,14 @@ void setNTPTimeSync(void)
     settimeofday(&tv,NULL);
 
     flg_SyncNTPTime = false;
+    wait_NTP_sync_time = ONE_DAY_IN_MS;
 }
 
 /// @brief : sync NTP time one time a day.
 /// @param  
 void SyncNTPTime(void)
 {
-    if( (act_milli - m_starttime) > ONE_DAY_IN_MS)
+    if( (act_milli - m_starttime) > wait_NTP_sync_time)
     {
         debug_outln_info(F("Start Sync NTP Time value: "));
 
