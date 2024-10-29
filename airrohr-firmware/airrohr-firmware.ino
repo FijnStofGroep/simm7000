@@ -115,7 +115,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2024-10-B3"
+#define SOFTWARE_VERSION_STR "FWL-2024-10-B4"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -2053,10 +2053,13 @@ static bool writeConfigS7000()
 					 	 F(" | Elementen in array: ") + String(json.size()) +
 						 F("\nConfig written successfully."));
 
-		String json_string;
-  		serializeJson(json, json_string);
-		debug_outln_info(F("writeConfigS7000() => [JSON] S7000 format: \n"), json_string.c_str());
-	}
+        if (cfg::debug == DEBUG_ENGINEER_INFO)
+        {
+            String json_string;
+            serializeJson(json, json_string);
+            debug_outln_info(F("writeConfigS7000() => [JSON] S7000 format: \n"), json_string.c_str());
+        }
+    }
 	else
 	{
 		debug_outln_error(F("writeConfigS7000():failed to open config S7000 file for writing"));
@@ -6752,7 +6755,12 @@ static void GetSen5XSensorData()
 			{
                 debug_outln_verbose(F("SEN5X STOP Reading Measurement."));
 				sen5x.stopMeasurement();
-			}
+
+                if (cfg::debug > DEBUG_MAX_INFO)
+                {
+                    digitalWrite(LED_BUILTIN_AUX, HIGH);            // Set extra blue LED Off.
+                }
+            }
 
 				is_SEN5X_running = false;
 		}
@@ -6851,7 +6859,12 @@ static void GetSen5XSensorData()
 			{
 				debug_outln_verbose(F("SEN5X START Reading Measurement. Time: "), String(msSince(starttime)));
 				sen5x.startMeasurement();
-			}
+
+                if (cfg::debug > DEBUG_MAX_INFO)
+                {
+                    digitalWrite(LED_BUILTIN_AUX, LOW);                 // Set extra blue LED On.
+                }
+            }
 
 			SEN5X_read_timer = msSince(starttime);
 			is_SEN5X_running = true;
@@ -7361,7 +7374,7 @@ static String displayGenerateFooter(unsigned int screen_count)
 }
 
 /*****************************************************************
- * display values                                                *
+ * display sensor values on "OLED" screen.                       *
  *****************************************************************/
 static void display_values()
 {
@@ -8083,7 +8096,13 @@ static void initSEN5X()
 {
 	debug_outln(F("Start to Initialize SEN5X sensor."), DEBUG_MIN_INFO);
 
-	sen5x.begin(Wire);
+    if (cfg::debug > DEBUG_MAX_INFO)
+    {
+        pinMode(LED_BUILTIN_AUX, OUTPUT);           // GPIO16 => LED_BUILTIN_AUX
+        digitalWrite(LED_BUILTIN_AUX, HIGH);        // Set extra blue LED Off.
+    }
+
+    sen5x.begin(Wire);
 
 	uint16_t error;
 	char errorMessage[256];
@@ -8114,6 +8133,7 @@ static void initSEN5X()
 
     // Adjust tempOffset to account for additional temperature offsets
     // exceeding the SEN5X module's self heating.
+    // Debug.println( F("temp_correction: ") + String(cfg::scd30_temp_correction));
     float tempOffset = readCorrectionOffset(cfg::scd30_temp_correction);		//String(cfg::scd30_temp_correction).toFloat();
     error = sen5x.setTemperatureOffsetSimple(tempOffset);
 
@@ -8617,7 +8637,7 @@ static unsigned long sendDataToOptionalApis(const String &data)
 		data_sensemap.replace("SEN55", cfg::sen5x_sym_pm);	 	// replace PM Sensor Type Name.
 		data_sensemap.replace("SEN5X", cfg::sen5x_sym_th);		// replace temp/hummidity/NOx Sensor Type Name.
 
-		debug_outln_verbose(F("sendDataToOptionalApis data:\n"), data_sensemap);
+		debug_outln_verbose(F("SEN5x: sendDataToOptionalApis data:\n"), data_sensemap);
 	}
 
 	if (cfg::send2madavi)
@@ -9458,7 +9478,7 @@ void loop(void)
 		RCWL0516.loop();
 	}
 
-    if(cfg::has_s7000 && !gps_init_failed)
+    if(cfg::has_s7000 )
     {
         SyncNTPTime();
     }
