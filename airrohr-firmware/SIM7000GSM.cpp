@@ -67,7 +67,6 @@ extern const char TXT_CONTENT_TYPE_TEXT_PLAIN[] PROGMEM = "text/plain";
 
 // internal defines.
 unsigned long m_starttime;
-boolean flg_SyncNTPTime = true;
 boolean m_firsttime = true;
 
 unsigned long last_status_attempt = 0;
@@ -422,7 +421,7 @@ bool Sim7000_setup()
 
     GPRSModemInfo();
 
-    setNTPTimeSync();
+    wait_NTP_sync_time = 15000;                       // wait 15 sec. before the first call to "setNTPTimeSync();""
 
     m_starttime = millis();                           // store the start time
 
@@ -513,9 +512,9 @@ boolean GetGPSLocation(float *latitude, float *longitude, float *altitude, Strin
     return gpsOke;
 }
 
-/// @brief  : send sensor data, status message one /hour, LWT only by start-up
-/// @param topic
-/// @param payload
+/// @brief : send sensor data, status message one /hour, LWT only by start-up
+/// @param : topic
+/// @param : payload
 /// @return
 boolean sendDataByMQTT(const char *topic, const char *payload)
 {
@@ -556,8 +555,24 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
 
     if (!GPRSConnect())
     {
-        debug_outln_info(F("-------- MQTT connection ERROR (EINDE) -------------"));
+        debug_outln_info(F("--- MQTT connection ERROR (EINDE) ---"));
         return false;
+    }
+
+    int res;
+    if ((res = GSMmodem.getBearerStatus()) > 1)
+    {
+        if( res == 2)
+        {// bearer is closing.
+            delay(2000);
+        }
+
+        // Bearer is closed.
+        // enable data
+        if (!GSMmodem.enableGPRS(true))
+        {
+            debug_outln_info(F("--- MQTT  Failed to turn on ---"));
+        }
     }
 
     // If not already connected, connect to MQTT.
@@ -664,13 +679,6 @@ int32_t sendDataByGSM(const LoggerEntry logger, const String &str_JsonData, cons
             debug_outln_info(F("Failed to turn on"));
         }
     }
-
-    // if( flg_SyncNTPTime )
-    // {// only one time after start-up. 
-    //  // SIM7000 firmware needs some time to connect to NTP servder.
-    //      setNTPTimeSync();
-    //      delay(200);
-    // }
 
     debug_outln_info(F("-------- HTTP process under construction -------------"));
     return millis() - start_send;
@@ -780,7 +788,7 @@ void setNTPTimeSync(void)
 {
     if (!GPRSConnect())
     {
-        debug_outln_info(F("--- GPRS Failed to connection (EINDE) ---"));
+        debug_outln_info(F("--- NTP GPRS NOT connected ---"));
         return;
     }
 
@@ -796,14 +804,14 @@ void setNTPTimeSync(void)
         // enable data
         if (!GSMmodem.enableGPRS(true))
         {
-            debug_outln_info(F("--- enable GPRS Failed to turn on ---"));
+            debug_outln_info(F("--- NTP enable GPRS Failed to turn on ---"));
         }
     }
 
-    //enable NTP time sync. + time zone.
+     //enable NTP time sync. + time zone.
     if ( !GSMmodem.enableNTPTimeSync(true, FPSTR((String(NTP_SERVER_1)).c_str()), 1) )
     {
-        debug_outln_info(F("Failed to enable NTP."));
+        debug_outln_info(F("--- Failed to enable NTP. ---"));
         return;
     }
 
@@ -864,7 +872,6 @@ void setNTPTimeSync(void)
     // Set internal timer value.
     settimeofday(&tv,NULL);
 
-    flg_SyncNTPTime = false;
     wait_NTP_sync_time = ONE_DAY_IN_MS;
 }
 
@@ -874,11 +881,11 @@ void SyncNTPTime(void)
 {
     if( (act_milli - m_starttime) > wait_NTP_sync_time)
     {
-        debug_outln_info(F("Start Sync NTP Time value: "));
+        debug_outln_info(F("Start: Sync NTP Date/Time value process."));
 
         setNTPTimeSync();
 
-        // store new start time.
+        // store new date/time value.
         m_starttime = millis();                             
     }
 }
