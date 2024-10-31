@@ -114,11 +114,5 @@ int32_t GetWiFi_RSSI( void);
 /// @return 
 String GetLocalIP(void);
 
-/// @brief 
-/// @param datetimeString 
-/// @param format 
-/// @return 
-time_t parseDateTime(const char* datetimeString, const char* format);
-
 #endif // _SIM7000GSM_H
 
