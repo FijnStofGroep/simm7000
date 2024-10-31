@@ -7,7 +7,12 @@
  * Version: 1.0.13
  *
  * Copyright (C) 2024
- *
+ * 
+ * GPRS stands for General Packet Radio Service:
+ *  - is a technology that enables mobile devices to access data services over a cellular network.
+ *  - It is the modified version of GSM architecture. GPRS is a packet-oriented mobile data mechanism, 
+ *    that can carry data packets as well.
+ * 
  * This source code is provided 'as-is', without any express or implied
  * warranty. In no event will the author be held liable for any damages
  * arising from the use of this software.
@@ -303,6 +308,36 @@ inline boolean GPRSConnect()
     return true;
 }
 
+/// @brief : Open GPRS Network.
+/// @param  
+/// @return : true = connected, false = NOT connected.
+boolean OpenGPRSNetwork(void)
+{
+    if (!GPRSConnect())
+    {
+        debug_outln_info(F("--- GPRS connection ERROR ---"));
+        return false;
+    }
+
+    int res;
+    if ((res = GSMmodem.getBearerStatus()) > 1)
+    {
+        if (res == 2)
+        { // bearer is closing.
+            delay(2000);
+        }
+
+        // Bearer is closed.
+        // enable data
+        if (!GSMmodem.enableGPRS(true))
+        {
+            debug_outln_info(F("--- GPRS Failed to turn on ---"));
+        }
+    }
+
+    return true;
+}
+
 /**************************************************************************************************************
     ESP8266 serial speed to BK-SIM7000, default baud rate is 115200 bps.
 
@@ -553,26 +588,10 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
 
     debug_outln_info(F("Start send Data By MQTT process."));
 
-    if (!GPRSConnect())
+    if (!OpenGPRSNetwork())
     {
         debug_outln_info(F("--- MQTT connection ERROR (EINDE) ---"));
         return false;
-    }
-
-    int res;
-    if ((res = GSMmodem.getBearerStatus()) > 1)
-    {
-        if( res == 2)
-        {// bearer is closing.
-            delay(2000);
-        }
-
-        // Bearer is closed.
-        // enable data
-        if (!GSMmodem.enableGPRS(true))
-        {
-            debug_outln_info(F("--- MQTT  Failed to turn on ---"));
-        }
     }
 
     // If not already connected, connect to MQTT.
@@ -658,26 +677,10 @@ int32_t sendDataByGSM(const LoggerEntry logger, const String &str_JsonData, cons
 
     debug_outln_info(F("-------- HTTP START -------------"));
 
-    if (!GPRSConnect())
+    if (!OpenGPRSNetwork())
     {
         debug_outln_info(F("-------- HTTP connection ERROR (EINDE) -------------"));
         return 0;
-    }
-
-    int res;
-    if ((res = GSMmodem.getBearerStatus()) > 1)
-    {
-        if( res == 2)
-        {// bearer is closing.
-            delay(2000);
-        }
-
-        // Bearer is closed.
-        // enable data
-        if (!GSMmodem.enableGPRS(true))
-        {
-            debug_outln_info(F("Failed to turn on"));
-        }
     }
 
     debug_outln_info(F("-------- HTTP process under construction -------------"));
@@ -786,26 +789,10 @@ int32_t sendDataByGSM(const LoggerEntry logger, const String &str_JsonData, cons
 /// @param  : NTP server : 2.pool.ntp.org
 void setNTPTimeSync(void)
 {
-    if (!GPRSConnect())
+    if (!OpenGPRSNetwork())
     {
         debug_outln_info(F("--- NTP GPRS NOT connected ---"));
         return;
-    }
-
-    int res;
-    if ((res = GSMmodem.getBearerStatus()) > 1)
-    {
-        if( res == 2)
-        {// bearer is closing.
-            delay(2000);
-        }
-
-        // Bearer is closed.
-        // enable data
-        if (!GSMmodem.enableGPRS(true))
-        {
-            debug_outln_info(F("--- NTP enable GPRS Failed to turn on ---"));
-        }
     }
 
      //enable NTP time sync. + time zone.
@@ -881,7 +868,7 @@ void SyncNTPTime(void)
 {
     if( (act_milli - m_starttime) > wait_NTP_sync_time)
     {
-        debug_outln_info(F("Start: Sync NTP Date/Time value process."));
+        debug_outln_info(F("Start: Sync NTP Date/Time process."));
 
         setNTPTimeSync();
 
