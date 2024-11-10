@@ -116,6 +116,8 @@ BK_modem_LTE GSMmodem = BK_modem_LTE();
 bool gsm_init_failed = false;
 char m_imei[16] = {0};                        // Use this for LTE modem device ID.
 
+String LTE_IPADDRESS;
+
 //***************************************************************************************************************************************************
 
 /*****************************************************************
@@ -222,7 +224,7 @@ int32_t GetWiFi_RSSI( void)
 }
 
 /// @brief 
-/// @return : IP address.
+/// @return : Sim7000 LTE module IP address.
 String GetLocalIP(void)
 {
     if (gsm_init_failed)
@@ -231,13 +233,24 @@ String GetLocalIP(void)
         return String("0.0.0.0");
     }
 
-    return GSMmodem.getGPRSIP();
+    if( LTE_IPADDRESS.length() == 0)
+    {
+        LTE_IPADDRESS = GSMmodem.getGPRSIP();
+    }
+
+    return LTE_IPADDRESS;
 }
 
 /// @brief BK-SIM7000 PCB Power OFF.
 void modemPowerOff()
 {
     GSMmodem.restartPowerOff();
+}
+
+/// @brief Restart BK-SIM7000 PCB.
+void RestartLTEModem()
+{
+    GSMmodem.modemRestart();
 }
 
 /// @brief 
@@ -256,12 +269,7 @@ inline boolean GPRSConnect()
         {
             debug_outln_info(F("Failed to connect to cell network, restart connection with SIM7000 module..."));
 
-            GSMmodem.TestAT();
-
-            if (GSMmodem.openWirelessConnection(false))
-            {
-                break;
-            }
+            GSMmodem.begin();
 
             return false;
         }
@@ -294,7 +302,8 @@ inline boolean GPRSConnect()
             return false;
         }
 
-        debug_outln_info( F("GPRS-IP address: ") + GSMmodem.getGPRSIP());
+        LTE_IPADDRESS = GSMmodem.getGPRSIP();
+        debug_outln_info( F("GPRS-IP address: ") + LTE_IPADDRESS);
 
         debug_outln_info(F("GSM/LTE connection Enabled."));
 

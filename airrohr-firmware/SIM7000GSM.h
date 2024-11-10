@@ -104,6 +104,9 @@ void setNTPTimeSync(void);
 */
 void modemPowerOff();
 
+/// @brief Restart BK-SIM7000 PCB.
+void RestartLTEModem();
+
 /// @brief 
 /// @param  
 /// @return 

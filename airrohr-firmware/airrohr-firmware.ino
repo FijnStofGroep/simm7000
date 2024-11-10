@@ -103,9 +103,9 @@
  * RAM:     [=====     ]  47.9% (used 39264 bytes from 81920 bytes)		*
  * PROGRAM: [======    ]  64.4% (used 672501 bytes from 1044464 bytes)	*
  *                                                                      *
- * latest build 2024-08-28  											*
- * RAM:     [=====     ]  48.4% (used 39616 bytes from 81920 bytes)     *
- * PROGRAM: [=======   ]  65.7% (used 685865 bytes from 1044464 bytes)  *
+ * latest build 2024-11-11  											*
+ * RAM:     [=====     ]  49.7% (used 40720 bytes from 81920 bytes)     *
+ * PROGRAM: [=======   ]  72.4% (used 756621 bytes from 1044464 bytes)  *
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -115,7 +115,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2024-10-B4"
+#define SOFTWARE_VERSION_STR "FWL-2024-11-B5"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -9148,6 +9148,12 @@ void loop(void)
         else
         {
             last_signal_strength = GetWiFi_RSSI();
+
+            if(last_signal_strength == 0)
+            {
+                RestartLTEModem();
+                return;
+            }
         }
 
         RESERVE_STRING(data, LARGE_STR);

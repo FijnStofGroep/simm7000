@@ -284,10 +284,6 @@ void BK_modem::modemRestart()
 
     flushInput();
 
-    // disconnect all sockets and close bearer and detach from GPRS Service.
-    sendCheckReply(F("AT+CIPSHUT"), F("SHUT OK"), 10000);
-    delay(200);
-
     powerDown();
     delay(5000);
 
@@ -1096,7 +1092,7 @@ boolean BK_modem::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, uint16 
             return false;
         }
 
-        // Start Synchronize network time.
+        // Execution command => Start Synchronize network time.
         if (!sendCheckReply(F("AT+CNTP"), m_ok_reply, 10000))
         {
             return false;
@@ -1104,7 +1100,7 @@ boolean BK_modem::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, uint16 
 
         uint16_t status;
         readline(10000);                            // +CNTP: 1
-        if (!parseReply(F("+CNTP:"), &status))
+        if (!parseReply(F("+CNTP:"), &status))      // Synchronize Network Time
         {
             return false;
         }
@@ -4240,7 +4236,7 @@ boolean BK_modem::sendCheckReplyQuoted(FStringPtr prefix, FStringPtr suffix, FSt
 /// @return
 boolean BK_modem::parseReply(FStringPtr toreply, uint16_t *v, char divider, uint8_t index)
 {
-    char *ptr = prog_char_strstr(m_replybuffer, (prog_char *)toreply); // get the m_replybuffer pointer to statrt toreply.
+    char *ptr = prog_char_strstr(m_replybuffer, (prog_char *)toreply); // get the m_replybuffer pointer to start toreply.
 
     if (ptr == 0)
     {
