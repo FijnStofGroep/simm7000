@@ -169,12 +169,14 @@ boolean BK_modem::begin()
 
 /********* Power On/off ****************************************************/
 
-boolean BK_modem::TestAT(void)
+/// @brief 
+/// @param timeout default: 15 seconds.
+/// @return 
+boolean BK_modem::TestAT(int16_t timeout)
 {
     BK_DEBUG_PRINTLN(F("Attempting to open comm with ATs"));
 
-    // give 15 seconds to reboot.
-    int16_t timeout = 15000;
+   
 
     while (timeout > 0)
     {
@@ -247,6 +249,7 @@ void BK_modem::modemPowerOn()
     BK_DEBUG_PRINTLN(F("BK-Sim7000 Power-On process."));
 
     powerOn(m_PIN_PWR);
+    delay(2000);
 }
 
 /*****************************************************************
@@ -256,22 +259,11 @@ void BK_modem::modemPowerOff()
 {
     BK_DEBUG_PRINTLN(F("BK-Sim7000 Power-Off process."));
 
-    powerDown();
-    restartPowerOff();
-}
+    AT_powerDown();
+    delay(5000);
 
-/*****************************************************************
-    BK-Sim7000 By restart firmware Power Off.
-******************************************************************/
-void BK_modem::restartPowerOff()
-{
-    // All UART communication gives some time Exception (28): when firmware restart().
-    //BK_DEBUG_PRINTLN(F("BK-Sim7000 Power-Off process."));
-
-    // pinMode(m_PIN_PWR, OUTPUT);
-    digitalWrite(m_PIN_PWR, HIGH);
-    delay(1500);                    // Datasheet Toned mintues = minimal 1.2S
-    digitalWrite(m_PIN_PWR, LOW);
+    PowerOff(m_PIN_PWR);
+    delay(2000);
 }
 
 /*****************************************************************
@@ -280,20 +272,18 @@ void BK_modem::restartPowerOff()
 ******************************************************************/
 void BK_modem::modemRestart()
 {
-    BK_DEBUG_PRINTLN(F("BK-Sim7000 Restart process START"));
+    BK_DEBUG_PRINTLN(F("BK-Sim7000 PCB Restart process START"));
 
     flushInput();
 
-    powerDown();
-    delay(5000);
+    modemPowerOff();
 
     modemPowerOn();
-    delay(1000);
 
-    // restart send network settings to sim7000 firmware.
-    begin();
+    // wake-up SIM7000 AT command process.
+    TestAT(5000);
 
-    BK_DEBUG_PRINTLN(F("BK-Sim7000 Restart process ENDED"));
+    BK_DEBUG_PRINTLN(F("BK-Sim7000 PCB Restart process ENDED"));
 }
 
 /********* Serial port ****************************************************/
@@ -314,6 +304,20 @@ boolean BK_modem::getBattVoltage(uint16_t *v)
     return sendParseReply(F("AT+CBC"), F("+CBC: "), v, ',', 2);
 }
 
+/*****************************************************************
+    BK-Sim7000 By restart firmware Power Off.
+******************************************************************/
+void BK_modem::PowerOff(uint8_t PwrKey)
+{
+    // All UART communication gives some time Exception (28): when firmware restart().
+    //BK_DEBUG_PRINTLN(F("BK-Sim7000 Power-Off process."));
+
+    // pinMode(m_PIN_PWR, OUTPUT);
+    digitalWrite(PwrKey, HIGH);
+    delay(1500);                    // Datasheet Toned mintues = minimal 1.2S
+    digitalWrite(PwrKey, LOW);
+}
+
 /* powers on the module */
 void BK_modem::powerOn(uint8_t PwrKey)
 {
@@ -328,7 +332,7 @@ void BK_modem::powerOn(uint8_t PwrKey)
 
 /// @brief : powers down the SIM7000 module.
 /// @param  
-void BK_modem::powerDown(void)
+void BK_modem::AT_powerDown(void)
 {
     // disconnect all sockets and close bearer and detach from GPRS Service.
     sendCheckReply(F("AT+CIPSHUT"), F("SHUT OK"), 5000);
@@ -1209,7 +1213,7 @@ boolean BK_modem::enableGPS(boolean onoff)
     {
         if(prog_char_strcmp(m_replybuffer, (prog_char *)F("AT+CGPSPWR?")) == 0)      // check for echo command ipv "+CGPSPWR:"
         {
-            TestAT();                                                                // SIM7000 could be resette.
+            TestAT(5000);                                                                // SIM7000 could be resette.
         }
 
         return false;
@@ -4162,7 +4166,33 @@ boolean BK_modem::sendCheckReply(FStringPtr send, FStringPtr reply, uint16_t tim
     // BK_DEBUG_PRINTLN(F("receive: ") + String(m_replybuffer) + F(" | reply: ") + String(reply));
     // BK_DEBUG_PRINTLN(F("compare result: ") + String((prog_char_strncmp(m_replybuffer, (prog_char *)reply, len))));
 
-    return (prog_char_strncmp(m_replybuffer, (prog_char *)reply, len) == 0);
+    if ((prog_char_strncmp(m_replybuffer, (prog_char *)reply, len) == 0))
+    {
+        return true;
+    }
+    else if ((prog_char_strncmp(m_replybuffer, (prog_char *)F("RDY"), 3) == 0))
+    {// Only AT Command received through serial port after SIM7xxx Series is powered on and Unsolicited Result
+     // Code "RDY" is received from serial port.
+     // Problems with sim7000 PCB power, to low or unstabiel?
+
+        // Send 'AT' command to modem, to check communication.
+        if (!TestAT(2000))
+        { // no replay from modem. (could be PCB power down, wrong Buadrate, sim7000 firmware in dead loop, ....)
+            return false;
+        }
+
+        delay(500);
+
+        // resend command.
+        if (!getReply(send, timeout))
+        {
+            return false;
+        }
+
+        return (prog_char_strncmp(m_replybuffer, (prog_char *)reply, len) == 0);
+    }
+
+    return false;
 }
 
 boolean BK_modem::sendCheckReply(const char *send, FStringPtr reply, uint16_t timeout)
@@ -4196,18 +4226,30 @@ boolean BK_modem::sendCheckReply(FStringPtr prefix, int32_t suffix, FStringPtr r
 
 
 // Send prefix, suffix, and newline.  Verify modem response matches reply or reply2 parameter.
-// boolean BK_modem::sendCheckReply(FStringPtr prefix, int32_t suffix, FStringPtr reply, FStringPtr reply2, uint16_t timeout)
+// uint8_t BK_modem::sendCheckReply(FStringPtr prefix, int32_t suffix, FStringPtr reply, FStringPtr reply2, uint16_t timeout)
 // {
 //     getReply(prefix, suffix, timeout);
-
+//
 //     size_t len = prog_char_strlen((prog_char *)reply);
+//
 //     if( len > 0)
 //     {
-//         return (prog_char_strncmp(m_replybuffer, (prog_char *)reply, len) == 0);
+//           if(prog_char_strncmp(m_replybuffer, (prog_char *)reply, len) == 0)
+//           {
+//               return (1);
+//          }
 //     }
-
+//
 //     len = prog_char_strlen((prog_char *)reply2);
-//     return (prog_char_strncmp(m_replybuffer, (prog_char *)reply2, len) == 0);
+//     if( len > 0)
+//     {
+//         if( (prog_char_strncmp(m_replybuffer, (prog_char *)reply2, len) == 0))
+//         {
+//              return 2;
+//         }
+//     }
+//
+//     return 0;
 // }
 
 // Send prefix, suffix, suffix2, and newline.  Verify modem response matches reply parameter.
@@ -4733,9 +4775,9 @@ String BK_modem_LTE::MQTT_getParameters(void)
     return res.substring(7, res.length());
 }
 
-/// @brief Connect or disconnect MQTT
-/// @param yesno 
-/// @return 
+/// @brief : Connect or Disconnect to MQTT server.
+/// @param : yesno => true = connect, false = disconnect.
+/// @return : true = connected, false = not connected
 boolean BK_modem_LTE::MQTT_connect(bool yesno)
 {
     if (yesno)
@@ -4799,6 +4841,7 @@ boolean BK_modem_LTE::MQTT_publish(const char *topic, const char *payload, uint1
     char cmdStr[127];
     sprintf(cmdStr, "AT+SMPUB=\"%s\",%i,%i,%i", topic, contentLength, QoS, retain);
 
+    // send "command" and wait for "OK" and ">" char.
     getReply(cmdStr, 2000);
 
     if (strstr(m_replybuffer, ">") == NULL)

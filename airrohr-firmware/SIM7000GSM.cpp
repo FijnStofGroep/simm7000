@@ -116,8 +116,6 @@ BK_modem_LTE GSMmodem = BK_modem_LTE();
 bool gsm_init_failed = false;
 char m_imei[16] = {0};                        // Use this for LTE modem device ID.
 
-String LTE_IPADDRESS;
-
 //***************************************************************************************************************************************************
 
 /*****************************************************************
@@ -233,24 +231,22 @@ String GetLocalIP(void)
         return String("0.0.0.0");
     }
 
-    if( LTE_IPADDRESS.length() == 0)
-    {
-        LTE_IPADDRESS = GSMmodem.getGPRSIP();
-    }
-
-    return LTE_IPADDRESS;
+    return GSMmodem.getGPRSIP();
 }
 
 /// @brief BK-SIM7000 PCB Power OFF.
 void modemPowerOff()
 {
-    GSMmodem.restartPowerOff();
+    GSMmodem.modemPowerOff();
 }
 
 /// @brief Restart BK-SIM7000 PCB.
 void RestartLTEModem()
 {
+    debug_outln_info(F("BK-SIM7000 PCB => Restart LTE Modem()."));
+
     GSMmodem.modemRestart();
+    Sim7000_setup();
 }
 
 /// @brief 
@@ -269,7 +265,12 @@ inline boolean GPRSConnect()
         {
             debug_outln_info(F("Failed to connect to cell network, restart connection with SIM7000 module..."));
 
-            GSMmodem.begin();
+            GSMmodem.TestAT(10000);
+
+            if (GSMmodem.openWirelessConnection(false))
+            {
+                break;
+            }
 
             return false;
         }
@@ -286,7 +287,7 @@ inline boolean GPRSConnect()
     // Open wireless connection if not already activated.
     if (!GSMmodem.wirelessConnStatus())
     {
-        int retry = 5;
+        retry = 5;
 
         while (retry > 0 && !GSMmodem.openWirelessConnection(true))
         {
@@ -302,8 +303,7 @@ inline boolean GPRSConnect()
             return false;
         }
 
-        LTE_IPADDRESS = GSMmodem.getGPRSIP();
-        debug_outln_info( F("GPRS-IP address: ") + LTE_IPADDRESS);
+        debug_outln_info( F("GPRS-IP address: ") + GSMmodem.getGPRSIP());
 
         debug_outln_info(F("GSM/LTE connection Enabled."));
 
@@ -522,7 +522,7 @@ boolean GetGPSLocation(float *latitude, float *longitude, float *altitude, Strin
     uint8_t sec = 0;
     bool gpsOke = false;
 
-    for (int cnt = 20; cnt > 0; cnt--)
+    for (int cnt = 10; cnt > 0; cnt--)
     {
         if (GSMmodem.getGPS(latitude, longitude, &speed, &heading, altitude,
                             &year, &month, &day, &hour, &min, &sec))
@@ -538,6 +538,7 @@ boolean GetGPSLocation(float *latitude, float *longitude, float *altitude, Strin
                 debug_outln_info(F("GPS data:"));
                 debug_outln_info(F("latitude: "), String(*latitude, 8));
                 debug_outln_info(F("longitude: "), String(*longitude, 8));
+                debug_outln_info(F("Altitude:: "), String(*altitude, 4));
                 debug_outln_info(F("Date time: "), timestamp);
             }
 
@@ -626,9 +627,9 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
         GSMmodem.MQTT_setParameter("CLEANSS", 1);
         GSMmodem.MQTT_setParameter("QOS", 1);
 
-        String stmp = GSMmodem.MQTT_getParameters();
-
-        debug_outln_info(F("Connecting to MQTT broker...") + stmp);
+        // String stmp = GSMmodem.MQTT_getParameters();
+        // debug_outln_info(F("Connecting to MQTT broker...") + stmp);
+        debug_outln_info(F("Connecting to MQTT broker..."));
 
         if (!GSMmodem.MQTT_connect(true))
         {

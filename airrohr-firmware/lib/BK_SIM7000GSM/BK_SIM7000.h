@@ -117,7 +117,7 @@ public:
 
     void init(BK_SIM7000_StreamType &comPort, HardwareSerial &debugPort, uint8_t pin_pwr);
     boolean begin();
-    boolean TestAT( void);
+    boolean TestAT(int16_t timeout = 15000);
 
     // Stream functions (these are virtual functions() see Stream.h file)
     int available(void);
@@ -141,10 +141,8 @@ public:
     // Power, battery, and ADC
     void modemPowerOn();
     void modemPowerOff();
-    void restartPowerOff();
     void modemRestart();
     
-
     boolean getADCVoltage(uint16_t *v);
     boolean getBattPercent(uint16_t *p);
     boolean getBattVoltage(uint16_t *v);
@@ -356,8 +354,9 @@ protected:
                                 uint8_t index = 0);
 
     // Power, battery, and ADC
+    void PowerOff(uint8_t BK_PWRKEY);
     void powerOn(uint8_t BK_PWRKEY);
-    void powerDown(void);
+    void AT_powerDown(void);
 
     static boolean _incomingCall;
     static void onIncomingCall();
