@@ -104,8 +104,8 @@
  * PROGRAM: [======    ]  64.4% (used 672501 bytes from 1044464 bytes)	*
  *                                                                      *
  * latest build 2024-11-11  											*
- * RAM:     [=====     ]  49.7% (used 40720 bytes from 81920 bytes)     *
- * PROGRAM: [=======   ]  72.4% (used 756621 bytes from 1044464 bytes)  *
+ * RAM:     [=====     ]  49.0% (used 40112 bytes from 81920 bytes)     *
+ * PROGRAM: [=======   ]  65.5% (used 684009 bytes from 1044464 bytes)  *
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
