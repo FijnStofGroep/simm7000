@@ -89,7 +89,7 @@ static const char STATIC_SUBNET[] PROGMEM = "255.255.255.0";
 static const char STATIC_GATEWAY[] PROGMEM = "192.168.1.254";
 static const char STATIC_DNS[] PROGMEM = "192.168.1.254";
 
-static const char HOST_AIRCMS[] PROGMEM = "iot.1nce.net";
+static const char HOST_AIRCMS[] PROGMEM = "doiot.ru";
 static const char URL_AIRCMS[] PROGMEM = "/php/sensors.php?h=";
 // As of 2019/09 uses invalid certificates on ssl/port 443 and does not support Maximum Fragment Length Negotiation (MFLN)
 // So we can not use SSL
