@@ -25,6 +25,7 @@
 namespace cfg 
 {
     extern unsigned sending_intervall_ms;
+    extern unsigned time_for_wifi_config;
 
     extern bool gps_read;
     extern bool send2mqtt;
@@ -81,7 +82,7 @@ boolean GetGPSLocation(float * latitude, float * longitude, float * altitude, St
 /* 
     return: total send time.
 */
-int32_t sendDataByGSM(const LoggerEntry logger, const String &data, const int pin,
+int32_t sendDataByLTE(const LoggerEntry logger, const String &data, const int pin,
 							const char *host, const int portnr, const char *url);
 
 /// @brief 
@@ -115,7 +116,10 @@ int32_t GetWiFi_RSSI( void);
 /// @brief 
 /// @param  
 /// @return 
-String GetLocalIP(void);
+String GetLTELocalIP(void);
+
+/// @brief 
+/// @param  
+void WifiAPmodePowerSave(void);
 
 #endif // _SIM7000GSM_H
-

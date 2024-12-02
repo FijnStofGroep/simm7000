@@ -163,6 +163,7 @@ public:
     int8_t getPINStatus();
     uint8_t getSIMCCID(char *ccid);
     uint8_t getNetworkStatus(void);
+    bool setNetworkStatus(uint8_t option);
     void getSignalQuality(uint8_t *quality, int8_t *rssi = nullptr);
 
     // IMEI
@@ -281,6 +282,9 @@ public:
     // PWM (buzzer)
     boolean setPWM(uint16_t period, uint8_t duty = 50);
 
+    // Helper functions to get +CME ERROR responses.
+    uint16_t getCME_ErrorCode();
+    
     // Helper functions to verify responses.
     boolean expectReply(FStringPtr reply, uint16_t timeout = 10000);
     boolean sendCheckReply(const char *send, const char *reply, uint16_t timeout = BK_SIM7000_DEFAULT_TIMEOUT_MS);
@@ -305,8 +309,6 @@ protected:
     FStringPtr m_ok_reply;
 
     boolean enableGPS(boolean onoff);
-    uint16_t getCME_ErrorCode();
-
     uint8_t getGPS_Navigation_Information(uint8_t arg, char *buffer, uint8_t maxbuff);
 
     // HTTP helpers

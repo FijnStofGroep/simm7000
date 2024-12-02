@@ -176,8 +176,6 @@ boolean BK_modem::TestAT(int16_t timeout)
 {
     BK_DEBUG_PRINTLN(F("Attempting to open comm with ATs"));
 
-   
-
     while (timeout > 0)
     {
         while (SerialSIM->available())
@@ -257,7 +255,8 @@ void BK_modem::modemPowerOn()
 ******************************************************************/
 void BK_modem::modemPowerOff()
 {
-    BK_DEBUG_PRINTLN(F("BK-Sim7000 Power-Off process."));
+    // All UART communication gives some time Exception (28): when firmware restart().
+    //BK_DEBUG_PRINTLN(F("BK-Sim7000 Power-Off process."));
 
     AT_powerDown();
     delay(5000);
@@ -281,7 +280,7 @@ void BK_modem::modemRestart()
     modemPowerOn();
 
     // wake-up SIM7000 AT command process.
-    TestAT(5000);
+    //TestAT(5000);
 
     BK_DEBUG_PRINTLN(F("BK-Sim7000 PCB Restart process ENDED"));
 }
@@ -340,7 +339,9 @@ void BK_modem::AT_powerDown(void)
     sendCheckReply(F("AT+CPOWD=1"), F("NORMAL POWER DOWN"));     // Normal power off
 }
 
-/* returns the percentage charge of battery as reported by sim800 */
+/// @brief returns the percentage charge of battery.
+/// @param pValue 
+/// @return 
 boolean BK_modem::getBattPercent(uint16_t *pValue)
 {
     return sendParseReply(F("AT+CBC"), F("+CBC: "), pValue, ',', 1);
@@ -472,7 +473,7 @@ boolean BK_modem::setNetLED(bool onoff, uint8_t mode, uint16_t timer_on, uint16_
 
         if (stsMode == 2)
         {
-            if (!sendCheckReply(F("AT+CNETLIGHT=1"), m_ok_reply))
+            if (!sendCheckReply(F("AT+CNETLIGHT=1"), m_ok_reply))       // Open It to Shining
             {
                 return false;
             }
@@ -486,14 +487,14 @@ boolean BK_modem::setNetLED(bool onoff, uint8_t mode, uint16_t timer_on, uint16_
             }
             else
             {
-                return false;
+                return true;
             }
         }
 
         return true;
     }
     else
-    {
+    {   // Close the Net Light
         return sendCheckReply(F("AT+CNETLIGHT=0"), m_ok_reply);
     }
 }
@@ -547,7 +548,7 @@ int8_t BK_modem::getPINStatus()
 
     if (strncmp(m_replybuffer, "+CPIN: ", 7) != 0)
     {
-        return SIM_ERROR;
+        return PinStatus::SIM_ERROR;
     }
 
     char *returnVal = m_replybuffer + 7;
@@ -653,7 +654,7 @@ uint8_t BK_modem::getIMEI(char *imei)
 
 /********* NETWORK *******************************************************/
 
-/// @brief : Gets the current network status
+/// @brief : Gets Network Registration Status
 /// @param
 /// @return : uint8_t The nework status:
 ///             0 = Not registered
@@ -677,8 +678,26 @@ uint8_t BK_modem::getNetworkStatus(void)
     return status;
 }
 
+/// @brief set Network Registration Status
+/// @param  option:
+//           0 Disable network registration unsolicited result code.
+//           1 Enable network registration unsolicited, result code +CGREG: <stat>
+//           2 Enable network registration and location information unsolicited, result code +CGREG: <stat>[,<lac>,<ci>,<netact>]
+//           4 Enable display gprs time and periodic RAU.
+/// @return true = OK, false = Error
+bool BK_modem::setNetworkStatus(uint8_t option)
+{
+    // set Network Registration Status
+    if (!sendCheckReply(F("AT+CGREG="), option, m_ok_reply))
+    {
+        return true;
+    }
+
+    return false;
+}
+
 /// @brief : Signal Quality report:
-///     rss1:
+///     rssi:
 ///             0       -115 dBm or less
 ///             1       -111 dBm
 ///             2...30  -109... -53 dBm
@@ -707,9 +726,14 @@ void BK_modem::getSignalQuality(uint8_t *quality, int8_t *rssi)
 boolean BK_modem::setPWM(uint16_t period, uint8_t duty)
 {
     if (period > 2000)
+    {
         return false;
+    }
+
     if (duty > 100)
+    {
         return false;
+    }
 
     return sendCheckReply(F("AT+SPWM=0,"), period, duty, m_ok_reply);
 }
@@ -724,7 +748,9 @@ uint8_t BK_modem::getSMSInterrupt(void)
     uint16_t reply;
 
     if (!sendParseReply(F("AT+CFGRI?"), F("+CFGRI: "), &reply))
+    {
         return 0;
+    }
 
     return reply;
 }
@@ -776,11 +802,15 @@ boolean BK_modem::readSMS(uint8_t i, char *smsbuff,
 {
     // text mode
     if (!sendCheckReply(F("AT+CMGF=1"), m_ok_reply))
+    {
         return false;
+    }
 
     // show all text mode parameters
     if (!sendCheckReply(F("AT+CSDH=1"), m_ok_reply))
+    {
         return false;
+    }
 
     // parse out the SMS len
     uint16_t thesmslen = 0;
@@ -828,9 +858,14 @@ boolean BK_modem::getSMSSender(uint8_t i, char *sender, int senderlen)
 {
     // Ensure text mode and all text mode parameters are sent.
     if (!sendCheckReply(F("AT+CMGF=1"), m_ok_reply))
+    {
         return false;
+    }
+    
     if (!sendCheckReply(F("AT+CSDH=1"), m_ok_reply))
+    {
         return false;
+    }
 
     BK_DEBUG_PRINT(F("\t---> "));
     BK_DEBUG_PRINT(F("AT+CMGR="));
@@ -867,7 +902,9 @@ boolean BK_modem::sendSMS(const char *smsaddr, const char *smsmsg)
     sendcmd[strlen(sendcmd)] = '\"';
 
     if (!sendCheckReply(sendcmd, F("> ")))
+    {
         return false;
+    }
 
     BK_DEBUG_PRINT(F("\t---> "));
     BK_DEBUG_PRINTLN(smsmsg);
@@ -910,7 +947,9 @@ boolean BK_modem::sendSMS(const char *smsaddr, const char *smsmsg)
 boolean BK_modem::deleteSMS(uint8_t i)
 {
     if (!sendCheckReply(F("AT+CMGF=1"), m_ok_reply))
+    {
         return false;
+    }
 
     // delete an sms
     char sendbuff[12] = "AT+CMGD=000";
@@ -923,10 +962,15 @@ boolean BK_modem::deleteSMS(uint8_t i)
     return sendCheckReply(sendbuff, m_ok_reply, 2000);
 }
 
+/// @brief 
+/// @return 
 boolean BK_modem::deleteAllSMS()
 {
     if (!sendCheckReply(F("AT+CMGF=1"), m_ok_reply))
+    {
         return false;
+    }
+
     return sendCheckReply("AT+CMGD=1,4", m_ok_reply, 2000);
 }
 
@@ -935,7 +979,9 @@ boolean BK_modem::deleteAllSMS()
 boolean BK_modem::sendUSSD(char *ussdmsg, char *ussdbuff, uint16_t maxlen, uint16_t *readlen)
 {
     if (!sendCheckReply(F("AT+CUSD=1"), m_ok_reply))
+    {
         return false;
+    }
 
     char sendcmd[30] = "AT+CUSD=1,\"";
     strncpy(sendcmd + 11, ussdmsg, 30 - 11 - 2); // 11 bytes beginning, 2 bytes for close quote + null
@@ -978,6 +1024,7 @@ boolean BK_modem::sendUSSD(char *ussdmsg, char *ussdbuff, uint16_t maxlen, uint1
         ussdbuff[lentocopy] = 0;
         *readlen = lentocopy;
     }
+
     return true;
 }
 
@@ -1076,21 +1123,32 @@ boolean BK_modem::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, uint16 
         }
 
         // Set NTP service url and local time zone
-        SerialSIM->print(F("AT+CNTP=\""));
-        if (ntpserver != 0)
+        if (ntpserver == 0)
         {
-            SerialSIM->print(ntpserver);
-        }
-        else
-        {
-            SerialSIM->print(F("pool.ntp.org"));
+            ntpserver = F("pool.ntp.org");
         }
 
-        char _timezone[8];
-        sprintf(_timezone, PSTR("\",%0d"), timeZone * 4);  // time zone = 0 (time zone value multiplay by 4.)
-        SerialSIM->println(_timezone);                 
+        char _sendbuffer[64] = {0};
+        sprintf(_sendbuffer, PSTR("AT+CNTP=\"%s\",%0d"), ntpserver, timeZone * 4);           // time zone = 0 (time zone value multiplay by 4.)
+        //sprintf(_sendbuffer, PSTR("AT+CNTP=\"%s\",%0d"), FPSTR(ntpserver), timeZone * 4);  // time zone = 0 (time zone value multiplay by 4.)
+        getReply(_sendbuffer, BK_SIM7000_TIMEOUT_1500MS);
 
-        readline(BK_SIM7000_DEFAULT_TIMEOUT_MS);
+        // char _timezone[8];
+        // sprintf(_timezone, PSTR("\",%0d"), timeZone * 4);  // time zone = 0 (time zone value multiplay by 4.)
+
+        // SerialSIM->print(F("AT+CNTP=\""));
+        // if (ntpserver != 0)
+        // {
+        //     SerialSIM->print(ntpserver);
+        // }
+        // else
+        // {
+        //     SerialSIM->print(F("pool.ntp.org"));
+        // }
+
+        // SerialSIM->println(_timezone);                 
+        //readline(BK_SIM7000_DEFAULT_TIMEOUT_MS);
+
         if (strcmp_P(m_replybuffer, String(m_ok_reply).c_str()) != 0)
         {
             return false;
@@ -1213,7 +1271,7 @@ boolean BK_modem::enableGPS(boolean onoff)
     {
         if(prog_char_strcmp(m_replybuffer, (prog_char *)F("AT+CGPSPWR?")) == 0)      // check for echo command ipv "+CGPSPWR:"
         {
-            TestAT(5000);                                                                // SIM7000 could be resette.
+            TestAT(5000);                                                            // SIM7000 could be resette.
         }
 
         return false;
@@ -1409,12 +1467,16 @@ boolean BK_modem::getGPS(float *lat, float *lon, float *speed_kph, float *headin
     // grab the latitude
     char *latp = strtok(NULL, ",");
     if (!latp)
+    {
         return false;
+    }
 
     // grab longitude
     char *longp = strtok(NULL, ",");
     if (!longp)
+    {
         return false;
+    }
 
     *lat = atof(latp);
     *lon = atof(longp);
@@ -1436,7 +1498,9 @@ boolean BK_modem::getGPS(float *lat, float *lon, float *speed_kph, float *headin
         // grab the speed in km/h
         char *speedp = strtok(NULL, ",");
         if (!speedp)
+        {
             return false;
+        }
 
         *speed_kph = atof(speedp);
     }
@@ -1448,7 +1512,9 @@ boolean BK_modem::getGPS(float *lat, float *lon, float *speed_kph, float *headin
         // grab the speed in knots
         char *coursep = strtok(NULL, ",");
         if (!coursep)
+        {
             return false;
+        }
 
         *heading = atof(coursep);
     }
@@ -1705,10 +1771,12 @@ String BK_modem::getModemInfo()
         res = String(m_replybuffer);
 
         // Do the replaces twice so we cover both \r and \r\n type endings
-        res.replace("\r\nOK\r\n", "");
-        res.replace("\rOK\r", "");
-        res.replace("\r\n", " ");
-        res.replace("\r", " ");
+        // res.replace("\r\nOK\r\n", "");
+        // res.replace("\rOK\r", "");
+        // res.replace("\r\n", "");
+        res.replace("OK", "");
+        res.replace("\r", "");
+        res.replace("\n", "");
         res.trim();
     }
 
@@ -1834,8 +1902,6 @@ boolean BK_modem::getIPv4(char *ipStringBuffer, size_t bufferLength)
 /// @param infoProvider
 void BK_modem::getNetworkInfo(String &infoLine)
 {
-    // RESERVE_STRING(tmpinfo, 512);
-
     getReply(F("AT+CPSI?"));
 
     size_t len = strlen(m_replybuffer);
@@ -1846,8 +1912,6 @@ void BK_modem::getNetworkInfo(String &infoLine)
 
     // Eat 'OK'
     readline();
-
-    // infoLine += getOperator();
 }
 
 /// @brief : Gets the current network operator via the TS command "AT+COPS"
@@ -1998,8 +2062,8 @@ boolean BK_modem::getGSMLoc(uint16_t *errorcode, char *buff, uint16_t maxlen)
 }
 
 /// @brief
-/// @param lat
-/// @param lon
+/// @param ptr to lat
+/// @param ptr to lon
 /// @return
 boolean BK_modem::getGSMLoc(float *lat, float *lon)
 {
@@ -2020,11 +2084,15 @@ boolean BK_modem::getGSMLoc(float *lat, float *lon)
     // tokenize the gps buffer to locate the lat & long
     char *longp = strtok(gpsbuffer, ",");
     if (!longp)
+    {
         return false;
+    }
 
     char *latp = strtok(NULL, ",");
     if (!latp)
+    {
         return false;
+    }
 
     *lat = atof(latp);
     *lon = atof(longp);
@@ -4499,8 +4567,8 @@ boolean BK_modem::sendParseReplyFloat(FStringPtr tosend,
     return true;
 }
 
-/// @brief 
-/// @return 
+/// @brief Final result code "+CME ERROR: <err>" indicates an error related to mobile equipment or network.
+/// @return error code.
 uint16_t BK_modem::getCME_ErrorCode()
 {
     uint16_t error = -1;
@@ -4649,7 +4717,7 @@ boolean BK_modem_LTE::setOperatingBand(const char *mode, uint8_t band)
 /// @brief
 /// @param check_signal
 /// @param timeout_ms
-/// @return
+/// @return 0 = OK, 1 = NO LTE connection, 2 = No good RSSI signal
 uint8_t BK_modem_LTE::waitForNetworkConnection(bool check_signal, uint32_t timeout_ms)
 {
     if (check_signal)
@@ -4694,7 +4762,13 @@ boolean BK_modem_LTE::isNetworkConnected()
         RegStatus epsStatus = (RegStatus)getNetworkStatus();
         if(epsStatus == REG_SEARCHING)
         {
-            delay(2000);
+            uint16_t registration = 0;
+            parseReply(F("+CGREG: "), &registration);       // Read NetworkStatus Response.
+            setNetworkStatus(2);
+            delay(1000);
+            setNetworkStatus(registration);
+            delay(1000);
+
             continue;
         }
 

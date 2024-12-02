@@ -78,6 +78,8 @@ extern bool launchUpdateLoader(const String& md5);
 
 extern float readCorrectionOffset(const char* correction);
 
+extern String getDateTime(bool localTime = true, uint8 type = 0);
+
 // external define cfg::member type.
 namespace cfg 
 {

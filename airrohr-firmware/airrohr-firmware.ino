@@ -115,7 +115,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2024-11-B5"
+#define SOFTWARE_VERSION_STR "FWL-2024-10-B4_7"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -2374,14 +2374,15 @@ static void add_age_last_values(String &sourceStr)
 		time_since_last = 0;
 	}
 	
-	time_t now = time(nullptr);
+	//time_t now = time(nullptr);
 
 	sourceStr += String((time_since_last + 500) / 1000);
 	sourceStr += FPSTR(INTL_TIME_SINCE_LAST_MEASUREMENT);
 	sourceStr += "<br/><br/>";
 	sourceStr += FPSTR(INTL_TIME_UTC);
 	sourceStr += "&nbsp;";
-	sourceStr += String(ctime(&now));
+	//sourceStr += String(ctime(&now));
+    sourceStr += getDateTime(false);
 
 	sourceStr += FPSTR(WEB_B_BR_BR);
 }
@@ -3616,8 +3617,9 @@ static void webserver_status()
 
 #endif
 
-	time_t now = time(nullptr);
-	add_table_row_from_value(page_content, FPSTR(INTL_TIME_UTC), ctime(&now));
+	//time_t now = time(nullptr);
+	//add_table_row_from_value(page_content, FPSTR(INTL_TIME_UTC), ctime(&now));
+    add_table_row_from_value(page_content, FPSTR(INTL_TIME_UTC), getDateTime(false));
 	add_table_row_from_value(page_content, F("Uptime"), delayToString(millis() - time_point_device_start_ms));
 
 #if defined(ESP8266)
@@ -4173,7 +4175,7 @@ static void setup_mqtt_broker(const char *host, const int port)
 		// -- Set-Up Topic header for MQTT Broker
 
 		mqtt_client.setServer(host, port);
-		//mqtt_client.setCallback(mqttCallback);				// setup callback method.
+		//mqtt_client.setCallback(mqttCallback);				// event callback method.
 
 		String mess_off = INTL_OFFLINE;
 
@@ -4214,6 +4216,16 @@ static void setup_mqtt_broker(const char *host, const int port)
 *************************************************************************************/
 // void mqttCallback(char *topic, uint8_t *payload, unsigned int len)
 // {
+//  debug_outln_info(F("Message arrived ["));
+//  debug_outln_info(topic);
+//  debug_outln_info("] ");
+//
+//  for (int i = 0; i < length; i++)
+//  {
+//      Debug.write((char)payload[i], 1);
+//  }
+//  debug_outln_info();
+//
 // 	String topicmesg = String(mqtt_header) + String("/radar");
 // 	if (String(topic) == topicmesg)
 // 	{
@@ -4335,6 +4347,9 @@ static void wifi_AP_Config()
 
     if (cfg::has_s7000) 
     {// Wifi interface allways in AP mode in case of GSM mode.
+        // 10 minutes timeout for wifi config.
+	    last_page_load = millis();
+
         wificonfig_loop = false;
         return;
     }
@@ -4795,7 +4810,7 @@ static unsigned long sendData(const LoggerEntry logger, const String &data, cons
     }
     else
     {
-        return sendDataByGSM( logger, data, pin, host, loggerConfigs[logger].destport, url);
+        return sendDataByLTE( logger, data, pin, host, loggerConfigs[logger].destport, url);
     }
 }
 
@@ -4914,7 +4929,7 @@ static void sendmqtt(const String &data)
 			payload_status = "{\"";
 			payload_status += FPSTR(INTL_STATIC_IP);
 			payload_status += "\":\"";
-			payload_status += !cfg::has_s7000 ? WiFi.localIP().toString() : GetLocalIP();
+			payload_status += !cfg::has_s7000 ? WiFi.localIP().toString() : GetLTELocalIP();
 			payload_status += "\",\"";
 			payload_status += INTL_FIRMWARE;
 			payload_status += "\":\"";
@@ -4924,6 +4939,18 @@ static void sendmqtt(const String &data)
 			payload_status += " ";
 			payload_status += __DATE__;
 			payload_status += "\",\"";
+	        payload_status += FPSTR(INTL_TIME_UTC);
+            payload_status += "\":\"";
+            payload_status += getDateTime(false, 3);
+            payload_status += "\",\"";
+            payload_status += F("Uptime");
+            payload_status += "\":\"";
+            payload_status += delayToString(millis() - time_point_device_start_ms);
+            payload_status += "\",\"";
+            payload_status += F("Reset Reason");
+            payload_status += "\":\"";
+            payload_status += ESP.getResetReason();
+            payload_status += "\",\"";
 			payload_status += FPSTR(INTL_MQTT_STAT);
 			payload_status += "\":\"" + mqtt_error + "\"}";
 
@@ -6698,6 +6725,7 @@ static __noinline void fetchSensorGPS(String &s)
         if( !GetGPSLocation(&latitude, &longitude, &altitude, gps_datetime) )
         {
             gps_init_failed = true;
+            return;
         }
         else
         {
@@ -7768,7 +7796,7 @@ static void display_values()
 		case 7:
 			display_header = F("Wifi info");
 			display_lines[0] = "IP: ";
-			display_lines[0] += !cfg::has_s7000 ? WiFi.localIP().toString() : GetLocalIP();
+			display_lines[0] += !cfg::has_s7000 ? WiFi.localIP().toString() : GetLTELocalIP();
 			display_lines[1] = "SSID: ";
 			display_lines[1] += WiFi.SSID();
 			display_lines[2] = std::move(tmpl(F("Signal: {v} %"), String(calcWiFiSignalQuality(last_signal_strength))));
@@ -7933,7 +7961,7 @@ static void display_values()
 			break;
 
 		case 7:
-			display_lines[0] = !cfg::has_s7000 ? WiFi.localIP().toString() : GetLocalIP();
+			display_lines[0] = !cfg::has_s7000 ? WiFi.localIP().toString() : GetLTELocalIP();
 			display_lines[1] = WiFi.SSID();
 			break;
 
@@ -8133,9 +8161,12 @@ static void initSEN5X()
 
     // Adjust tempOffset to account for additional temperature offsets
     // exceeding the SEN5X module's self heating.
-    // Debug.println( F("temp_correction: ") + String(cfg::scd30_temp_correction));
-    float tempOffset = readCorrectionOffset(cfg::scd30_temp_correction);		//String(cfg::scd30_temp_correction).toFloat();
+    String hlp_temp_correction = String(cfg::scd30_temp_correction);
+    hlp_temp_correction.replace(',','.');
+    float tempOffset = hlp_temp_correction.toFloat();
     error = sen5x.setTemperatureOffsetSimple(tempOffset);
+
+    //Debug.println( F("Raw temp_correction: ") + String(cfg::scd30_temp_correction) + F(" temp_correction:") + String(tempOffset,1));
 
     if (error) 
 	{
@@ -8146,7 +8177,7 @@ static void initSEN5X()
 	else 
 	{
         Debug.print(F("Temperature Offset = "));
-        Debug.print(tempOffset);
+        Debug.print(String(tempOffset,1));
         Debug.println(F(" °C. (SEN54/SEN55 only)"));
     }
 
@@ -8594,6 +8625,8 @@ static void logEnabledDisplays()
 	}
 }
 
+/// @brief : setUpdate NTP server(s) for dateTime synchronisation.
+///
 static void setupNetworkTime()
 {
 	// server name ptrs must be persisted after the call to configTime because internally
@@ -8606,8 +8639,9 @@ static void setupNetworkTime()
 						{
 							if (!sntp_time_set)
 							{
-								time_t now = time(nullptr);
-								debug_outln_info(F("SNTP synced: "), ctime(&now));
+								//time_t now = time(nullptr);
+								//debug_outln_info(F("SNTP synced: "), ctime(&now));
+                                debug_outln_info(F("SNTP synced: "), getDateTime());
 								twoStageOTAUpdate();
 								last_update_attempt = millis();
 							}
@@ -9151,8 +9185,8 @@ void loop(void)
 
             if(last_signal_strength == 0)
             {
+                //try to re-open the LTE connection.
                 RestartLTEModem();
-                return;
             }
         }
 
@@ -9405,7 +9439,7 @@ void loop(void)
                 }
             }
         }
-        else if (cfg::has_s7000 && cfg7::s7000_has_gps)
+        else if (/*cfg::has_s7000 && */ cfg7::s7000_has_gps)
         {
             // set nieuwe GPS wait time.
             starttime_GPS = millis();
@@ -9487,6 +9521,7 @@ void loop(void)
     if(cfg::has_s7000 )
     {
         SyncNTPTime();
+        WifiAPmodePowerSave();
     }
 
 #endif

@@ -842,3 +842,56 @@ bool isNumeric(const String& str)
 	}
 	return true;
 }
+
+/// @brief : get current DateTime string.
+/// @param : localTime :   true = Local (default)
+///                       false = UTC
+///          type: datetime format. see: https://cplusplus.com/reference/ctime/strftime/
+///                       0 = weekday name + DateTime   Thu 30 Nov 2024 18:21:13 (default)
+///                       1 = Date      18-02-2024
+///                       2 = Time      19:21:13
+///                       3 = DateTime  18-02-2024 18:21:13
+///
+/// @return : String "date_time" 
+String getDateTime(bool _localTime, uint8 type)
+{
+    time_t now;                     // or time_t now = time(nullptr);
+    struct tm *timeinfo;
+    char timeBuffer[80] = {0x00};
+    String dateTimeformat;
+    dateTimeformat.reserve(24);
+
+    time( &now );
+
+    if (_localTime ) 
+    {   // Local time.
+        timeinfo = localtime(&now);
+    }
+    else
+    {   // UTC time.
+        timeinfo = gmtime(&now);
+    }
+
+    switch (type)
+    {
+     case 0:
+        dateTimeformat = F("%a %e %b %Y %T");           // output: Thu 30 Nov 2024 18:21:13.
+        break;
+
+     case 1:
+        dateTimeformat = F("%e-%m-%Y");                 // output: 30-11-2024.
+        break;
+
+     case 2:
+        dateTimeformat = F("%T");                       // output: 18:21:13.
+        break;
+
+     case 3:
+        dateTimeformat = F("%e-%m-%Y %T");              // output: 30-11-2024 18:21:13.
+        break;
+    }
+
+    strftime(timeBuffer, sizeof(timeBuffer), dateTimeformat.c_str(), timeinfo);
+
+    return String( timeBuffer);
+}

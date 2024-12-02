@@ -52,6 +52,7 @@ extern String esp_chipid;
 extern String esp_mac_id;
 
 extern int last_signal_strength;
+extern unsigned long last_page_load;
 
 extern char mqtt_client_id[LEN_MQTT_HEADER];
 extern char mqtt_header[LEN_MQTT_LARGE_HEADER];
@@ -98,9 +99,9 @@ namespace cfg7
 	void initNonTrivials()
     {
         strcpy_P(gprsapn, GPRSAPNCODE);
-        strcpy_P(gprsapn, HOST_AIRCMS);
         strcpy_P(gprsUser, WWW_USERNAME);
         strcpy_P(gprsPass, WWW_PASSWORD);
+        
         strcpy_P(s7000_type, SIM7_TYPE);
         strcpy_P(s7000_mode, SIM7_MODE);
     }
@@ -113,7 +114,7 @@ SoftwareSerial SerialSIM;
 // Use this one for LTE CAT-M/NB-IoT modules (BK-SIM7000 development PCB) 
 BK_modem_LTE GSMmodem = BK_modem_LTE(); 
 
-bool gsm_init_failed = false;
+bool lte_init_failed = false;
 char m_imei[16] = {0};                        // Use this for LTE modem device ID.
 
 //***************************************************************************************************************************************************
@@ -151,10 +152,10 @@ void GPRSModemInfo()
     debug_outln_info(F("Software ") + GSMmodem.getModemSoftware_Revision());
 
     imode = GSMmodem.getNetworkMode();
-    debug_outln_info(F("Network Modes: \"2 Automatic , 13 GSM only , 38 LTE only , 51 GSM and LTE only\": Network Mode = "), String(imode));
+    debug_outln_info(F("Network Modes: \"2 Automatic , 13 GSM only , 38 LTE only , 51 GSM and LTE only\".\n\t\tNetwork Mode => "), String(imode));
 
     uint8_t epsStatus = GSMmodem.getNetworkStatus();
-    debug_out(F("Network status code: ") + String(epsStatus) + F(" => "), DEBUG_MIN_INFO);
+    debug_out(F("\t\tNetwork status code: ") + String(epsStatus) + F(" => "), DEBUG_MIN_INFO);
 
     if (epsStatus == 0) 
         debug_outln_info(F("Not registered"));
@@ -169,13 +170,13 @@ void GPRSModemInfo()
     else if (epsStatus == 5) 
         debug_outln_info(F("Registered roaming"));
 
-    smode = GSMmodem.getPreferredModes();
-    imode = GSMmodem.getPreferredMode();
-    debug_outln_info("Availlable Preferred Modes: " + smode + ": Preferred Mode = " + String(imode));
-
     char status[13];
     imode = GSMmodem.getNetworkSystemMode(status);
-    debug_outln_info(F("SystemMode: "), String(imode) + F(" => ") + String(status));
+    debug_outln_info(F("\t\tNetwork System Mode: "), String(imode) + F(" => ") + String(status));
+
+    smode = GSMmodem.getPreferredModes();
+    imode = GSMmodem.getPreferredMode();
+    debug_outln_info("Availlable Preferred Modes: " + smode + ".\n\t\tCurrent Preferred Mode = " + String(imode));
 
     char ccid[64];
     GSMmodem.getSIMCCID(ccid);
@@ -207,7 +208,7 @@ void GPRSModemInfo()
 /// @return : RSSI value.
 int32_t GetWiFi_RSSI( void)
 {
-    if (gsm_init_failed)
+    if (lte_init_failed)
     {
         debug_outln_info(F("RSSI: GSM module (GPRS) \"NOT\" connected.. "));
         return 0;
@@ -223,9 +224,9 @@ int32_t GetWiFi_RSSI( void)
 
 /// @brief 
 /// @return : Sim7000 LTE module IP address.
-String GetLocalIP(void)
+String GetLTELocalIP(void)
 {
-    if (gsm_init_failed)
+    if (lte_init_failed)
     {
         debug_outln_info(F("IP: GSM module (GPRS) \"NOT\" connected.. "));
         return String("0.0.0.0");
@@ -243,7 +244,7 @@ void modemPowerOff()
 /// @brief Restart BK-SIM7000 PCB.
 void RestartLTEModem()
 {
-    debug_outln_info(F("BK-SIM7000 PCB => Restart LTE Modem()."));
+    debug_outln_info(F("Restart LTE Modem SIM7xxx process."));
 
     GSMmodem.modemRestart();
     Sim7000_setup();
@@ -253,19 +254,19 @@ void RestartLTEModem()
 /// @return
 inline boolean GPRSConnect()
 {
-    debug_outln_info(F("GPRSConnect(): Waiting for network..."));
+    debug_outln_info(F("GPRSConnect():Waiting for network..."));
 
     // Connect to cell network and verify connection
     // If unsuccessful, keep retrying every 2s until a connection is made.
-    int retry = 20;
+    int retry = 10;
 
     while (!GSMmodem.isNetworkConnected())
     {
         if (--retry < 0)
         {
-            debug_outln_info(F("Failed to connect to cell network, restart connection with SIM7000 module..."));
+            debug_outln_info(F("Failed to connect to cell network: restart connection with SIM7000 module..."));
 
-            GSMmodem.TestAT(10000);
+            GSMmodem.TestAT(3000);
 
             if (GSMmodem.openWirelessConnection(false))
             {
@@ -275,8 +276,8 @@ inline boolean GPRSConnect()
             return false;
         }
 
-        debug_outln_info(F("Failed to connect to cell network, retrying..."));
-        delay(2000); // Retry every 2s
+        debug_outln_info(F("Failed to connect to cell network: retrying..."));
+        delay(2000);
     }
 
     debug_outln_info(F("Connected to LTE cell network!"));
@@ -303,9 +304,9 @@ inline boolean GPRSConnect()
             return false;
         }
 
-        debug_outln_info( F("GPRS-IP address: ") + GSMmodem.getGPRSIP());
+        debug_outln_info( F("LTE/GPRS-IP address: ") + GSMmodem.getGPRSIP());
 
-        debug_outln_info(F("GSM/LTE connection Enabled."));
+        debug_outln_info(F("GSM/LTE/GPRS connection Enabled."));
 
         wdt_reset(); // watchdog timer reset => nodemcu ESP8266 still alive.
     }
@@ -378,7 +379,7 @@ bool Sim7000_setup()
     if (!GSMmodem.begin())
     {
         debug_outln_info(F("GSM Modem init Failed.."));
-        gsm_init_failed = true;
+        lte_init_failed = true;
         return false;
     }
 
@@ -400,16 +401,28 @@ bool Sim7000_setup()
         GSMmodem.unlockSIM(cfg7::gprsPIN);
     }
 
+    if( stat < PinStatus::SIM_READY)    
+    {// Pin SIM_ERROR.
+        if( stat == PinStatus::SIM_ERROR)
+        {
+            stat = (int8_t)GSMmodem.getCME_ErrorCode();
+        }
+
+        debug_outln_info(F("Pin-Status Error code: ") + String(stat));
+        lte_init_failed = true;
+        return false;
+    }
+
     Debug.print(F("Waiting for network..."));
     int res;
     if ( (res = GSMmodem.waitForNetworkConnection()) > 0)
     {
         debug_outln_info(F(" Failed error code: ") + String(res));
-        gsm_init_failed = true;
+        lte_init_failed = true;
         return false;
     }
 
-    debug_outln_info("Success.");
+    debug_outln_info(F(" Success."));
 
     // GPRS connection parameters are usually set after network registration
     debug_outln_info(F("GPRS \"APN\" connection parameter: "), cfg7::gprsapn);
@@ -461,6 +474,8 @@ bool Sim7000_setup()
       //GSMmodem.setNetLED(true, 2, 64, 3000);        // on/off, mode, timer_on, timer_off
       //GSMmodem.setNetLED(false);                    // Disable network status LED
 
+    lte_init_failed = false;
+
     wdt_reset();                                      // watchdog timer reset => nodemcu ESP8266 still alive.
 
     GPRSModemInfo();
@@ -482,7 +497,7 @@ bool Sim7000_setup()
 ******************************************************************/
 boolean GetGPSLocation(float *latitude, float *longitude, float *altitude, String &timestamp)
 {
-    if (gsm_init_failed)
+    if (lte_init_failed)
     {
         debug_outln_info(F("GPS: GSM module (GPRS) \"NOT\" connected.. "));
         return false;
@@ -563,7 +578,7 @@ boolean GetGPSLocation(float *latitude, float *longitude, float *altitude, Strin
 /// @return
 boolean sendDataByMQTT(const char *topic, const char *payload)
 {
-    if (gsm_init_failed)
+    if (lte_init_failed)
     {
         debug_outln_info(F("MQTT: GSM module (GPRS) \"NOT\" connected.. "));
         return false;
@@ -634,16 +649,25 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
         if (!GSMmodem.MQTT_connect(true))
         {
             debug_outln_info(F("Failed to connect to broker!"));
-            GSMmodem.MQTT_connect(false);
 
-            // check network status.
-            // if lost network connection then set flag to restart SIM7000 firmware.
-            // Pulse the reset pin.
-            // Restart takes internal quite some time.
-            // move to LOOP()
-            GSMmodem.modemRestart();
+            uint16_t error = GSMmodem.getCME_ErrorCode();
 
-            return false;
+            if (error != 3)
+            { // MQTT broker could not made connection.
+                
+                GSMmodem.MQTT_connect(false);
+
+                // check LTE network status.
+                // if lost network connection then set flag to restart SIM7000 firmware.
+                // Pulse the reset pin.
+                // Restart takes internal quite some time.
+                // move back to LOOP()
+                RestartLTEModem();
+                return false;
+            }
+     
+            // MQTT broker name not correct. check it.
+            return true;
         }
     }
     else
@@ -666,7 +690,7 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
     return true;
 }
 
-/// @brief send data to rest api => By GSM -> LTE (4G)
+/// @brief send data to rest api => By LTE (4G)
 /// @param logger 
 /// @param str_JsonData = sensor data send with HTTP POST to a sever
 /// @param pin 
@@ -674,10 +698,10 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
 /// @param portnr 
 /// @param url 
 /// @return     total send time
-int32_t sendDataByGSM(const LoggerEntry logger, const String &str_JsonData, const int pin,
+int32_t sendDataByLTE(const LoggerEntry logger, const String &str_JsonData, const int pin,
                       const char *host, const int portnr, const char *url)
 {
-    if (gsm_init_failed)
+    if (lte_init_failed)
     {
         debug_outln_info(F("GSM module (GPRS) \"NOT\" connected.. "));
         return 0;
@@ -799,14 +823,15 @@ int32_t sendDataByGSM(const LoggerEntry logger, const String &str_JsonData, cons
 /// @param  : NTP server : 2.pool.ntp.org
 void setNTPTimeSync(void)
 {
-    if (!OpenGPRSNetwork())
+    if ( lte_init_failed || !OpenGPRSNetwork())
     {
-        debug_outln_info(F("--- NTP GPRS NOT connected ---"));
+        debug_outln_info(F("--- NTP network \"NOT\" connected ---"));
         return;
     }
 
-     //enable NTP time sync. + time zone.
-    if ( !GSMmodem.enableNTPTimeSync(true, FPSTR((String(NTP_SERVER_1)).c_str()), 1) )
+     // enable NTP time sync. + time zone.
+     // NTP servers operate always in UTC time.(ipv4)
+    if ( !GSMmodem.enableNTPTimeSync(true, FPSTR((String(NTP_SERVER_2)).c_str()), 1) )
     {
         debug_outln_info(F("--- Failed to enable NTP. ---"));
         return;
@@ -884,5 +909,44 @@ void SyncNTPTime(void)
 
         // store new date/time value.
         m_starttime = millis();                             
+    }
+}
+
+/// @brief : ESP8266 Turn off WiFi to save power
+///          Wifi APmode PowerSave in case of SIM7xxx
+///    
+/// @param
+void WifiAPmodePowerSave(void)
+{
+    if( lte_init_failed)
+    {// SIM-7xxx module NOT connected.
+        return;
+    }
+
+    // TODO: must be tested, for now skiped.
+    if (false && (last_page_load > -1UL) && (millis() - last_page_load) > cfg::time_for_wifi_config + 500)
+    { // after 10 minutes waiting on server commando's => stop WIFI process.
+        debug_outln_info(F("Disconnecting AP mode and stop WIFI process."));
+
+        WiFi.softAPdisconnect(true);
+        WiFi.mode(WIFI_OFF);
+
+        // Disable WiFi
+        wifi_station_disconnect();
+        wifi_set_opmode(NULL_MODE);
+        wifi_set_sleep_type(MODEM_SLEEP_T);
+        wifi_fpm_open();
+        wifi_fpm_do_sleep(ESP.deepSleepMax());          // FPM_SLEEP_MAX_TIME
+
+        if( WiFi.status() == WL_CONNECTED)
+        {
+            debug_outln_info(F("Wifi Connection is still alive..."));
+        }
+        else
+        {
+            debug_outln_info( F("Wifi Connection successfully terminated."));
+        }
+
+        last_page_load = -1UL;
     }
 }
