@@ -893,5 +893,7 @@ String getDateTime(bool _localTime, uint8 type)
 
     strftime(timeBuffer, sizeof(timeBuffer), dateTimeformat.c_str(), timeinfo);
 
-    return String( timeBuffer);
+    String strTime = String( timeBuffer);
+    strTime.trim();                                     // skip leading/end space char's
+    return strTime;
 }
