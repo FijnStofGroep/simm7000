@@ -115,7 +115,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2024-10-B4_7"
+#define SOFTWARE_VERSION_STR "FWL-2024-10-B4_8"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -2432,19 +2432,13 @@ static void sendHttpRedirect()
  *****************************************************************/
 static void webserver_root()
 {
-    if (!cfg::has_s7000)
+    if (!cfg::has_s7000 && WiFi.status() != WL_CONNECTED)
     {
-        if (WiFi.status() != WL_CONNECTED)
-        {
-            sendHttpRedirect();
-        }
-        else
-        {
-            if (!webserver_request_auth())
-            {
-                return;
-            }
-        }
+        sendHttpRedirect();
+    }
+    else if (!webserver_request_auth())
+    {
+        return;
     }
 
     RESERVE_STRING(page_content, XLARGE_STR);
@@ -3086,14 +3080,12 @@ static void webserver_config7()
 static void sensor_restart()
 {
 #if defined(ESP8266)
-    if(!cfg::has_s7000)
-    {
-        WiFi.disconnect();
-        WiFi.mode(WIFI_OFF);
-        delay(100);
-    }
-    else
-    {// BK-Sim7000 Modem Power Off.
+    WiFi.disconnect();
+    WiFi.mode(WIFI_OFF);
+    delay(100);
+
+    if (cfg::has_s7000)
+    { // BK-Sim7000 Modem Power Off.
         modemPowerOff();
     }
 #endif
@@ -4351,6 +4343,11 @@ static void wifi_AP_Config()
 	    last_page_load = millis();
 
         wificonfig_loop = false;
+
+        // This can be useful if ESPs are close enough so we don't need full output power.
+        // @param dBm max: +20.5dBm  min: 0dBm
+	    //WiFi.setOutputPower(5.0f);
+
         return;
     }
 
@@ -4551,6 +4548,7 @@ static void connectWifi()
 	system_phy_set_powerup_option(1);
 
 	// 20dBM == 100mW == max tx power allowed in europe
+    // @param dBm max: +20.5dBm  min: 0dBm
 	WiFi.setOutputPower(20.0f);
 
 	if (cfg::powersave) 
@@ -8671,7 +8669,7 @@ static unsigned long sendDataToOptionalApis(const String &data)
 		data_sensemap.replace("SEN55", cfg::sen5x_sym_pm);	 	// replace PM Sensor Type Name.
 		data_sensemap.replace("SEN5X", cfg::sen5x_sym_th);		// replace temp/hummidity/NOx Sensor Type Name.
 
-		debug_outln_verbose(F("SEN5x: sendDataToOptionalApis data:\n"), data_sensemap);
+		debug_outln_verbose(F("\nSEN5x: sendDataToOptionalApis data:\n"), data_sensemap);
 	}
 
 	if (cfg::send2madavi)
@@ -8918,7 +8916,7 @@ void setup(void)
         wifi_AP_Config();
 
 		debug_outln_info(F("** Start BK-SIM7000 PCB communication... **"));
-		if( Sim7000_setup())
+		if( Sim7000_setup(SETUP_STATE::INIT))
 		{
 			debug_outln_info(F("** BK-SIM7000 Board connected. **"));
 		}
