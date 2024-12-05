@@ -256,10 +256,13 @@ void BK_modem::modemPowerOn()
 void BK_modem::modemPowerOff()
 {
     // All UART communication gives some time Exception (28): when firmware restart().
-    //BK_DEBUG_PRINTLN(F("BK-Sim7000 Power-Off process."));
+    if (SerialSIM != NULL)
+    {// SIM-70xx PCB communication active.
+        AT_powerDown();
+        delay(5000);
 
-    AT_powerDown();
-    delay(5000);
+        BK_DEBUG_PRINTLN(F("BK-Sim7000 Power-Off process."));
+    }
 
     PowerOff(m_PIN_PWR);
     delay(2000);
@@ -269,9 +272,14 @@ void BK_modem::modemPowerOff()
     BK-Sim7000 Modem Restart:
             by Power Off / Power On
 ******************************************************************/
-void BK_modem::modemRestart()
+void BK_modem::modemPowerRestart()
 {
-    BK_DEBUG_PRINTLN(F("BK-Sim7000 PCB Restart process START"));
+    if (SerialSIM == NULL)
+    {// SIM-70xx PCB NOT connected.
+        return;
+    }
+
+    BK_DEBUG_PRINTLN(F("BK-Sim7000 PCB Power Restart process START"));
 
     flushInput();
 
@@ -279,10 +287,7 @@ void BK_modem::modemRestart()
 
     modemPowerOn();
 
-    // wake-up SIM7000 AT command process.
-    //TestAT(5000);
-
-    BK_DEBUG_PRINTLN(F("BK-Sim7000 PCB Restart process ENDED"));
+    BK_DEBUG_PRINTLN(F("BK-Sim7000 PCB Power Restart process ENDED"));
 }
 
 /********* Serial port ****************************************************/
@@ -1267,26 +1272,26 @@ boolean BK_modem::enableGPS(boolean onoff)
     uint16_t state;
 
     // First check if its already on or off.
-    if (!sendParseReply(F("AT+CGPSPWR?"), F("+CGPSPWR: "), &state))
+    if (!sendParseReply(F("AT+CGNSPWR?"), F("+CGNSPWR: "), &state))
     {
-        if(prog_char_strcmp(m_replybuffer, (prog_char *)F("AT+CGPSPWR?")) == 0)      // check for echo command ipv "+CGPSPWR:"
-        {
-            TestAT(5000);                                                            // SIM7000 could be resette.
-        }
+ //     if(prog_char_strcmp(m_replybuffer, (prog_char *)F("AT+CGPSPWR?")) == 0)      // check for echo command ipv "+CGPSPWR:"
+ //     {
+ //         TestAT(5000);                                                            // SIM7000 could be resette.
+ //     }
 
         return false;
     }
 
     if (onoff && !state)
     {
-        if (!sendCheckReply(F("AT+CGPSPWR=1"), m_ok_reply))
+        if (!sendCheckReply(F("AT+CGNSPWR=1"), m_ok_reply))
         {
             return false;
         }
     }
     else if (!onoff && state)
     {
-        if (!sendCheckReply(F("AT+CGPSPWR=0"), m_ok_reply))
+        if (!sendCheckReply(F("AT+CGNSPWR=0"), m_ok_reply))
         {
             return false;
         }

@@ -141,7 +141,7 @@ public:
     // Power, battery, and ADC
     void modemPowerOn();
     void modemPowerOff();
-    void modemRestart();
+    void modemPowerRestart();
     
     boolean getADCVoltage(uint16_t *v);
     boolean getBattPercent(uint16_t *p);
