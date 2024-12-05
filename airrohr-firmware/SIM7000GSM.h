@@ -65,6 +65,11 @@ extern unsigned long act_milli;
 
 
 //***************************************************************************************************************************************************
+enum SETUP_STATE
+{
+    INIT = 0,
+    RESTART = 1
+};
 
 /*
     ESP8266 serial speed to SIM7000 = Default baud rate is 115200 bps
@@ -72,7 +77,7 @@ extern unsigned long act_milli;
     NOTE: Software serial is not reliable on 115200 baud and therefore changes it to a lower value.
           9600 works well in almost all applications, but 115200 works great with Hardware serial.
 */
-boolean Sim7000_setup();
+boolean Sim7000_setup(int state);
 
 /*
     Get GPS Location. timeout = max. 10 sec.
@@ -106,7 +111,7 @@ void setNTPTimeSync(void);
 void modemPowerOff();
 
 /// @brief Restart BK-SIM7000 PCB.
-void RestartLTEModem();
+bool RestartLTEModem();
 
 /// @brief 
 /// @param  

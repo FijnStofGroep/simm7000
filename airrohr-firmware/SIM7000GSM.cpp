@@ -112,7 +112,7 @@ namespace cfg7
 SoftwareSerial SerialSIM;
 
 // Use this one for LTE CAT-M/NB-IoT modules (BK-SIM7000 development PCB) 
-BK_modem_LTE GSMmodem = BK_modem_LTE(); 
+BK_modem_LTE LTEmodem = BK_modem_LTE(); 
 
 bool lte_init_failed = false;
 char m_imei[16] = {0};                        // Use this for LTE modem device ID.
@@ -122,14 +122,14 @@ char m_imei[16] = {0};                        // Use this for LTE modem device I
 /*****************************************************************
     GPRS Modem Info()
 ******************************************************************/
-void GPRSModemInfo()
+void Display_GPRSModemInfo()
 {
     if (cfg::debug < DEBUG_MAX_INFO)
     {
-        // String local = GSMmodem.getGPRSIP();
+        // String local = LTEmodem.getGPRSIP();
         // debug_outln_info(F("Local IP: "), local);
 
-        String oper = GSMmodem.getOperator();
+        String oper = LTEmodem.getOperator();
         debug_outln_info(F("Operator: "), oper);
 
         return;
@@ -140,7 +140,7 @@ void GPRSModemInfo()
 
     debug_outln_info(F("\n--- Display GPRS Information ---"));
 
-    if (GSMmodem.isGprsConnected())
+    if (LTEmodem.isGprsConnected())
     {
         debug_outln_info(F("GPRS status: connected."));
     }
@@ -149,12 +149,12 @@ void GPRSModemInfo()
         debug_outln_info(F("GPRS status: not connected."));
     }
 
-    debug_outln_info(F("Software ") + GSMmodem.getModemSoftware_Revision());
+    debug_outln_info(F("Software ") + LTEmodem.getModemSoftware_Revision());
 
-    imode = GSMmodem.getNetworkMode();
+    imode = LTEmodem.getNetworkMode();
     debug_outln_info(F("Network Modes: \"2 Automatic , 13 GSM only , 38 LTE only , 51 GSM and LTE only\".\n\t\tNetwork Mode => "), String(imode));
 
-    uint8_t epsStatus = GSMmodem.getNetworkStatus();
+    uint8_t epsStatus = LTEmodem.getNetworkStatus();
     debug_out(F("\t\tNetwork status code: ") + String(epsStatus) + F(" => "), DEBUG_MIN_INFO);
 
     if (epsStatus == 0) 
@@ -171,33 +171,33 @@ void GPRSModemInfo()
         debug_outln_info(F("Registered roaming"));
 
     char status[13];
-    imode = GSMmodem.getNetworkSystemMode(status);
+    imode = LTEmodem.getNetworkSystemMode(status);
     debug_outln_info(F("\t\tNetwork System Mode: "), String(imode) + F(" => ") + String(status));
 
-    smode = GSMmodem.getPreferredModes();
-    imode = GSMmodem.getPreferredMode();
+    smode = LTEmodem.getPreferredModes();
+    imode = LTEmodem.getPreferredMode();
     debug_outln_info("Availlable Preferred Modes: " + smode + ".\n\t\tCurrent Preferred Mode = " + String(imode));
 
     char ccid[64];
-    GSMmodem.getSIMCCID(ccid);
+    LTEmodem.getSIMCCID(ccid);
     debug_outln_info(F("CCID: "), String(ccid));
 
-    GSMmodem.getIMEI(m_imei);
+    LTEmodem.getIMEI(m_imei);
     debug_outln_info(F("IMEI: "), String(m_imei));
 
     smode.clear();
-    smode = GSMmodem.getOperator();
+    smode = LTEmodem.getOperator();
     debug_outln_info(F("Operator: "), smode);
 
     smode.clear();
-    smode = GSMmodem.getSIMCOMATI();
+    smode = LTEmodem.getSIMCOMATI();
     debug_outln_info(F("SIMCOMATI:\n"), smode);
     
     last_signal_strength = GetWiFi_RSSI();
 
     // Get connection type and band.
     smode.clear();
-    GSMmodem.getNetworkInfo(smode);
+    LTEmodem.getNetworkInfo(smode);
     debug_outln_info(F("The current network parameter: "), smode);
 
     debug_outln_info(F("--- End of GPRS Information ---\n"));
@@ -216,7 +216,7 @@ int32_t GetWiFi_RSSI( void)
 
     uint8_t csq;
     int8 rssi = 0; 
-    GSMmodem.getSignalQuality(&csq, &rssi);
+    LTEmodem.getSignalQuality(&csq, &rssi);
     debug_outln_info( F("Wifi signal strength: ") + String(rssi) + F("dBM") + F(", Signal quality: ") + String(csq) + F("%"));
 
     return rssi;
@@ -232,65 +232,63 @@ String GetLTELocalIP(void)
         return String("0.0.0.0");
     }
 
-    return GSMmodem.getGPRSIP();
+    return LTEmodem.getGPRSIP();
 }
 
 /// @brief BK-SIM7000 PCB Power OFF.
 void modemPowerOff()
 {
-    GSMmodem.modemPowerOff();
+    LTEmodem.modemPowerOff();
 }
 
 /// @brief Restart BK-SIM7000 PCB.
-void RestartLTEModem()
+bool RestartLTEModem()
 {
     debug_outln_info(F("Restart LTE Modem SIM7xxx process."));
 
-    GSMmodem.modemRestart();
-    Sim7000_setup();
+    LTEmodem.modemPowerRestart();
+    return Sim7000_setup(SETUP_STATE::RESTART);
 }
 
 /// @brief 
 /// @return
 inline boolean GPRSConnect()
 {
-    debug_outln_info(F("GPRSConnect():Waiting for network..."));
+    debug_outln_info(F("GPRSConnect():Waiting for LTE network..."));
 
     // Connect to cell network and verify connection
     // If unsuccessful, keep retrying every 2s until a connection is made.
-    int retry = 10;
+    int retry = 1;
 
-    while (!GSMmodem.isNetworkConnected())
+    while (!LTEmodem.isNetworkConnected())
     {
         if (--retry < 0)
         {
-            debug_outln_info(F("Failed to connect to cell network: restart connection with SIM7000 module..."));
+            debug_outln_info(F("Failed to connect to LTE network: restart connection with SIM7000 module..."));
 
-            GSMmodem.TestAT(3000);
-
-            if (GSMmodem.openWirelessConnection(false))
+            if ( retry < -1 || !RestartLTEModem())
             {
-                break;
+                return false;
             }
 
-            return false;
+            continue;
         }
 
-        debug_outln_info(F("Failed to connect to cell network: retrying..."));
+        debug_outln_info(F("Failed to connect to LTE network: retrying..."));
         delay(2000);
     }
 
-    debug_outln_info(F("Connected to LTE cell network!"));
+    debug_outln_info(F("Connected to LTE network!"));
 
     // Disable data just to make sure it was actually off so that we can turn it on
-    // GSMmodem.openWirelessConnection(false);
+    // LTEmodem.openWirelessConnection(false);
 
     // Open wireless connection if not already activated.
-    if (!GSMmodem.wirelessConnStatus())
+    if (!LTEmodem.wirelessConnStatus())
     {
         retry = 5;
 
-        while (retry > 0 && !GSMmodem.openWirelessConnection(true))
+        while (retry > 0 && !LTEmodem.openWirelessConnection(true))
         {
             debug_outln_info(F("Failed to Open Wireless Connection, retrying..."));
             delay(2000); // Retry every 2s
@@ -300,11 +298,11 @@ inline boolean GPRSConnect()
 
         if (retry == 0)
         {
-            GSMmodem.openWirelessConnection(false);
+            LTEmodem.openWirelessConnection(false);
             return false;
         }
 
-        debug_outln_info( F("LTE/GPRS-IP address: ") + GSMmodem.getGPRSIP());
+        debug_outln_info( F("LTE/GPRS-IP address: ") + LTEmodem.getGPRSIP());
 
         debug_outln_info(F("GSM/LTE/GPRS connection Enabled."));
 
@@ -318,7 +316,7 @@ inline boolean GPRSConnect()
     return true;
 }
 
-/// @brief : Open GPRS Network.
+/// @brief : Open GPRS / LTE Network.
 /// @param  
 /// @return : true = connected, false = NOT connected.
 boolean OpenGPRSNetwork(void)
@@ -330,7 +328,7 @@ boolean OpenGPRSNetwork(void)
     }
 
     int res;
-    if ((res = GSMmodem.getBearerStatus()) > 1)
+    if ((res = LTEmodem.getBearerStatus()) > 1)
     {
         if (res == 2)
         { // bearer is closing.
@@ -339,7 +337,7 @@ boolean OpenGPRSNetwork(void)
 
         // Bearer is closed.
         // enable data
-        if (!GSMmodem.enableGPRS(true))
+        if (!LTEmodem.enableGPRS(true))
         {
             debug_outln_info(F("--- GPRS Failed to turn on ---"));
         }
@@ -355,8 +353,13 @@ boolean OpenGPRSNetwork(void)
           9600 works well in almost all applications.
 
           But 115200 works great with Hardware serial pins.
+
 ***************************************************************************************************************/
-bool Sim7000_setup()
+/// @brief :
+/// @param : state INIT
+///                RESTART
+/// @return 
+bool Sim7000_setup( int state)
 {
 #if defined(ESP8266)
     debug_outln_info(F("BK_Sim7000 Modem connect start process: "), "");
@@ -364,11 +367,11 @@ bool Sim7000_setup()
     // set RS-232 port settings between ESP8266 and BK-SIM7000 module.
     SerialSIM.begin(SERIALSIM_BAUD, SWSERIAL_8N1, SIM_PIN_RX, SIM_PIN_TX); // start with default SIM7000 shield baud rate.
 
-    // initialize GSMmodem instance.
-    GSMmodem.init(SerialSIM, Debug, SIM_PIN_PWR);
+    // initialize LTEmodem instance.
+    LTEmodem.init(SerialSIM, Debug, SIM_PIN_PWR);
 
     // Set BK-SIM7000 GSM-modem baud rate to lower value.
-    GSMmodem.setBaudrate(GSMMODEM_BAUD);
+    LTEmodem.setBaudrate(GSMMODEM_BAUD);
 
     // set NodeMCU serial port to same baud.
     SerialSIM.begin(GSMMODEM_BAUD, SWSERIAL_8N1); 
@@ -376,7 +379,7 @@ bool Sim7000_setup()
 
     debug_outln_info(F("Initializing BK_Sim7000 Modem PCB..."));
 
-    if (!GSMmodem.begin())
+    if (!LTEmodem.begin())
     {
         debug_outln_info(F("GSM Modem init Failed.."));
         lte_init_failed = true;
@@ -384,28 +387,29 @@ bool Sim7000_setup()
     }
 
     // Flush: SerialSIM receive buffer.
-    GSMmodem.flush();
+    LTEmodem.flush();
 
-    String name = GSMmodem.getModemName();
+    String name = LTEmodem.getModemName();
     debug_outln_info(F("Modem Name: "), name);
 
-    String modemInfo = GSMmodem.getModemInfo();
+    String modemInfo = LTEmodem.getModemInfo();
     debug_outln_info(F("GSM Modem Info: "), modemInfo);
 
     // Unlock your SIM card with a PIN if needed
-    int8_t stat = GSMmodem.getPINStatus();
+    int8_t stat = LTEmodem.getPINStatus();
     debug_outln_info(F("PIN Status: "), String(stat));
-    // debug_outln_info(F("gprs PIN: "), String(strlen(cfg7::gprsPIN)));
+    // debug_outln_info(F("GPRS PIN: "), String(strlen(cfg7::gprsPIN)));
+
     if ( strlen(cfg7::gprsPIN) > 0 && stat != 3)
     {
-        GSMmodem.unlockSIM(cfg7::gprsPIN);
+        LTEmodem.unlockSIM(cfg7::gprsPIN);
     }
 
     if( stat < PinStatus::SIM_READY)    
     {// Pin SIM_ERROR.
         if( stat == PinStatus::SIM_ERROR)
         {
-            stat = (int8_t)GSMmodem.getCME_ErrorCode();
+            stat = (int8_t)LTEmodem.getCME_ErrorCode();
         }
 
         debug_outln_info(F("Pin-Status Error code: ") + String(stat));
@@ -415,7 +419,7 @@ bool Sim7000_setup()
 
     Debug.print(F("Waiting for network..."));
     int res;
-    if ( (res = GSMmodem.waitForNetworkConnection()) > 0)
+    if ( (res = LTEmodem.waitForNetworkConnection()) > 0)
     {
         debug_outln_info(F(" Failed error code: ") + String(res));
         lte_init_failed = true;
@@ -430,26 +434,26 @@ bool Sim7000_setup()
 
     if( strlen(cfg7::gprsUser) > 0)
     {
-        GSMmodem.setNetworkSettings(FPSTR(cfg7::gprsapn), FPSTR(cfg7::gprsUser), FPSTR(cfg7::gprsPass));
+        LTEmodem.setNetworkSettings(FPSTR(cfg7::gprsapn), FPSTR(cfg7::gprsUser), FPSTR(cfg7::gprsPass));
     }
     else
-    {   //GSMmodem.setNetworkSettings(F(GPRSAPNCODE));
-        GSMmodem.setNetworkSettings(FPSTR(cfg7::gprsapn));
+    {   //LTEmodem.setNetworkSettings(F(GPRSAPNCODE));
+        LTEmodem.setNetworkSettings(FPSTR(cfg7::gprsapn));
     }
 
-    GSMmodem.setPreferredMode(38);              // Use GPRS/LTE  only.
-    GSMmodem.setPreferredLTEMode(1);            // Use GPRS/LTE CAT-M, not NB-IoT
-    //GSMmodem.setOperatingBand("CAT-M", 12);   // ex. AT&T uses band 12.
+    LTEmodem.setPreferredMode(51);              // 38 = LTE only.
+    LTEmodem.setPreferredLTEMode(1);            // Use GPRS/LTE CAT-M, not NB-IoT
+    //LTEmodem.setOperatingBand("CAT-M", 12);   // ex. AT&T uses band 12.
 
     if (cfg7::s7000_has_gps)
     { // Perform first-time GPS/data setup if the shield is going to remain on,
       // otherwise these won't be enabled in loop() and it won't work!
       // Enable GPS, first time take some time to start GPS process in sim7000 module
 
-        while ( !GSMmodem.enableGPS() )
+        while ( !LTEmodem.enableGPS() )
         {
             debug_outln_info(F("SETUP(): Failed to turn on GPS, retrying..."));
-            delay(2000);                // Retry every 2sec.
+            delay(2000);                        // Retry every 2sec.
         }
 
         debug_outln_info(F("GPS is Turned on."));
@@ -457,7 +461,7 @@ bool Sim7000_setup()
 
     if (cfg::send2mqtt)
     {
-        // ++ Set-Up Topic header for MQTT Broker.
+      // ++ Set-Up Topic header for MQTT Broker.
         strcpy(mqtt_client_id, SSID_BASENAME);
 		strcat(mqtt_client_id, esp_chipid.c_str());			// airRohr-<chipid>
 
@@ -467,18 +471,21 @@ bool Sim7000_setup()
 
         _header += "/" + String(mqtt_lwt);
         strcpy(mqtt_lwt_header, _header.c_str());
-        // -- Set-Up Topic header for MQTT Broker
+      // -- Set-Up Topic header for MQTT Broker
     }
 
       // Set the network status LED blinking pattern while connected to a network (see AT+SLEDS command)
-      //GSMmodem.setNetLED(true, 2, 64, 3000);        // on/off, mode, timer_on, timer_off
-      //GSMmodem.setNetLED(false);                    // Disable network status LED
+      //LTEmodem.setNetLED(true, 2, 64, 3000);        // on/off, mode, timer_on, timer_off
+      //LTEmodem.setNetLED(false);                    // Disable network status LED
 
     lte_init_failed = false;
 
     wdt_reset();                                      // watchdog timer reset => nodemcu ESP8266 still alive.
 
-    GPRSModemInfo();
+    if( state == SETUP_STATE::INIT)
+    {
+        Display_GPRSModemInfo();
+    }
 
     wait_NTP_sync_time = 15000;                       // wait 15 sec. before the first call to "setNTPTimeSync();""
 
@@ -495,6 +502,12 @@ bool Sim7000_setup()
     Get GPS Location. timeout = max. 5 sec.
     to fast now.
 ******************************************************************/
+/// @brief : Get GPS Location.
+/// @param latitude 
+/// @param longitude 
+/// @param altitude 
+/// @param timestamp 
+/// @return 
 boolean GetGPSLocation(float *latitude, float *longitude, float *altitude, String &timestamp)
 {
     if (lte_init_failed)
@@ -506,13 +519,13 @@ boolean GetGPSLocation(float *latitude, float *longitude, float *altitude, Strin
     debug_outln_info(F("Start positioning. Make sure that sensor locate is outdoors."));
 
     // turn on NMEA output.
-    //GSMmodem.enableGPSNMEA(255);
+    //LTEmodem.enableGPSNMEA(255);
 
     // GPS function will be enabled.
     int reply = 10;
     while (--reply > 0)
     {
-        if(GSMmodem.enableGPS())
+        if(LTEmodem.enableGPS())
         {
             break;
         }
@@ -539,10 +552,10 @@ boolean GetGPSLocation(float *latitude, float *longitude, float *altitude, Strin
 
     for (int cnt = 10; cnt > 0; cnt--)
     {
-        if (GSMmodem.getGPS(latitude, longitude, &speed, &heading, altitude,
+        if (LTEmodem.getGPS(latitude, longitude, &speed, &heading, altitude,
                             &year, &month, &day, &hour, &min, &sec))
         {
-            char gps_timestamp[37] = {0};
+            char gps_timestamp[25] = {0};
             sprintf_P(gps_timestamp, PSTR("%04d-%02d-%02dT%02d:%02d:%02d.000"),year, month, day, hour, min, sec);
             timestamp = String(gps_timestamp);
 
@@ -567,7 +580,7 @@ boolean GetGPSLocation(float *latitude, float *longitude, float *altitude, Strin
 
     // GPS function will be disable.
     // not good idea to do that, make system slow.
-    //GSMmodem.disableGPS();
+    //LTEmodem.disableGPS();
 
     return gpsOke;
 }
@@ -620,49 +633,44 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
     }
 
     // If not already connected, connect to MQTT.
-    if (!GSMmodem.MQTT_connectionStatus())
+    if (!LTEmodem.MQTT_connectionStatus())
     {
         uint32_t keepAlive = 60;
 
         // Set up MQTT parameters (see MQTT app note for explanation of parameter values)
 
-        GSMmodem.MQTT_setParameter("CLIENTID", "airRohr_001"); // Client connection id.
+        LTEmodem.MQTT_setParameter("CLIENTID", "airRohr_001"); // Client connection id.
 
-        GSMmodem.MQTT_setParameter("URL", cfg::mqtt_server, cfg::mqtt_port); // MQTT_SERVER, MQTT_PORT
+        LTEmodem.MQTT_setParameter("URL", cfg::mqtt_server, cfg::mqtt_port); // MQTT_SERVER, MQTT_PORT
         //char s_url[150];
         //sprintf(s_url, "%s:%d", cfg::mqtt_server, cfg::mqtt_port); // Format URI
-        //GSMmodem.MQTT_setParameter("URL", s_url); // MQTT_SERVER, MQTT_PORT
+        //LTEmodem.MQTT_setParameter("URL", s_url); // MQTT_SERVER, MQTT_PORT
 
         // Set up MQTT username and password if necessary
-        GSMmodem.MQTT_setParameter("USERNAME", cfg::mqtt_user); // MQTT_USERNAME
-        GSMmodem.MQTT_setParameter("PASSWORD", cfg::mqtt_pwd);  // MQTT_PASSWORD
+        LTEmodem.MQTT_setParameter("USERNAME", cfg::mqtt_user); // MQTT_USERNAME
+        LTEmodem.MQTT_setParameter("PASSWORD", cfg::mqtt_pwd);  // MQTT_PASSWORD
 
         // keepAlive = > 100 geeft dit een response "ERROR"
-        GSMmodem.MQTT_setParameter("KEEPTIME", keepAlive); // Time to connect to server, 60s by default
-        GSMmodem.MQTT_setParameter("CLEANSS", 1);
-        GSMmodem.MQTT_setParameter("QOS", 1);
+        LTEmodem.MQTT_setParameter("KEEPTIME", keepAlive); // Time to connect to server, 60s by default
+        LTEmodem.MQTT_setParameter("CLEANSS", 1);
+        LTEmodem.MQTT_setParameter("QOS", 1);
 
-        // String stmp = GSMmodem.MQTT_getParameters();
+        // String stmp = LTEmodem.MQTT_getParameters();
         // debug_outln_info(F("Connecting to MQTT broker...") + stmp);
         debug_outln_info(F("Connecting to MQTT broker..."));
 
-        if (!GSMmodem.MQTT_connect(true))
+        if (!LTEmodem.MQTT_connect(true))
         {
             debug_outln_info(F("Failed to connect to broker!"));
 
-            uint16_t error = GSMmodem.getCME_ErrorCode();
+            uint16_t error = LTEmodem.getCME_ErrorCode();
 
             if (error != 3)
             { // MQTT broker could not made connection.
                 
-                GSMmodem.MQTT_connect(false);
+                LTEmodem.MQTT_connect(false);
 
-                // check LTE network status.
-                // if lost network connection then set flag to restart SIM7000 firmware.
-                // Pulse the reset pin.
-                // Restart takes internal quite some time.
-                // move back to LOOP()
-                RestartLTEModem();
+                //RestartLTEModem();
                 return false;
             }
      
@@ -677,13 +685,13 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
 
     // Now publish all the sensor values like PM and temperature data to their respective topics!
     // Parameters for MQTT_publish: Topic, payload (0-512 bytes), payload length, QoS (0-2), retain (0-1)
-    if (!GSMmodem.MQTT_publish(topic, payload, strlen(payload), 1, 1))
+    if (!LTEmodem.MQTT_publish(topic, payload, strlen(payload), 1, 1))
     {
         debug_outln_info(F("Failed to publish!")); // Send GPS location
     }
 
     // Disconnect from MQTT
-    GSMmodem.MQTT_connect(false);
+    LTEmodem.MQTT_connect(false);
 
     debug_outln_info(F("End send Data By MQTT process."));
 
@@ -760,9 +768,9 @@ int32_t sendDataByLTE(const LoggerEntry logger, const String &str_JsonData, cons
     }
    
     String s_userAgent = SOFTWARE_VERSION + String('/') + esp_chipid + String('/') + esp_mac_id;
-    GSMmodem.setUserAgent(FPSTR(s_userAgent.c_str()));
-    //GSMmodem.setClientID( 1 );                                               // 
-    //GSMmodem.setHTTPSRedirect(true);                                         // redirect (ssl) ???
+    LTEmodem.setUserAgent(FPSTR(s_userAgent.c_str()));
+    //LTEmodem.setClientID( 1 );                                               // 
+    //LTEmodem.setHTTPSRedirect(true);                                         // redirect (ssl) ???
 
     // Post data to website.
     if (portnr == 80)
@@ -783,7 +791,7 @@ int32_t sendDataByLTE(const LoggerEntry logger, const String &str_JsonData, cons
     //String contentTmp = String(contentType) + String("\r\n") + addUserHeader + String("\r\n");
 
     // POST sensor data to ex. sensor.community server.
-    if ( !GSMmodem.HTTP_POST_start(s_url, contentType,                  // FPSTR(contentTmp.c_str()),
+    if ( !LTEmodem.HTTP_POST_start(s_url, contentType,                  // FPSTR(contentTmp.c_str()),
                                    addUserHeader, 
                                    (uint8_t *)str_JsonData.c_str(), str_JsonData.length(), 
                                    &statuscode, (uint16_t *)&respLength) )
@@ -800,13 +808,13 @@ int32_t sendDataByLTE(const LoggerEntry logger, const String &str_JsonData, cons
     else // if (result >= HTTP_CODE_BAD_REQUEST)
     {
         debug_outln_info(F("Request failed with error: "), String(statuscode));
-        debug_outln_info(F("Details: "), GSMmodem.getResponseMessage());
+        debug_outln_info(F("Details: "), LTEmodem.getResponseMessage());
     }
 
     debug_outln_info(F("POST end ****"));
 
     // Http close
-    GSMmodem.HTTP_POST_end();
+    LTEmodem.HTTP_POST_end();
 
 	if (!send_success && statuscode != 0)
 	{
@@ -831,16 +839,16 @@ void setNTPTimeSync(void)
 
      // enable NTP time sync. + time zone.
      // NTP servers operate always in UTC time.(ipv4)
-    if ( !GSMmodem.enableNTPTimeSync(true, FPSTR((String(NTP_SERVER_2)).c_str()), 1) )
+    if ( !LTEmodem.enableNTPTimeSync(true, FPSTR((String(NTP_SERVER_2)).c_str()), 1) )
     {
         debug_outln_info(F("--- Failed to enable NTP. ---"));
         return;
     }
 
     char timeBuffer[25];
-    GSMmodem.getTime(timeBuffer, 24); // "24/08/28,11:21:26+04"
+    LTEmodem.getTime(timeBuffer, 24); // "24/08/28,11:21:26+04"
 
-    debug_outln_info(F("Raw NTP Date/Time value: ") + String(timeBuffer));
+    debug_outln_info(F("Raw NTP Date_Time value: ") + String(timeBuffer));
 
     timeBuffer[3] = 0x00;
     if(atoi(&timeBuffer[1]) == 80)
@@ -924,29 +932,29 @@ void WifiAPmodePowerSave(void)
     }
 
     // TODO: must be tested, for now skiped.
-    if (false && (last_page_load > -1UL) && (millis() - last_page_load) > cfg::time_for_wifi_config + 500)
-    { // after 10 minutes waiting on server commando's => stop WIFI process.
-        debug_outln_info(F("Disconnecting AP mode and stop WIFI process."));
+    // if (false && (last_page_load > -1UL) && (millis() - last_page_load) > cfg::time_for_wifi_config + 500)
+    // { // after 10 minutes waiting on server commando's => stop WIFI process.
+    //     debug_outln_info(F("Disconnecting AP mode and stop WIFI process."));
 
-        WiFi.softAPdisconnect(true);
-        WiFi.mode(WIFI_OFF);
+    //     WiFi.softAPdisconnect(true);
+    //     WiFi.mode(WIFI_OFF);
 
-        // Disable WiFi
-        wifi_station_disconnect();
-        wifi_set_opmode(NULL_MODE);
-        wifi_set_sleep_type(MODEM_SLEEP_T);
-        wifi_fpm_open();
-        wifi_fpm_do_sleep(ESP.deepSleepMax());          // FPM_SLEEP_MAX_TIME
+    //     // Disable WiFi
+    //     wifi_station_disconnect();
+    //     wifi_set_opmode(NULL_MODE);
+    //     wifi_set_sleep_type(MODEM_SLEEP_T);
+    //     wifi_fpm_open();
+    //     wifi_fpm_do_sleep(ESP.deepSleepMax());          // FPM_SLEEP_MAX_TIME
 
-        if( WiFi.status() == WL_CONNECTED)
-        {
-            debug_outln_info(F("Wifi Connection is still alive..."));
-        }
-        else
-        {
-            debug_outln_info( F("Wifi Connection successfully terminated."));
-        }
+    //     if( WiFi.status() == WL_CONNECTED)
+    //     {
+    //         debug_outln_info(F("Wifi Connection is still alive..."));
+    //     }
+    //     else
+    //     {
+    //         debug_outln_info( F("Wifi Connection successfully terminated."));
+    //     }
 
-        last_page_load = -1UL;
-    }
+    //     last_page_load = -1UL;
+    // }
 }
