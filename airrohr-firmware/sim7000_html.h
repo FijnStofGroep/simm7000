@@ -12,22 +12,60 @@
 /*****************************************************************
  * add html helper functions     SIM7000 GSM module              *
  *****************************************************************/
-String form_select_mode7()		// mode SIMM7000
+String form_select_mode7()		// mode selection
+{
+	String s_select = F(" selected='selected'");
+	String s = F("<tr>"
+				 "<td>" INTL_MODE ":&nbsp;</td>"
+				 "<td>"
+				 "<select id='mode_selection' name='mode_selection'>"
+				 "<option value=2>Automatic</option>"
+				 "<option value=13>GSM only</option>"
+                 "<option value=38>LTE only</option>"
+				 "<option value=51>GSM and LTE only</option>"
+				 "</select>"
+				 "</td>"
+				 "</tr>");
+
+	s.replace("=" + String(cfg7::mode_selection) + ">", "=" + String(cfg7::mode_selection) + s_select + ">");
+
+	String s1 = F("<br/><br/>"
+                "<tr>"
+				 "<td>" INTL_MODE ":&nbsp;</td>"
+				 "<td>"
+				 "<select id='communication_type' name='communication_type'>"
+				 "<option value=1>CAT-M</option>"
+				 "<option value=2>NB-Iot</option>"
+                 "<option value=3>CAT-M and NB-IoT</option>"
+				 "</select>"
+				 "</td>"
+				 "</tr>");
+
+	s1.replace("=" + String(cfg7::communication_type) + ">", "=" + String(cfg7::communication_type) + s_select + ">");
+
+	return s + s1;
+}
+
+/*****************************************************************
+ * add html helper functions     SIM7000 GSM module              *
+ * sample: <option value=2 selected='selected' >SIM7080</option> *
+ *****************************************************************/
+String form_select_type7()		// mode SIM7000
 {
 	String s_select = F(" selected='selected'");
 	String s = F("<tr>"
 				 "<td>" INTL_TYPE ":&nbsp;</td>"
 				 "<td>"
-				 "<select id='s7000_mode' name='s7000_mode'>"
-				 "<option value='SIM7000'>SIM7000</option>"
-				 "<option value='SIM7070'>SIM7070</option>"
-				 "<option value='SIM7670'>SIM7670</option>"
-				 "<option value='SIM7XXX'>SIM7XXX</option>"
+				 "<select id='sim_type' name='sim_type'>"
+				 "<option value=0>SIM7000</option>"
+				 "<option value=1>SIM7070</option>"
+				 "<option value=2>SIM7080</option>"
+				 "<option value=3>SIM70XX</option>"
 				 "</select>"
 				 "</td>"
 				 "</tr>");
 
-	s.replace("'" + String(cfg7::s7000_mode) + "'>", "'" + String(cfg7::s7000_mode) + "'" + s_select + ">");
+	s.replace("=" + String(cfg7::sim_type) + ">", "=" + String(cfg7::sim_type) + s_select + ">");
 	return s;
 }
 
