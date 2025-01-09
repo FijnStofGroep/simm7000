@@ -16,8 +16,8 @@ const char WLANPWD[] PROGMEM = "";
 // BasicAuth config
 const char WWW_USERNAME[] PROGMEM = "";
 const char WWW_PASSWORD[] PROGMEM = "";
-const char SIM7_TYPE[] PROGMEM = "SIM7000";
-const char SIM7_MODE[] PROGMEM = "1";
+const char SIM7_PIN[] PROGMEM = "";
+
 #define WWW_BASICAUTH_ENABLED 0
 #define HAS_MOREWIFI 0
 

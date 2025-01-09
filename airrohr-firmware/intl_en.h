@@ -139,6 +139,7 @@ const char INTL_LATITUDE[] PROGMEM = "Latitude";
 const char INTL_LONGITUDE[] PROGMEM = "Longitude";
 const char INTL_ALTITUDE[] PROGMEM = "Altitude";
 const char INTL_TIME_UTC[] PROGMEM = "Time (UTC)";
+const char INTL_TIME_GMT[] PROGMEM = "Time (GMT)";
 const char INTL_SIGNAL_STRENGTH[] PROGMEM = "signal strength";
 const char INTL_SIGNAL_QUALITY[] PROGMEM = "signal quality";
 
