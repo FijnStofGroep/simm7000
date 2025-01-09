@@ -861,14 +861,14 @@ String getDateTime(bool _localTime, uint8 type)
     String dateTimeformat;
     dateTimeformat.reserve(24);
 
-    time( &now );
+    time( &now );           // Get the current time
 
     if (_localTime ) 
     {   // Local time.
         timeinfo = localtime(&now);
     }
     else
-    {   // UTC time.
+    {   // Convert to UTC.
         timeinfo = gmtime(&now);
     }
 

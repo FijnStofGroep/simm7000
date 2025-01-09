@@ -72,25 +72,25 @@ td{vertical-align:top}	\
 input[type=text]{width:100%}	\
 input[type=password]{width:100%}	\
 input[type=submit]{color:#fff;text-align:left;cursor:pointer;border-radius:5px;font-size:medium;background:#b33;padding:9px!important;width:100%;border-style:none}	\
-input[type=submit]:hover{background:#167908}\
-.s_green{padding:9px !important;width:100%;border-style:none;background:#055d52;color:#fff;text-align:left}\
-.tabs{display:flex;flex-direction:row;align-items:stretch;align-content:flex-end;justify-content:flex-start}\
-.tab{padding:10px 20px;display:inline-block;color:#333}\
-.panels{min-height:200px;overflow:hidden;padding:20px;border:2px solid #044f45;margin-bottom:1em;}\
-.radio{display:none}.panel{display:none}\
-.canvas{min-height:118px;background:#055d52;margin-bottom:20px;}\
-#r4:checked~.panels>#panel4,#r1:checked~.panels>#panel1,#r3:checked~.panels>#panel3,#r2:checked~.panels>#panel2{display:block}\
-#r4:checked~.tabs>#tab4,#r1:checked~.tabs>#tab1,#r3:checked~.tabs>#tab3,#r2:checked~.tabs>#tab2{background:#055d52;color:#fff}\
-#sen5x_sym_pm{background:#055d52;color:#fff}\
-#sen5x_sym_th{background:#055d52;color:#fff}\
-#sen5x_pin{background:#055d52;color:#fff}\
-#s7000_mode{background:#055d52;color:#fff}\
-#current_lang{background:#055d52;color:#fff}\
+input[type=submit]:hover{background:#167908} \
+.s_green{padding:9px !important;width:100%;border-style:none;background:#055d52;color:#fff;text-align:left} \
+.tabs{display:flex;flex-direction:row;align-items:stretch;align-content:flex-end;justify-content:flex-start} \
+.tab{padding:10px 20px;display:inline-block;color:#333} \
+.panels{min-height:200px;overflow:hidden;padding:20px;border:2px solid #044f45;margin-bottom:1em;} \
+.radio{display:none}.panel{display:none} \
+.canvas{min-height:118px;background:#055d52;margin-bottom:20px;} \
+#r4:checked~.panels>#panel4,#r1:checked~.panels>#panel1,#r3:checked~.panels>#panel3,#r2:checked~.panels>#panel2{display:block} \
+#r4:checked~.tabs>#tab4,#r1:checked~.tabs>#tab1,#r3:checked~.tabs>#tab3,#r2:checked~.tabs>#tab2{background:#055d52;color:#fff} \
+#sen5x_sym_pm{background:#055d52;color:#fff} \
+#sen5x_sym_th{background:#055d52;color:#fff} \
+#sen5x_pin{background:#055d52;color:#fff} \
+#sim_type{background:#055d52;color:#fff} \
+#current_lang{background:#055d52;color:#fff} \
 input[type=checkbox]{accent-color: rgb(255, 255, 128);}";
 
 #define STATIC_PREFIX "/" INTL_LANG "_s1"
 
-const char WEB_PAGE_HEADER_HEAD[] PROGMEM = "<meta name='viewport' content='width=device-width'/>	\
+const char WEB_PAGE_HEADER_HEAD[] PROGMEM = "<meta name='viewport' content='width=device-width'/> \
 <meta name='theme-color' content='#055d52'>	\
 <link rel='stylesheet' href='" STATIC_PREFIX "?r=css'>	\
 </style>	\
@@ -132,7 +132,7 @@ const char WEB_ROOT_PAGE_CONTENT_S7000[] PROGMEM = "<a class='b' href='/values'>
 	<a class='b' href='/status'>{s}</a><br/>\
 	<a class='b' href='https://maps.sensor.community/' target='_blank' rel='noreferrer'>" INTL_ACTIVE_SENSORS_MAP "</a><br/>\
 	<a class='b' href='/config'>{conf}</a><br/>\
-	<a class='b' href='/s7000'>{s7000}</a><br/>\
+	<a class='b' href='/s70xx'>{s70xx}</a><br/>\
 	<a class='b' href='/removeConfig'>" INTL_CONFIGURATION_DELETE "</a><br/>\
 	<a class='b' href='/reset'>{restart}</a><br/>\
 	<a class='b' href='/debug'>{debug}</a><br/>\

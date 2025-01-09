@@ -14,8 +14,8 @@
  *****************************************************************/
 String form_select_mode_SEN5PM()
 {
-	String s_select1 = F(" selected='selected'");
-	String s1 = F("<tr>"
+	String s_select = F(" selected='selected'");
+	String s = F("<tr>"
 				  "<td>" INTL_SEN5X_EMP_PM "</td>"
 				  "<td>"
 				  "<select id='sen5x_sym_pm' name='sen5x_sym_pm'>"
@@ -26,8 +26,9 @@ String form_select_mode_SEN5PM()
 				  "</td>"
 				  "</tr>");
 
-	s1.replace("'" + String(cfg::sen5x_sym_pm) + "'>", "'" + String(cfg::sen5x_sym_pm) + "'" + s_select1 + ">");
-	return s1;
+	s.replace("'" + String(cfg::sen5x_sym_pm) + "'>", "'" + String(cfg::sen5x_sym_pm) + "'" + s_select + ">");
+
+	return s;
 }
 
 /**************************************************************************
@@ -35,8 +36,8 @@ String form_select_mode_SEN5PM()
  **************************************************************************/
 String form_select_mode_SEN5TH()
 {
-	String s_select2 = F(" selected='selected'");
-	String s2 = F("<tr>"
+	String s_select = F(" selected='selected'");
+	String s = F("<tr>"
 				  "<td>" INTL_SEN5X_EMP_TH "</td>"
 				  "<td>"
 				  "<select id='sen5x_sym_th' name='sen5x_sym_th'>"
@@ -48,8 +49,8 @@ String form_select_mode_SEN5TH()
 				  "</td>"
 				  "</tr>");
 
-	s2.replace("'" + String(cfg::sen5x_sym_th) + "'>", "'" + String(cfg::sen5x_sym_th) + "'" + s_select2 + ">");
-	return s2;
+	s.replace("'" + String(cfg::sen5x_sym_th) + "'>", "'" + String(cfg::sen5x_sym_th) + "'" + s_select + ">");
+	return s;
 }
 
 /**************************************************************************
