@@ -57,8 +57,8 @@ int m_CID_CA = 0;
 char *m_rootCA;
 #endif
 
-//******************************************************************************************************************** */
-/*
+//********************************* BK_modem *********************************************************************************** */
+/* 
   constructor class 'BK_modem'
 */
 BK_modem::BK_modem()
@@ -77,7 +77,7 @@ BK_modem::BK_modem()
 }
 
 /*
-  Destructor: clean-up all resource of this class
+  Destructor: clean-up all resource of this class.
 */
 BK_modem::~BK_modem()
 {
@@ -134,12 +134,12 @@ boolean BK_modem::begin()
     // turn on error result codes.
     setMobileEquipmentError(1);
 
-    // TODO: SIM7000; in case send "AT+SAPBR=1,1"
     /*  When "get local timestamp" function is enabled, the following URC may be
         reported if network sends the message to the MS to provide the MS with
         subscriber specific information.
+
+        Enable Local Time Stamp for getting network time.
     */
-    // Enable Local Time Stamp for getting network time
     if ( !enableNetworkTimeSync(false) )
     {
         BK_DEBUG_PRINTLN(F("### Enable Local Time Stamp for getting network time faild. **"));
@@ -247,7 +247,7 @@ void BK_modem::modemPowerOn()
     BK_DEBUG_PRINTLN(F("BK-Sim7000 Power-On process."));
 
     powerOn(m_PIN_PWR);
-    delay(2000);
+    delay(2100);
 }
 
 /*****************************************************************
@@ -259,13 +259,13 @@ void BK_modem::modemPowerOff()
     if (SerialSIM != NULL)
     {// SIM-70xx PCB communication active.
         AT_powerDown();
-        delay(5000);
+        delay(2100);
 
         BK_DEBUG_PRINTLN(F("BK-Sim7000 Power-Off process."));
     }
 
     PowerOff(m_PIN_PWR);
-    delay(2000);
+    delay(2100);
 }
 
 /*****************************************************************
@@ -290,6 +290,16 @@ void BK_modem::modemPowerRestart()
     BK_DEBUG_PRINTLN(F("BK-Sim7000 PCB Power Restart process ENDED"));
 }
 
+/// @brief 
+/// @param 
+void BK_modem::base_stop()
+{
+    BK_DEBUG_PRINTLN(F("BK-Sim7000 => base_stop()"));
+
+    // disconnect all sockets and close bearer and detach from GPRS Service.
+    sendCheckReply(F("AT+CIPSHUT"), F("SHUT OK"), 8000);
+}
+
 /********* Serial port ****************************************************/
 
 /// @brief
@@ -297,7 +307,7 @@ void BK_modem::modemPowerRestart()
 /// @return
 boolean BK_modem::setBaudrate(uint32_t baud)
 {
-    return sendCheckReply(F("AT+IPREX="), baud, m_ok_reply);
+    return sendCheckReply(F("AT+IPR="), baud, m_ok_reply);
 }
 
 /********* POWER, BATTERY & ADC ********************************************/
@@ -339,8 +349,9 @@ void BK_modem::powerOn(uint8_t PwrKey)
 void BK_modem::AT_powerDown(void)
 {
     // disconnect all sockets and close bearer and detach from GPRS Service.
-    sendCheckReply(F("AT+CIPSHUT"), F("SHUT OK"), 5000);
+    stop();
     delay(200);
+
     sendCheckReply(F("AT+CPOWD=1"), F("NORMAL POWER DOWN"));     // Normal power off
 }
 
@@ -1115,18 +1126,14 @@ uint8_t BK_modem::getNTPstatus()
 /// @brief : time zone = 0 (time zone value multiplay by 4.)
 /// @param onoff 
 /// @param ntpserver 
-/// @param timeZone 
+/// @param timeZone
+/// @param cid => for sim-7080 refer to <pdpidx> of AT+CNACT.
+///               99 = sim-7000
 /// @return 
-boolean BK_modem::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, uint16 timeZone)
+boolean BK_modem::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, uint16 timeZone, uint16_t cid)
 {
     if (onoff)
     {
-        // Set GPRS bearer = 1 profile to associate with NTP sync.
-        if (!sendCheckReply(F("AT+CNTPCID=1"), m_ok_reply))
-        {
-            return false;
-        }
-
         // Set NTP service url and local time zone
         if (ntpserver == 0)
         {
@@ -1134,8 +1141,28 @@ boolean BK_modem::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, uint16 
         }
 
         char _sendbuffer[64] = {0};
-        sprintf(_sendbuffer, PSTR("AT+CNTP=\"%s\",%0d"), ntpserver, timeZone * 4);           // time zone = 0 (time zone value multiplay by 4.)
-        //sprintf(_sendbuffer, PSTR("AT+CNTP=\"%s\",%0d"), FPSTR(ntpserver), timeZone * 4);  // time zone = 0 (time zone value multiplay by 4.)
+        if (cid == 7000)
+        {// SIM7000
+            // Set GPRS bearer = 1 profile to associate with NTP sync.
+            if (!sendCheckReply(F("AT+CNTPCID=1"), m_ok_reply))
+            {
+                return false;
+            }
+
+            sprintf(_sendbuffer, PSTR("AT+CNTP=\"%s\",%0d"), ntpserver, timeZone * 4); // time zone = 0 (time zone value multiplay by 4.)
+            // sprintf(_sendbuffer, PSTR("AT+CNTP=\"%s\",%0d"), FPSTR(ntpserver), timeZone * 4);  // time zone = 0 (time zone value multiplay by 4.)
+        }
+        else
+        {
+            // Set GPRS bearer = 0..3 profile to associate with NTP sync.
+            if (!sendCheckReply(F("AT+CNTPCID="), cid, m_ok_reply))
+            {
+                return false;
+            }
+
+            sprintf(_sendbuffer, PSTR("AT+CNTP=\"%s\",%0d,%d"), ntpserver, timeZone * 4, cid); // time zone = 0 (time zone value multiplay by 4.)
+        }
+
         getReply(_sendbuffer, BK_SIM7000_TIMEOUT_1500MS);
 
         // char _timezone[8];
@@ -1178,10 +1205,13 @@ boolean BK_modem::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, uint16 
         }
     }
     else
-    {   // Reset NTP Use bear profile 1
-        if (!sendCheckReply(F("AT+CNTPCID=0"), m_ok_reply))
-        {
-            return false;
+    { // Reset NTP Use bear profile 1
+        if (cid == 7000)
+        {// SIM7000
+            if (!sendCheckReply(F("AT+CNTPCID=0"), m_ok_reply))
+            {
+                return false;
+            }
         }
     }
 
@@ -1212,6 +1242,15 @@ boolean BK_modem::getTime(char *buff, uint16_t maxlen)
 
 /********* Real Time Clock ********************************************/
 
+/// @brief 
+/// @param year 
+/// @param month 
+/// @param date 
+/// @param hr 
+/// @param min 
+/// @param sec 
+/// @param tz 
+/// @return 
 boolean BK_modem::readRTC(uint8_t *year, uint8_t *month, uint8_t *date, uint8_t *hr, uint8_t *min, uint8_t *sec, int8_t *tz)
 {
     getReply(F("AT+CCLK?"), (uint16_t)10000); // Get RTC timeout 10 sec
@@ -1250,17 +1289,18 @@ boolean BK_modem::readRTC(uint8_t *year, uint8_t *month, uint8_t *date, uint8_t 
     return true;
 }
 
-/// @brief 
-/// @param i 
+/// @brief Get Local Timestamp
+/// @param mode : 0 Disable
+///               1 Enable
 /// @return 
-boolean BK_modem::enableRTC(uint8_t i)
+boolean BK_modem::enableRTC(uint8_t mode)
 {
-    if (!sendCheckReply(F("AT+CLTS="), i, m_ok_reply))
+    if (!sendCheckReply(F("AT+CLTS="), mode, m_ok_reply))
     {
         return false;
     }
 
-    return sendCheckReply(F("AT&W"), m_ok_reply);
+     return true;               // NOT used: sendCheckReply(F("AT&W"), m_ok_reply);
 }
 
 /********* GPS **********************************************************/
@@ -1274,11 +1314,6 @@ boolean BK_modem::enableGPS(boolean onoff)
     // First check if its already on or off.
     if (!sendParseReply(F("AT+CGNSPWR?"), F("+CGNSPWR: "), &state))
     {
- //     if(prog_char_strcmp(m_replybuffer, (prog_char *)F("AT+CGPSPWR?")) == 0)      // check for echo command ipv "+CGPSPWR:"
- //     {
- //         TestAT(5000);                                                            // SIM7000 could be resette.
- //     }
-
         return false;
     }
 
@@ -1391,7 +1426,7 @@ uint8_t BK_modem::getGPS_Navigation_Information(uint8_t arg, char *buffer, uint8
 boolean BK_modem::getGPS(float *lat, float *lon, float *speed_kph, float *heading, float *altitude,
                          uint16_t *year, uint8_t *month, uint8_t *day, uint8_t *hour, uint8_t *min, uint8_t *sec)
 {
-    char *ptrtoken; // token pointer.
+    char *ptrtoken;             // token pointer.
     char gpsbuffer[120];
 
     // grab the mode 2^5 gps csv from the sim808
@@ -1549,167 +1584,6 @@ boolean BK_modem::enableGPSNMEA(uint8_t input)
 
 /********* GPRS **********************************************************/
 
-/// @brief
-/// @param onoff
-/// @return
-boolean BK_modem::enableGPRS(boolean onoff)
-{
-    if (onoff)
-    {
-        // disconnect all sockets and close bearer and detach from GPRS Service.
-        sendCheckReply(F("AT+CIPSHUT"), F("SHUT OK"), 20000);
-        delay(100);
-
-        // set bearer profile! connection type GPRS
-        if (!sendCheckReply(F("AT+SAPBR=3,1,\"CONTYPE\",\"GPRS\""), m_ok_reply, 10000))
-        {
-            return false;
-        }
-
-        delay(200); // This seems to help the next line run.
-
-        // set bearer profile access point name
-        if (m_apn)
-        {// Configure bearer profile 1
-            // Send command AT+SAPBR=3,1,"APN","<apn value>" where <apn value> is the configured APN value.
-            if (!sendCheckReplyQuoted(F("AT+SAPBR=3,1,\"APN\","), m_apn, m_ok_reply, 10000))
-            {
-                return false;
-            }
-
-            // set username/password
-            if (m_apnusername /*&& strlen_P((const char *)m_apnusername) > 0*/)
-            {
-                // Send command AT+SAPBR=3,1,"USER","<user>" where <user> is the configured APN username.
-                if (!sendCheckReplyQuoted(F("AT+SAPBR=3,1,\"USER\","), m_apnusername, m_ok_reply, 10000))
-                {
-                    return false;
-                }
-            }
-
-            if (m_apnpassword /*&& strlen_P((const char *)m_apnpassword) > 0*/)
-            {
-                // Send command AT+SAPBR=3,1,"PWD","<password>" where <password> is the configured APN password.
-                if (!sendCheckReplyQuoted(F("AT+SAPBR=3,1,\"PWD\","), m_apnpassword, m_ok_reply, 10000))
-                {
-                    return false;
-                }
-            }
-
-            flushInput();
-
-            // Start the TCP application toolkit task and set APN, USER NAME, PASSWORD
-            SerialSIM->print(F("AT+CSTT=\""));
-            SerialSIM->print(m_apn);
-
-            if (m_apnusername)
-            {
-                SerialSIM->print(F("\",\""));
-                SerialSIM->print(m_apnusername);
-            }
-
-            if (m_apnpassword)
-            {
-                SerialSIM->print(F("\",\""));
-                SerialSIM->print(m_apnpassword);
-            }
-
-            SerialSIM->println(F("\"")); // set end char.
-
-#ifdef BK_MODEM_DEBUG
-            BK_DEBUG_PRINT(F("\t---> "));
-            BK_DEBUG_PRINT(F("AT+CSTT=\""));
-            BK_DEBUG_PRINT(m_apn);
-
-            if (m_apnusername)
-            {
-                BK_DEBUG_PRINT(F("\",\""));
-                BK_DEBUG_PRINT(m_apnusername);
-            }
-
-            if (m_apnpassword)
-            {
-                BK_DEBUG_PRINT(F("\",\""));
-                BK_DEBUG_PRINT(m_apnpassword);
-            }
-
-            BK_DEBUG_PRINTLN(F("\""));
-#endif
-
-            if (!expectReply(m_ok_reply))
-            {
-                return false;
-            }
-        }
-
-        // Attach to GPRS service.
-        if (!sendCheckReply(F("AT+CGATT=1"), m_ok_reply, (uint16_t)75000))
-        {
-            return false;
-        }
-
-        // Query the GPRS bearer context status
-        int8_t status = getBearerStatus();
-        BK_DEBUG_PRINTLN(F("Bearer Status: ") + String(status));
-
-        // Open the definied GPRS bearer context.
-        if (status > 1 && !sendCheckReply(F("AT+SAPBR=1,1"), m_ok_reply, uint16_t(85000)))
-        {
-            return false;
-        }
-
-        // Query the GPRS bearer context status
-        status = getBearerStatus();
-        // if(status != 1)
-        // {
-        //      return false;
-        // }
-
-        // Bring up the TCP application toolkit wireless connection with GPRS or CSD.
-        if (!sendCheckReply(F("AT+CIICR"), m_ok_reply, 10000))
-        {
-            return false;
-        }
-
-        if( !wirelessConnStatus())
-        {
-            openWirelessConnection(true);
-        }
-    }
-    else
-    {
-        // disconnect all sockets.
-        if (!sendCheckReply(F("AT+CIPSHUT"), F("SHUT OK"), 20000))
-        {
-            return false;
-        }
-
-        delay(200);
-
-        // close bearer
-        if (!sendCheckReply(F("AT+SAPBR=0,1"), m_ok_reply, 10000))
-        {
-            if( getCME_ErrorCode() != 3)
-            {
-                return false;
-            }
-        }
-
-        delay(200);
- 
-        //Detach from GPRS Service
-        if (!sendCheckReply(F("AT+CGATT=0"), m_ok_reply, 10000))
-        {
-            return false;
-        }
-
-        // Close wireless data connection.
-        //openWirelessConnection(false);
-    }
-
-    return true;
-}
-
 /// @brief : Request Manufacturer Identification
 /// @return
 String BK_modem::getManufacturer_Identification()
@@ -1799,7 +1673,7 @@ String BK_modem::getModemSoftware_Revision()
     return String(m_replybuffer);
 }
 
-//  Show Network System Mode
+// Show Network System Mode
 // Returns type of the network the module is connected to
 //               +CNSMOD: <n>,<stat>
 // -1 error
@@ -1850,23 +1724,12 @@ int8_t BK_modem::getNetworkSystemMode(char *typeStringBuffer)
 // Bearer Settings for Applications Based on IP
 //   Query the GPRS bearer context status
 // cid = 1  => Bearer profile identifier:
-// Returns bearer status
-//                       -1 Command returned with an error
-//                        0 Bearer is connecting
-//                        1 Bearer is connected
-//                        2 Bearer is closing
-//                        3 Bearer is closed
+// Returns bearer status: 
+//                       1 Bearer is connected
 //
 int8_t BK_modem::getBearerStatus(void)
 {
-    uint16_t state;
-
-    if (!sendParseReply(F("AT+SAPBR=2,1"), F("+SAPBR: "), &state, ',', 1))
-    {
-        return -1;
-    }
-
-    return (int8_t)state;
+    return 1;
 }
 
 // Query IP address and copy it into the passed buffer.
@@ -2105,61 +1968,6 @@ boolean BK_modem::getGSMLoc(float *lat, float *lon)
     return true;
 }
 
-// Open or close wireless data connection
-// PDP => Packet Data Protocol
-boolean BK_modem::openWirelessConnection(bool onoff)
-{
-    if (!onoff)
-    { // Disconnect wireless.
-        char buff[strlen_P((prog_char *)m_apn) + 2];
-        sprintf(buff, "AT+CNACT=0,\"%s\"", (prog_char *)m_apn);
-
-        if (!sendCheckReply(buff, m_ok_reply, 10000))
-        {
-            return false;
-        }
-
-        readline(); // wait for reponse "DEACTIVE".
-
-        BK_DEBUG_PRINT("\t<--- ");
-        BK_DEBUG_PRINTLN(m_replybuffer);
-
-        if (strstr(m_replybuffer, "PDP: DEACTIVE") == NULL) // +APP PDP: DEACTIVE
-        {
-            if (strstr(m_replybuffer, ",DEACTIVE") == NULL) // +APP PDP: <pdpidx>,DEACTIVE
-            {
-                return false;
-            }
-        }
-    }
-    else
-    { // Connect wireless.
-
-        char buff[strlen_P((prog_char *)m_apn) + 2];
-        sprintf(buff, "AT+CNACT=1,\"%s\"", (prog_char *)m_apn);
-
-        if (!sendCheckReply(buff, m_ok_reply, 10000)) // if (!sendCheckReply(F("AT+CNACT=0,1"), m_ok_reply))
-        {
-            return false;
-        }
-
-        readline(5000); // wait for reponse "PDP: ACTIVE".
-
-        BK_DEBUG_PRINT("\t<--- ");
-        BK_DEBUG_PRINTLN(m_replybuffer);
-
-        if (strstr(m_replybuffer, "PDP: ACTIVE") == NULL) // +APP PDP: ACTIVE
-        {
-            if (strstr(m_replybuffer, ",ACTIVE") == NULL) // +APP PDP: <pdpidx>,ACTIVE
-            {
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
 // Query wireless connection status
 boolean BK_modem::wirelessConnStatus(void)
 {
@@ -2275,7 +2083,7 @@ boolean BK_modem::postData(const char *request_type, const char *URL, const char
 
     // wait for +HTTPACTION Responce.
     readline(10000);
-    BK_DEBUG_PRINT("HTTP Responce 1: ");
+    BK_DEBUG_PRINT(F("HTTP Responce 1: "));
     BK_DEBUG_PRINTLN(m_replybuffer); // Print out server reply
 
     //  Parse response status and size
@@ -2290,9 +2098,9 @@ boolean BK_modem::postData(const char *request_type, const char *URL, const char
         return false;
     }
 
-    BK_DEBUG_PRINT("HTTP status: ");
+    BK_DEBUG_PRINT(F("HTTP status: "));
     BK_DEBUG_PRINTLN(status);
-    BK_DEBUG_PRINT("Data length: ");
+    BK_DEBUG_PRINT(F("Data length: "));
     BK_DEBUG_PRINTLN(datalen);
 
     // HTTP responce code: HTTP_CODE_OK
@@ -2323,7 +2131,7 @@ boolean BK_modem::postData(const char *request_type, const char *URL, const char
 
         timeout = 2000;
 
-        BK_DEBUG_PRINT("Resp. length: ");
+        BK_DEBUG_PRINT(F("Resp. length: "));
         BK_DEBUG_PRINTLN(len);
         BK_DEBUG_PRINTLN(m_replybuffer); // Print out server reply
 
@@ -2336,10 +2144,10 @@ boolean BK_modem::postData(const char *request_type, const char *URL, const char
 
     // BK_DEBUG_PRINT(F("responce length: "));
     // BK_DEBUG_PRINTLN(totlen);
-    BK_DEBUG_PRINT("\t<--- ");
+    BK_DEBUG_PRINT(F("\t<--- "));
     BK_DEBUG_PRINTLN(totalBuffer); // Print out server reply
 
-    // BK_DEBUG_PRINT("\t<--- ");
+    // BK_DEBUG_PRINT(F("\t<--- "));
     // BK_DEBUG_PRINTLN(m_replybuffer); // Print out server reply
 
     // Terminate HTTP service
@@ -2423,7 +2231,7 @@ boolean BK_modem::postData(const char *server, uint16_t port, const char *connTy
         readRaw(replyLen);
         flushInput();
 
-        BK_DEBUG_PRINT("\t<--- ");
+        BK_DEBUG_PRINT(F("\t<--- "));
         BK_DEBUG_PRINTLN(m_replybuffer);
     }
 
@@ -2434,7 +2242,7 @@ boolean BK_modem::postData(const char *server, uint16_t port, const char *connTy
 
     readline(10000);
 
-    BK_DEBUG_PRINT("\t<--- ");
+    BK_DEBUG_PRINT(F("\t<--- "));
     BK_DEBUG_PRINTLN(m_replybuffer);
 
     // Stop HTTP/HTTPS stack
@@ -2443,13 +2251,19 @@ boolean BK_modem::postData(const char *server, uint16_t port, const char *connTy
 
     readline(); // Eat OK
 
-    BK_DEBUG_PRINT("\t<--- ");
+    BK_DEBUG_PRINT(F("\t<--- "));
     BK_DEBUG_PRINTLN(m_replybuffer);
 
     return (replyLen > 0);
 }
 
 /********* FTP FUNCTIONS  ************************************/
+/// @brief 
+/// @param serverIP 
+/// @param port 
+/// @param username 
+/// @param password 
+/// @return 
 boolean BK_modem::FTP_Connect(const char *serverIP, uint16_t port, const char *username, const char *password)
 {
     char auxStr[100];
@@ -2491,6 +2305,8 @@ boolean BK_modem::FTP_Connect(const char *serverIP, uint16_t port, const char *u
     return true;
 }
 
+/// @brief 
+/// @return 
 boolean BK_modem::FTP_Quit()
 {
     if (!sendCheckReply(F("AT+FTPQUIT"), m_ok_reply, 10000))
@@ -2499,6 +2315,11 @@ boolean BK_modem::FTP_Quit()
     return true;
 }
 
+/// @brief 
+/// @param filePath 
+/// @param oldName 
+/// @param newName 
+/// @return 
 boolean BK_modem::FTP_Rename(const char *filePath, const char *oldName, const char *newName)
 {
     char auxStr[50];
@@ -2527,6 +2348,10 @@ boolean BK_modem::FTP_Rename(const char *filePath, const char *oldName, const ch
     return true;
 }
 
+/// @brief 
+/// @param fileName 
+/// @param filePath 
+/// @return 
 boolean BK_modem::FTP_Delete(const char *fileName, const char *filePath)
 {
     char auxStr[50];
@@ -2550,7 +2375,16 @@ boolean BK_modem::FTP_Delete(const char *fileName, const char *filePath)
     return true;
 }
 
-// boolean BK_modem::FTP_MDTM(const char* fileName, const char* filePath, char & timestamp) {
+/// @brief 
+/// @param fileName 
+/// @param filePath 
+/// @param year 
+/// @param month 
+/// @param day 
+/// @param hour 
+/// @param minute 
+/// @param second 
+/// @return 
 boolean BK_modem::FTP_MDTM(const char *fileName, const char *filePath, uint16_t *year,
                            uint8_t *month, uint8_t *day, uint8_t *hour, uint8_t *minute, uint8_t *second)
 {
@@ -2604,6 +2438,11 @@ boolean BK_modem::FTP_MDTM(const char *fileName, const char *filePath, uint16_t 
     return true;
 }
 
+/// @brief 
+/// @param fileName 
+/// @param filePath 
+/// @param numBytes 
+/// @return 
 const char *BK_modem::FTP_GET(const char *fileName, const char *filePath, uint16_t numBytes)
 {
     char auxStr[100];
@@ -2644,7 +2483,7 @@ const char *BK_modem::FTP_GET(const char *fileName, const char *filePath, uint16
 
     readline(10000);
 
-    BK_DEBUG_PRINT("\t<--- ");
+    BK_DEBUG_PRINT(F("\t<--- "));
     BK_DEBUG_PRINTLN(m_replybuffer);
 
     // if (! expectReply(m_ok_reply)) return err;
@@ -2654,6 +2493,12 @@ const char *BK_modem::FTP_GET(const char *fileName, const char *filePath, uint16
     return m_replybuffer;
 }
 
+/// @brief 
+/// @param fileName 
+/// @param filePath 
+/// @param content 
+/// @param numBytes 
+/// @return 
 boolean BK_modem::FTP_PUT(const char *fileName, const char *filePath, char *content, size_t numBytes)
 {
     char auxStr[100];
@@ -2774,6 +2619,12 @@ boolean BK_modem::FTP_PUT(const char *fileName, const char *filePath, char *cont
 /********* MQTT FUNCTIONS  ************************************/
 
 ////////////////////////////////////////////////////////////
+/// @brief 
+/// @param protocol 
+/// @param mqtt_message 
+/// @param clientID 
+/// @param username 
+/// @param password 
 void BK_modem::mqtt_connect_message(const char *protocol, byte *mqtt_message, const char *clientID, const char *username, const char *password)
 {
     uint8_t i = 0;
@@ -2860,6 +2711,10 @@ void BK_modem::mqtt_connect_message(const char *protocol, byte *mqtt_message, co
     }
 }
 
+/// @brief 
+/// @param mqtt_message 
+/// @param topic 
+/// @param message 
 void BK_modem::mqtt_publish_message(byte *mqtt_message, const char *topic, const char *message)
 {
     uint8_t i = 0;
@@ -2884,6 +2739,10 @@ void BK_modem::mqtt_publish_message(byte *mqtt_message, const char *topic, const
     }
 }
 
+/// @brief 
+/// @param mqtt_message 
+/// @param topic 
+/// @param QoS 
 void BK_modem::mqtt_subscribe_message(byte *mqtt_message, const char *topic, byte QoS)
 {
     uint8_t i = 0;
@@ -2905,12 +2764,18 @@ void BK_modem::mqtt_subscribe_message(byte *mqtt_message, const char *topic, byt
     mqtt_message[6 + topic_length] = QoS; // QoS byte
 }
 
+/// @brief 
+/// @param mqtt_message 
 void BK_modem::mqtt_disconnect_message(byte *mqtt_message)
 {
     mqtt_message[0] = 0xE0; // msgtype = connect
     mqtt_message[1] = 0x00; // length of message (?)
 }
 
+/// @brief 
+/// @param packet 
+/// @param len 
+/// @return 
 boolean BK_modem::mqtt_sendPacket(byte *packet, byte len)
 {
     // Send packet and get response
@@ -2923,6 +2788,7 @@ boolean BK_modem::mqtt_sendPacket(byte *packet, byte len)
         BK_DEBUG_PRINT(packet[j]);   // Message contents
         BK_DEBUG_PRINT(" ");         // Space out the bytes
     }
+
     SerialSIM->write(byte(26)); // End of packet
     BK_DEBUG_PRINT(byte(26));
 
@@ -2935,7 +2801,12 @@ boolean BK_modem::mqtt_sendPacket(byte *packet, byte len)
 }
 
 ////////////////////////////////////////////////////////////
-
+/// @brief 
+/// @param protocol 
+/// @param clientID 
+/// @param username 
+/// @param password 
+/// @return 
 boolean BK_modem::MQTTconnect(const char *protocol, const char *clientID, const char *username, const char *password)
 {
     flushInput();
@@ -3043,8 +2914,8 @@ boolean BK_modem::UDPconnect(char *server, uint16_t port)
     flushInput();
 
     // close all old connections
-    if (!sendCheckReply(F("AT+CIPSHUT"), F("SHUT OK"), 8000))
-        return false;
+    stop();
+    delay(100);
 
     // single connection at a time
     if (!sendCheckReply(F("AT+CIPMUX=0"), m_ok_reply))
@@ -3081,7 +2952,7 @@ boolean BK_modem::UDPconnect(char *server, uint16_t port)
  /// @param server Pointer to a buffer with the server to connect to
  /// @param port Pointer to a buffer witht the port to connect to
  /// @return true: success, false: failure
-boolean BK_modem::TCPconnect(char *server, uint16_t port)
+boolean BK_modem::TCPconnect(char *server, uint16_t port, uint8_t mux)
 {
     if (BK_SSL)
     { // https:
@@ -3102,7 +2973,8 @@ boolean BK_modem::TCPconnect(char *server, uint16_t port)
         }
 
         // Set TCP/UDP Identifier
-        if (!sendCheckReply(F("AT+CACID=1"), m_ok_reply))
+        //if (!sendCheckReply(F("AT+CACID=1"), m_ok_reply))
+        if (!sendCheckReply(F("AT+CACID="), mux, m_ok_reply))
         {
             return false;
         }
@@ -3215,10 +3087,8 @@ boolean BK_modem::TCPconnect(char *server, uint16_t port)
         flushInput();
 
         // close all old connections
-        if (!sendCheckReply(F("AT+CIPSHUT"), F("SHUT OK"), 20000))
-        {
-            return false;
-        }
+        stop();
+        delay(100);
 
         // single connection at a time
         if (!sendCheckReply(F("AT+CIPMUX=0"), m_ok_reply))
@@ -3941,7 +3811,7 @@ uint16_t BK_modem::readRaw(char *rspbuffer, uint16_t cnt)
 
 /*
     '\r\n' chars skip from responce.
-    Receive buffer lenght max. 255 => replyidx >= 254
+    Receive buffer lenght max. 512 => replyidx >= 512
 */
 uint16_t BK_modem::readline(uint16_t timeout, boolean multiline)
 {
@@ -4095,7 +3965,14 @@ uint8_t BK_modem::getReply(FStringPtr send, uint16_t timeout, boolean multiline)
     uint8_t len = readline(timeout, multiline);
 
     BK_DEBUG_PRINT(F("\tR2:<--- "));
-    BK_DEBUG_PRINTLN(m_replybuffer);
+    if( len != 0)
+    {
+        BK_DEBUG_PRINTLN(m_replybuffer);
+    }
+    else
+    {
+        BK_DEBUG_PRINTLN(F("Time-Out"));
+    }
 
     return len;
 }
@@ -4227,9 +4104,9 @@ boolean BK_modem::sendCheckReply(const char *send, const char *reply, uint16_t t
 /// @param reply 
 /// @param timeout 
 /// @return : return 0 then timeout else receive data.
-boolean BK_modem::sendCheckReply(FStringPtr send, FStringPtr reply, uint16_t timeout)
+boolean BK_modem::sendCheckReply(FStringPtr send, FStringPtr reply, uint16_t timeout, boolean multiline)
 {
-    if (!getReply(send, timeout))
+    if (!getReply(send, timeout, multiline))
     {
         return false;
     }
@@ -4585,27 +4462,10 @@ uint16_t BK_modem::getCME_ErrorCode()
     return UINT16_MAX;
 }
 
-
-//************************** BK_modem_LTE ***************************************
-
-/// @brief construcor
-///     call base class 'BK_modem'.
-BK_modem_LTE::BK_modem_LTE() : BK_modem()
-{
-}
-
-/// @brief
-/// @param baud
-/// @return
-boolean BK_modem_LTE::setBaudrate(uint32_t baud)
-{
-    return sendCheckReply(F("AT+IPR="), baud, m_ok_reply);
-}
-
 /// @brief
 /// @param
 /// @return
-int16_t BK_modem_LTE::getNetworkMode(void)
+int16_t BK_modem::getNetworkMode(void)
 {
     uint16_t mode;
     if (!sendParseReply(F("AT+CNMP?"), F("+CNMP:"), &mode))
@@ -4622,7 +4482,7 @@ int16_t BK_modem_LTE::getNetworkMode(void)
 ///          51 GSM and LTE only:
 /// @param
 /// @return
-String BK_modem_LTE::getNetworkModes(void)
+String BK_modem::getNetworkModes(void)
 {
     // Get the help string, not the setting value
     if (!sendCheckReply(F("AT+CNMP=?"), F("+CNMP:")))
@@ -4638,7 +4498,7 @@ String BK_modem_LTE::getNetworkModes(void)
 /// @brief
 /// @param
 /// @return
-String BK_modem_LTE::getPreferredModes(void)
+String BK_modem::getPreferredModes(void)
 {
     // Get the help string, not the setting value
     if (!sendCheckReply(F("AT+CMNB=?"), F("+CMNB:")))
@@ -4653,7 +4513,7 @@ String BK_modem_LTE::getPreferredModes(void)
 /// @brief
 /// @param
 /// @return
-int16_t BK_modem_LTE::getPreferredMode(void)
+int16_t BK_modem::getPreferredMode(void)
 {
     uint16_t mode;
     if (!sendParseReply(F("AT+CMNB?"), F("+CMNB:"), &mode))
@@ -4668,7 +4528,7 @@ int16_t BK_modem_LTE::getPreferredMode(void)
 // 13 - GSM only
 // 38 - LTE only 
 // 51 - GSM and LTE only
-boolean BK_modem_LTE::setPreferredMode(uint8_t mode)
+boolean BK_modem::setPreferredMode(uint8_t mode)
 {
     return sendCheckReply(F("AT+CNMP="), mode, m_ok_reply);
 }
@@ -4676,7 +4536,7 @@ boolean BK_modem_LTE::setPreferredMode(uint8_t mode)
 // 1 - CAT-M
 // 2 - NB-IoT
 // 3 - CAT-M and NB-IoT
-boolean BK_modem_LTE::setPreferredLTEMode(uint8_t mode)
+boolean BK_modem::setPreferredLTEMode(uint8_t mode)
 {
     return sendCheckReply(F("AT+CMNB="), mode, m_ok_reply);
 }
@@ -4684,7 +4544,7 @@ boolean BK_modem_LTE::setPreferredLTEMode(uint8_t mode)
 /// @brief  Get Local IP Address extend.
 /// @param
 /// @return <IP address> A string parameter which indicates the IP address assigned from GPRS.
-String BK_modem_LTE::getGPRSIP(void)
+String BK_modem::getGPRSIP(void)
 {
     // if (!getReply(F("AT+CIFSR")))        // 2 commands: "CIFSR".
     // {
@@ -4711,7 +4571,7 @@ String BK_modem_LTE::getGPRSIP(void)
 // whereas Verizon uses band 13
 // Mode: "CAT-M" or "NB-IOT"
 // Band: The cellular EUTRAN band number.
-boolean BK_modem_LTE::setOperatingBand(const char *mode, uint8_t band)
+boolean BK_modem::setOperatingBand(const char *mode, uint8_t band)
 {
     char cmdBuff[24];
     sprintf(cmdBuff, "AT+CBANDCFG=\"%s\",%i", mode, band);
@@ -4723,7 +4583,7 @@ boolean BK_modem_LTE::setOperatingBand(const char *mode, uint8_t band)
 /// @param check_signal
 /// @param timeout_ms
 /// @return 0 = OK, 1 = NO LTE connection, 2 = No good RSSI signal
-uint8_t BK_modem_LTE::waitForNetworkConnection(bool check_signal, uint32_t timeout_ms)
+uint8_t BK_modem::waitForNetworkConnection(bool check_signal, uint32_t timeout_ms)
 {
     if (check_signal)
     {
@@ -4760,7 +4620,7 @@ uint8_t BK_modem_LTE::waitForNetworkConnection(bool check_signal, uint32_t timeo
 
 /// @brief
 /// @return
-boolean BK_modem_LTE::isNetworkConnected()
+boolean BK_modem::isNetworkConnected()
 {
     for(int reply = 5; reply; reply--)
     {
@@ -4786,7 +4646,7 @@ boolean BK_modem_LTE::isNetworkConnected()
 /********* SIM7000 MQTT FUNCTIONS  ************************************/
 // Set MQTT parameters
 // Parameter tags can be "URL", "CLEANSS", "USERNAME", "PASSWORD", "TOPIC" or "MESSAGE"
-boolean BK_modem_LTE::MQTT_setParameter(const char *paramTag, const char *paramValue, uint16_t port)
+boolean BK_modem::MQTT_setParameter(const char *paramTag, const char *paramValue, uint16_t port)
 {
     char cmdStr[255];
 
@@ -4796,7 +4656,8 @@ boolean BK_modem_LTE::MQTT_setParameter(const char *paramTag, const char *paramV
     }
     else
     {
-        sprintf(cmdStr, "AT+SMCONF=\"%s\",\"%s\",\"%i\"", paramTag, paramValue, port);
+        //sprintf(cmdStr, "AT+SMCONF=\"%s\",\"%s\",\"%i\"", paramTag, paramValue, port);
+        sprintf(cmdStr, "AT+SMCONF=\"%s\",\"%s\",%i", paramTag, paramValue, port);
     }
 
     if (!sendCheckReply(cmdStr, m_ok_reply))
@@ -4829,7 +4690,7 @@ boolean BK_modem_LTE::MQTT_setParameter(const char *paramTag, const char *paramV
 // Set MQTT parameters
 //  Parameter tags can be "CLIENTID", "KEEPTIME", "CLEANSS", "QOS" or "RETAIN"
 //          // AT+SMCONF="KEEPTIME",60
-boolean BK_modem_LTE::MQTT_setParameter(const char *paramTag, uint32_t paramValue)
+boolean BK_modem::MQTT_setParameter(const char *paramTag, uint32_t paramValue)
 {
     char cmdStr[255];
 
@@ -4845,23 +4706,25 @@ boolean BK_modem_LTE::MQTT_setParameter(const char *paramTag, uint32_t paramValu
 
 /// @brief
 /// @param
-/// @return
-String BK_modem_LTE::MQTT_getParameters(void)
+/// @return: MQTT Parameters.
+String BK_modem::MQTT_getParameters(void)
 {
-    sendCheckReply(F("AT+SMCONF?"), m_ok_reply);
+    sendCheckReply(F("AT+SMCONF?"), m_ok_reply, 5000, true);
 
+    // skip: leading: "+SMCONF: \r\n" and end: "\r\nOK\r\n"
     String res = String(m_replybuffer);
-    return res.substring(7, res.length());
+    return res.substring(10, (res.length() > 10 ? res.length() - 5 : res.length()));
+    //return String(m_replybuffer+10);
 }
 
-/// @brief : Connect or Disconnect to MQTT server.
+/// @brief : Connect or Disconnect to MQTT Broker Server.
 /// @param : yesno => true = connect, false = disconnect.
 /// @return : true = connected, false = not connected
-boolean BK_modem_LTE::MQTT_connect(bool yesno)
+boolean BK_modem::MQTT_connect(bool yesno, uint16_t timeout)
 {
     if (yesno)
     {
-        return sendCheckReply(F("AT+SMCONN"), m_ok_reply, 15000);
+        return sendCheckReply(F("AT+SMCONN"), m_ok_reply, timeout);
     }
     else
     {
@@ -4872,7 +4735,7 @@ boolean BK_modem_LTE::MQTT_connect(bool yesno)
 /// @brief : Query MQTT connection status
 /// @param  
 /// @return 
-boolean BK_modem_LTE::MQTT_connectionStatus(void)
+boolean BK_modem::MQTT_connectionStatus(void)
 {
     if (!sendCheckReply(F("AT+SMSTATE?"), F("+SMSTATE: 1")))
     {
@@ -4884,7 +4747,7 @@ boolean BK_modem_LTE::MQTT_connectionStatus(void)
 
 // Subscribe to specified MQTT topic
 // QoS can be from 0-2
-boolean BK_modem_LTE::MQTT_subscribe(const char *topic, byte QoS)
+boolean BK_modem::MQTT_subscribe(const char *topic, byte QoS)
 {
     char cmdStr[127];
     sprintf(cmdStr, "AT+SMSUB=\"%s\",%i", topic, QoS);
@@ -4898,7 +4761,7 @@ boolean BK_modem_LTE::MQTT_subscribe(const char *topic, byte QoS)
 }
 
 // Unsubscribe from specified MQTT topic
-boolean BK_modem_LTE::MQTT_unsubscribe(const char *topic)
+boolean BK_modem::MQTT_unsubscribe(const char *topic)
 {
     char cmdStr[64];
     sprintf(cmdStr, "AT+SMUNSUB=\"%s\"", topic);
@@ -4915,7 +4778,7 @@ boolean BK_modem_LTE::MQTT_unsubscribe(const char *topic)
 // Message length can be from 0-512 bytes
 // QoS can be from 0-2
 // Server hold message flag can be 0 or 1
-boolean BK_modem_LTE::MQTT_publish(const char *topic, const char *payload, uint16_t contentLength, byte QoS, byte retain)
+boolean BK_modem::MQTT_publish(const char *topic, const char *payload, uint16_t contentLength, byte QoS, byte retain)
 {
     char cmdStr[127];
     sprintf(cmdStr, "AT+SMPUB=\"%s\",%i,%i,%i", topic, contentLength, QoS, retain);
@@ -4923,14 +4786,16 @@ boolean BK_modem_LTE::MQTT_publish(const char *topic, const char *payload, uint1
     // send "command" and wait for "OK" and ">" char.
     getReply(cmdStr, 2000);
 
+    // Wait for "> " to send payload message.
     if (strstr(m_replybuffer, ">") == NULL)
     {
-        return false; // Wait for "> " to send message
+        return false;
     }
 
+    // Send payload message.
     if (!sendCheckReply(payload, m_ok_reply, 15000))
-    {
-        return false; // Now send the message
+    {// Sending Error
+        return false;
     }
 
     return true;
@@ -4938,7 +4803,7 @@ boolean BK_modem_LTE::MQTT_publish(const char *topic, const char *payload, uint1
 
 // Change MQTT data format to hex
 // Enter "true" if you want hex, "false" if you don't
-boolean BK_modem_LTE::MQTT_dataFormatHex(bool yesno)
+boolean BK_modem::MQTT_dataFormatHex(bool yesno)
 {
     return sendCheckReply(F("AT+SMPUBHEX="), yesno, m_ok_reply);
 }
@@ -4953,7 +4818,7 @@ boolean BK_modem_LTE::MQTT_dataFormatHex(bool yesno)
 /// @param value
 /// @param maxlen
 /// @return
-boolean BK_modem_LTE::HTTP_addHeader(const char *type, const char *value, uint16_t maxlen)
+boolean BK_modem::HTTP_addHeader(const char *type, const char *value, uint16_t maxlen)
 {
     // Use .HTTP_addHeader() as needed before using this function
     // .HTTP_connect() to connect to the server first
@@ -4973,7 +4838,7 @@ boolean BK_modem_LTE::HTTP_addHeader(const char *type, const char *value, uint16
 /// @param body
 /// @param bodylen
 /// @return
-boolean BK_modem_LTE::HTTP_addBody(const char *body, uint16_t bodylen)
+boolean BK_modem::HTTP_addBody(const char *body, uint16_t bodylen)
 {
     // Use .HTTP_addHeader() as needed before using this function
     // Then use .HTTP_connect() to connect to the server first
@@ -4997,7 +4862,7 @@ boolean BK_modem_LTE::HTTP_addBody(const char *body, uint16_t bodylen)
 /// @param value
 /// @param maxlen
 /// @return
-boolean BK_modem_LTE::HTTP_addPara(const char *key, const char *value, uint16_t maxlen)
+boolean BK_modem::HTTP_addPara(const char *key, const char *value, uint16_t maxlen)
 {
     char cmdStr[2 * maxlen + 16];
 
@@ -5014,7 +4879,7 @@ boolean BK_modem_LTE::HTTP_addPara(const char *key, const char *value, uint16_t 
 /// @brief
 /// @param server
 /// @return
-boolean BK_modem_LTE::HTTP_connect(const char *server)
+boolean BK_modem::HTTP_connect(const char *server)
 {
     // Set up server URL
     char urlBuff[100];
@@ -5068,7 +4933,7 @@ boolean BK_modem_LTE::HTTP_connect(const char *server)
 /// @brief 
 /// @param  
 /// @return 
-boolean BK_modem_LTE::GetHTTP_status(void)
+boolean BK_modem::GetHTTP_status(void)
 {
     // Get HTTP status
     if (!sendCheckReply(F("AT+SHSTATE?"), F("+SHSTATE: 1")))
@@ -5084,7 +4949,7 @@ boolean BK_modem_LTE::GetHTTP_status(void)
 /// @brief
 /// @param URI
 /// @return
-boolean BK_modem_LTE::HTTP_GET(const char *URI)
+boolean BK_modem::HTTP_GET(const char *URI)
 {
     // Use .HTTP_addHeader() as needed before using this function
     // Then use .HTTP_connect() to connect to the server first
@@ -5098,7 +4963,7 @@ boolean BK_modem_LTE::HTTP_GET(const char *URI)
     uint16_t status, datalen;
     readline(10000);
 
-    BK_DEBUG_PRINT("\t<--- ");
+    BK_DEBUG_PRINT(F("\t<--- "));
     BK_DEBUG_PRINTLN(m_replybuffer);
 
     if (!parseReply(F("+SHREQ: \"GET\""), &status, ',', 1))
@@ -5107,9 +4972,9 @@ boolean BK_modem_LTE::HTTP_GET(const char *URI)
     if (!parseReply(F("+SHREQ: \"GET\""), &datalen, ',', 2))
         return false;
 
-    BK_DEBUG_PRINT("HTTP GET status: ");
+    BK_DEBUG_PRINT(F("HTTP GET status: "));
     BK_DEBUG_PRINTLN(status);
-    BK_DEBUG_PRINT("Data length: ");
+    BK_DEBUG_PRINT(F("Data length: "));
     BK_DEBUG_PRINTLN(datalen);
 
     if (status != HTTP_CODE_OK)
@@ -5122,12 +4987,12 @@ boolean BK_modem_LTE::HTTP_GET(const char *URI)
 
     readline();
 
-    BK_DEBUG_PRINT("\t<--- ");
+    BK_DEBUG_PRINT(F("\t<--- "));
     BK_DEBUG_PRINTLN(m_replybuffer); // +SHREAD: <datalen>
 
     readline(10000);
 
-    BK_DEBUG_PRINT("\t<--- ");
+    BK_DEBUG_PRINT(F("\t<--- "));
     BK_DEBUG_PRINTLN(m_replybuffer); // Print out server reply
 
     sendCheckReply(F("AT+SHDISC"), m_ok_reply, 10000); // Disconnect HTTP
@@ -5140,7 +5005,7 @@ boolean BK_modem_LTE::HTTP_GET(const char *URI)
 /// @param body
 /// @param bodylen
 /// @return
-boolean BK_modem_LTE::HTTP_POST(const char *URI, const char *body, uint8_t bodylen, uint16_t *status, uint16_t *datalen)
+boolean BK_modem::HTTP_POST(const char *URI, const char *body, uint8_t bodylen, uint16_t *status, uint16_t *datalen)
 {
     // Use .HTTP_addHeader() as needed before using this function
     // Then use .HTTP_connect() to connect to the server first
@@ -5176,7 +5041,7 @@ boolean BK_modem_LTE::HTTP_POST(const char *URI, const char *body, uint8_t bodyl
     // Example reply --> "+SHREQ: "POST",200,452"
     readline(10000);
 
-    BK_DEBUG_PRINT("\t<--- ");
+    BK_DEBUG_PRINT(F("\t<--- "));
     BK_DEBUG_PRINTLN(m_replybuffer);
 
     // AT+SHREQ="/post",3
@@ -5186,9 +5051,9 @@ boolean BK_modem_LTE::HTTP_POST(const char *URI, const char *body, uint8_t bodyl
     if (!parseReply(F("+SHREQ: \"POST\""), datalen, ',', 2))
         return false;
 
-    BK_DEBUG_PRINT("HTTP POST status: ");
+    BK_DEBUG_PRINT(F("HTTP POST status: "));
     BK_DEBUG_PRINTLN(*status);
-    BK_DEBUG_PRINT("Data length: ");
+    BK_DEBUG_PRINT(F("Data length: "));
     BK_DEBUG_PRINTLN(*datalen);
 
     if (*status != HTTP_CODE_OK)
@@ -5200,7 +5065,7 @@ boolean BK_modem_LTE::HTTP_POST(const char *URI, const char *body, uint8_t bodyl
     getReply(F("AT+SHREAD=0,"), *datalen, 10000);
     readline();
 
-    BK_DEBUG_PRINT("\t<--- ");
+    BK_DEBUG_PRINT(F("\t<--- "));
     BK_DEBUG_PRINTLN(m_replybuffer); // +SHREAD: <datalen>
 
     readline(10000);
@@ -5208,12 +5073,634 @@ boolean BK_modem_LTE::HTTP_POST(const char *URI, const char *body, uint8_t bodyl
     memset( m_responcebuffer, 0x00, *datalen);
     memcpy( m_responcebuffer, m_replybuffer, *datalen);
 
-    BK_DEBUG_PRINT("\t<--- ");
+    BK_DEBUG_PRINT(F("\t<--- "));
     BK_DEBUG_PRINTLN(m_replybuffer); // Print out server reply
 
     sendCheckReply(F("AT+SHDISC"), m_ok_reply, 10000); // Disconnect HTTP
 
     return true;
+}
+
+
+/*-------------------------- SIM-7000 ---------------------------------------------------------------------*/
+/*
+  Destructor: clean-up all resource of this class.
+*/
+// BK_modem_7000::~BK_modem_7000()
+// {
+// }
+
+/// @brief 
+/// @return SIM-7000 PCB name.
+String BK_modem_7000::Name()
+{
+    return String(F("SIM-7000G"));
+}
+
+/// @brief : override base stop() function.
+void BK_modem_7000::stop()
+{
+    BK_DEBUG_PRINTLN(F("BK_modem_7000 => stop()"));
+    base_stop();
+}
+
+// Bearer Settings for Applications Based on IP
+//   Query the GPRS bearer context status
+// cid = 1  => Bearer profile identifier:
+// Returns bearer status
+//                       -1 Command returned with an error
+//                        0 Bearer is connecting
+//                        1 Bearer is connected
+//                        2 Bearer is closing
+//                        3 Bearer is closed
+//
+int8_t BK_modem_7000::getBearerStatus(void)
+{
+    uint16_t state;
+
+    if (!sendParseReply(F("AT+SAPBR=2,1"), F("+SAPBR: "), &state, ',', 1))
+    {
+        return -1;
+    }
+
+    return (int8_t)state;
+}
+
+/// @brief
+/// @param onoff
+/// @return
+boolean BK_modem_7000::enableGPRS(boolean onoff)
+{
+    if (onoff)
+    {
+        // disconnect all sockets and close bearer and detach from GPRS Service.
+        stop();
+        delay(100);
+
+        // set bearer profile! connection type GPRS
+        if (!sendCheckReply(F("AT+SAPBR=3,1,\"CONTYPE\",\"GPRS\""), m_ok_reply, 10000))
+        {
+            return false;
+        }
+
+        delay(200); // This seems to help the next line run.
+
+        // set bearer profile access point name
+        if (m_apn)
+        {// Configure bearer profile 1
+            // Send command AT+SAPBR=3,1,"APN","<apn value>" where <apn value> is the configured APN value.
+            if (!sendCheckReplyQuoted(F("AT+SAPBR=3,1,\"APN\","), m_apn, m_ok_reply, 10000))
+            {
+                return false;
+            }
+
+            // set username/password
+            if (m_apnusername /*&& strlen_P((const char *)m_apnusername) > 0*/)
+            {
+                // Send command AT+SAPBR=3,1,"USER","<user>" where <user> is the configured APN username.
+                if (!sendCheckReplyQuoted(F("AT+SAPBR=3,1,\"USER\","), m_apnusername, m_ok_reply, 10000))
+                {
+                    return false;
+                }
+            }
+
+            if (m_apnpassword /*&& strlen_P((const char *)m_apnpassword) > 0*/)
+            {
+                // Send command AT+SAPBR=3,1,"PWD","<password>" where <password> is the configured APN password.
+                if (!sendCheckReplyQuoted(F("AT+SAPBR=3,1,\"PWD\","), m_apnpassword, m_ok_reply, 10000))
+                {
+                    return false;
+                }
+            }
+
+            flushInput();
+
+            // Start the TCP application toolkit task and set APN, USER NAME, PASSWORD
+            SerialSIM->print(F("AT+CSTT=\""));
+            SerialSIM->print(m_apn);
+
+            if (m_apnusername)
+            {
+                SerialSIM->print(F("\",\""));
+                SerialSIM->print(m_apnusername);
+            }
+
+            if (m_apnpassword)
+            {
+                SerialSIM->print(F("\",\""));
+                SerialSIM->print(m_apnpassword);
+            }
+
+            SerialSIM->println(F("\"")); // set end char.
+
+#ifdef BK_MODEM_DEBUG
+            BK_DEBUG_PRINT(F("\tS5---> "));
+            BK_DEBUG_PRINT(F("AT+CSTT=\""));
+            BK_DEBUG_PRINT(m_apn);
+
+            if (m_apnusername)
+            {
+                BK_DEBUG_PRINT(F("\",\""));
+                BK_DEBUG_PRINT(m_apnusername);
+            }
+
+            if (m_apnpassword)
+            {
+                BK_DEBUG_PRINT(F("\",\""));
+                BK_DEBUG_PRINT(m_apnpassword);
+            }
+
+            BK_DEBUG_PRINTLN(F("\""));
+#endif
+
+            if (!expectReply(m_ok_reply))
+            {
+                return false;
+            }
+        }
+
+        // Attach to GPRS service.
+        if (!sendCheckReply(F("AT+CGATT=1"), m_ok_reply, (uint16_t)75000))
+        {
+            return false;
+        }
+
+        // Query the GPRS bearer context status
+        int8_t status = getBearerStatus();
+        BK_DEBUG_PRINTLN(F("Bearer Status: ") + String(status));
+
+        // Open the definied GPRS bearer context.
+        if (status > 1 && !sendCheckReply(F("AT+SAPBR=1,1"), m_ok_reply, uint16_t(85000)))
+        {
+            return false;
+        }
+
+        // Query the GPRS bearer context status
+        status = getBearerStatus();
+        // if(status != 1)
+        // {
+        //      return false;
+        // }
+
+        // Bring up the TCP application toolkit wireless connection with GPRS or CSD.
+        if (!sendCheckReply(F("AT+CIICR"), m_ok_reply, 10000))
+        {
+            return false;
+        }
+
+        if( !wirelessConnStatus())
+        {
+            openWirelessConnection(true);
+        }
+    }
+    else
+    {
+        // disconnect all sockets.
+        stop();
+        delay(100);
+
+        // close bearer
+        if (!sendCheckReply(F("AT+SAPBR=0,1"), m_ok_reply, 10000L))
+        {
+            if( getCME_ErrorCode() != 3)
+            {
+                return false;
+            }
+        }
+
+        delay(200);
+ 
+        //Detach from GPRS Service
+        if (!sendCheckReply(F("AT+CGATT=0"), m_ok_reply, 10000))
+        {
+            return false;
+        }
+
+        // Close wireless data connection.
+        //openWirelessConnection(false);
+    }
+
+    return true;
+}
+
+/*
+  Open or close wireless data connection
+  PDP => Packet Data Protocol
+  
+  SIM7000
+        AT+CNACT=<mode>,<action>
+            <action> "apn"
+
+ @brief 
+ @param onoff 
+ @return 
+*/
+boolean BK_modem_7000::openWirelessConnection(bool onoff)
+{
+    if (!onoff)
+    { // Disconnect wireless.
+        char buff[strlen_P((prog_char *)m_apn) + 16];
+        sprintf(buff, "AT+CNACT=0,\"%s\"", (prog_char *)m_apn);
+
+        if (!sendCheckReply(buff, m_ok_reply, 10000))
+        {
+            return false;
+        }
+
+        readline(); // wait for reponse message "DEACTIVE".
+
+        BK_DEBUG_PRINT(F("\rM1<--- "));
+        BK_DEBUG_PRINTLN(m_replybuffer);
+
+        if (strstr(m_replybuffer, "PDP: DEACTIVE") == NULL) // +APP PDP: DEACTIVE
+        {
+            if (strstr(m_replybuffer, ",DEACTIVE") == NULL) // +APP PDP: <pdpidx>,DEACTIVE
+            {
+                return false;
+            }
+        }
+    }
+    else
+    { // Connect wireless.
+
+        char buff[strlen_P((prog_char *)m_apn) + 16];
+        sprintf(buff, "AT+CNACT=1,\"%s\"", (prog_char *)m_apn);
+
+        if (!sendCheckReply(buff, m_ok_reply, 10000)) // if (!sendCheckReply(F("AT+CNACT=0,1"), m_ok_reply))
+        {
+            return false;
+        }
+
+        readline(5000); // wait for reponse message "PDP: ACTIVE".
+
+        BK_DEBUG_PRINT(F("\tM1<--- "));
+        BK_DEBUG_PRINTLN(m_replybuffer);
+
+        if (strstr(m_replybuffer, "PDP: ACTIVE") == NULL) // +APP PDP: ACTIVE
+        {
+            if (strstr(m_replybuffer, ",ACTIVE") == NULL) // +APP PDP: <pdpidx>,ACTIVE
+            {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+/// @brief 
+/// @param onoff 
+/// @param ntpserver 
+/// @param timeZone 
+/// @return 
+boolean BK_modem_7000::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, uint16 timeZone)
+{
+    return BK_modem::enableNTPTimeSync( onoff,  ntpserver,  timeZone, 7000);
+}
+
+/*------------------ SIM-7080 --------------------------------------------------------------------*/
+
+/// @brief : default constructor
+BK_modem_7080::BK_modem_7080() : BK_modem()
+{
+    this->mux = 0;
+    this->pdpidx = 0;
+}
+
+/// @brief : overload constructor: call first default contructor.
+/// @param mux => open connections that can run in the same time.
+BK_modem_7080::BK_modem_7080(uint8_t mux) : BK_modem_7080()
+{
+    this->mux = (mux < 0 || mux > GSM_MUX_COUNT) ? 0 : mux;
+}
+
+/*
+  Destructor: clean-up all resource of this class and base class.
+  destructors are called automatically in the reverse order of construction. 
+  (Base classes last).
+*/
+BK_modem_7080::~BK_modem_7080()
+{
+
+}
+
+/// @brief 
+/// @return : SIM-7080 PCB name
+String BK_modem_7080::Name()
+{
+    return String(F("SIM-7080G"));
+}
+
+//**************************************************************************************************************
+
+/// @brief : 
+/// @param maxWaitMs
+void BK_modem_7080::stop(uint32_t maxWaitMs)
+{
+    BK_DEBUG_PRINTLN(F("BK_modem_7080 => stop()"));
+
+    //sendCheckReply(F("AT+CACLOSE="), mux, m_ok_reply, maxWaitMs);
+    sendCheckReply(F("AT+CNACT=0,0"), m_ok_reply, 60000L);
+}
+
+/// @brief : override base stop() function.
+void BK_modem_7080::stop()
+{
+    stop(15000L);
+}
+
+/// @brief : powers down the SIM7000 module.
+/// @param  
+void BK_modem_7080::AT_powerDown(void)
+{
+    // disconnect all sockets and close bearer and detach from GPRS Service.
+    stop(15000L);
+}
+
+// APP Network Active context status
+// Format of response: +CNACT: <pdpidx>,<statusx>,<addressx>
+//
+// Returns state
+//
+// int8_t BK_modem_7080::getBearerStatus(void)
+// {
+//     uint16_t state;
+
+//     getReply(F("AT+CNACT?"));
+
+//     if (!parseReply(F("+CNACT:"), &state, ',', 1))      // get <statusx>
+//     {
+//         return 0;   // Deactived
+//     }
+
+//     if (state == 0)
+//     {
+//         char buff[16];
+//         sprintf(buff, "AT+CNACT=%d,1", pdpidx);
+//         if (!sendCheckReply(buff, m_ok_reply, 10000))
+//         {
+//             return 0;
+//         }
+
+//         delay(200);
+
+//         if (!parseReply(F("+CNACT:"), &state, ',', 1))
+//         {
+//             return 2;
+//         }
+//     }
+
+//     return (int8_t)state;
+// }
+
+// Query wireless connection status
+// Format of response: +CNACT: <pdpidx>,<statusx>,<addressx>
+boolean BK_modem_7080::wirelessConnStatus(void)
+{
+    getReply(F("AT+CNACT?"));
+
+    uint16_t status;
+    if (!parseReply(F("+CNACT:"), &status, ',', 1))
+    {
+        return false;
+    }
+
+    if (status != 1)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+/// @brief 
+/// @param  
+/// @return : IP address
+String BK_modem_7080::getGPRSIP(void)
+{
+    if (!getReply(F("AT+CNACT?")))
+    {
+        return "0.0.0.0";
+    }
+
+    // Format of response:
+    // +CNACT: <pdpidx>,<status>,<ip_addr>   (+CNACT: 0,1,"10.36.213.1")
+    String res = String(m_replybuffer);
+    String tmpstr = res.substring(12, res.length());    // input: "10.36.213.1"
+    return tmpstr.substring(1, tmpstr.length()-1);      // skip '"' chars
+}
+
+/// @brief
+/// @param onoff
+/// @return
+boolean BK_modem_7080::enableGPRS(boolean onoff)
+{
+    if (onoff)
+    {
+        // disconnect all sockets and close bearer and detach from GPRS Service.
+        // Shut down the general application TCP/IP connection
+        // CNACT will close *all* open application TCP/UDP connections
+        sendCheckReply(F("AT+CNACT=0,0"), m_ok_reply, 60000L);
+
+        // Detach from GPRS Service
+        if (!sendCheckReply(F("AT+CGATT=0"), m_ok_reply, 60000L))
+        {
+            return false;
+        }
+
+        // Define the PDP context
+        char buff[strlen_P( (prog_char *)m_apn) + 16];
+        sprintf(buff, "AT+CGDCONT=1,\"IP\",\"%s\"", (prog_char *)m_apn);
+
+        if (!sendCheckReply(buff, m_ok_reply, 10000))
+        {
+            return false;
+        }
+
+        // Attach to GPRS Service
+        if (!sendCheckReply(F("AT+CGATT=1"), m_ok_reply, 60000L))
+        {
+            return false;
+        }
+
+        // test
+        GPRSstate();
+
+        // NOTE:  **DO NOT** activate the PDP context
+        // For who only knows what reason, doing so screws up the rest of the process
+
+        // Check the APN returned by the server
+        // Get Network APN in CAT-M or NB-IOT => "+CGNAPN: <valid>,<Network_APN>"
+        if (!sendCheckReply(F("AT+CGNAPN"), m_ok_reply, 10000L, true))
+        {
+            // TO DO: Lof line.
+            // return false;
+        }
+
+        // Bearer settings for applications based on IP
+        // Set the user name and password
+        // AT+CNCFG=<pdpidx>,<ip_type>,[<APN>,[<usename>,<password>,[<authentication>]]]
+        // <pdpidx> PDP Context Identifier - for reasons not understood by me,
+        //          use PDP context identifier of 0 for what we defined as 1 above
+        // <ip_type> 0: Dual PDN Stack
+        //           1: Internet Protocol Version 4
+        //           2: Internet Protocol Version 6
+        // <authentication> 0: NONE
+        //                  1: PAP
+        //                  2: CHAP
+        //                  3: PAP or CHAP
+        flushInput();
+
+        // Start the TCP application toolkit task and set APN, USER NAME, PASSWORD
+        String sendBuffer;
+        sendBuffer.reserve(512);
+
+        // Set PDP Configure data:
+        // -Set the APN
+        sendBuffer = F("AT+CNCFG=0,1,\"") + String((prog_char *)m_apn);
+        pdpidx = 0;
+
+        if (m_apnusername)
+        { // -Set the user name
+            sendBuffer += F("\",\"") + String((prog_char *)m_apnusername);
+        }
+
+        if (m_apnpassword)
+        { // -Set the password
+            sendBuffer += F("\",\"") + String((prog_char *)m_apnpassword);
+        }
+
+        sendBuffer += (F("\"")); // set end char.
+
+        if (!sendCheckReply(FPSTR(sendBuffer.c_str()), m_ok_reply, 60000))
+        {
+            // TODO: ??
+        }
+
+#ifdef BK_MODEM_DEBUG
+        // BK_DEBUG_PRINT(F("\t---> "));
+        // BK_DEBUG_PRINTLN(sendBuffer);
+
+        // if (getReply(F("AT+CNCFG?")))
+        // { // skip "+CNCFG: "
+        //     BK_DEBUG_PRINTLN(F("PDP Configure: ") + String(m_replybuffer + 8));
+        // }
+#endif
+
+        // Activate application network connection.
+        //openWirelessConnection(true);
+    }
+    else
+    {
+        // disconnect all sockets.
+
+        if (sendCheckReply(F("AT+CNACT=0,0"), m_ok_reply, 60000L))
+        {
+            delay(200);
+        }
+
+        // Detach from GPRS Service
+        if (!sendCheckReply(F("AT+CGATT=0"), m_ok_reply, 10000))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/* 
+ Open or close wireless data connection
+ PDP => Packet Data Protocol
+
+ SIM7080:
+        Activate application network connection
+        AT+CNACT=<pdpidx>,<action>
+            <pdpidx> PDP Context Identifier - for reasons not understood by me,
+                    use PDP context identifier of '0' for what we defined as 1 above.
+            <action> 0: Deactive
+                     1: Active
+                     2: Auto Active
+*/
+inline boolean BK_modem_7080::openWirelessConnection(bool onoff)
+{
+    if (onoff)
+    { // Connect wireless.
+        bool res = false;
+        int ntries = 5;
+
+        enableGPRS(true);
+
+        while (!res && ntries > 0)
+        {
+            if ( !(res = sendCheckReply(F("AT+CNACT=0,1"), m_ok_reply)))
+            {// No response.
+                ntries--;
+                delay(500);
+                continue;
+            }
+
+            readline(60000L, true); // wait for reponse "PDP: ACTIVE".
+
+            BK_DEBUG_PRINT(F("\tR83<--- "));
+            BK_DEBUG_PRINTLN(m_replybuffer);
+
+            if (strstr(m_replybuffer, "PDP: ACTIVE") == NULL) // +APP PDP: ACTIVE
+            {
+                if (strstr(m_replybuffer, ",ACTIVE") == NULL) // +APP PDP: <pdpidx>,ACTIVE
+                {
+                    res = false;
+                    ntries--;
+                }
+            }
+        }
+
+        if( ntries == 0)
+        {// to many retries.
+            return false;
+        }
+    }
+    else
+    { // Disconnect wireless.
+        // CNACT will close *all* open application connections.
+        if (!sendCheckReply(F("AT+CNACT=0,0"), m_ok_reply, 60000))
+        {
+            return false;
+        }
+
+        readline(); // wait for reponse "DEACTIVE".
+
+        BK_DEBUG_PRINT(F("\tR81<--- "));
+        BK_DEBUG_PRINTLN(m_replybuffer);
+
+        // if (strstr(m_replybuffer, "PDP: DEACTIVE") == NULL) // +APP PDP: DEACTIVE
+        // {
+        //     if (strstr(m_replybuffer, ",DEACTIVE") == NULL) // +APP PDP: <pdpidx>,DEACTIVE
+        //     {
+        //         return false;
+        //     }
+        // }
+
+        if (!sendCheckReply(F("AT+CGATT=0"), m_ok_reply, 60000L)) // Deactivate the bearer context
+        {
+            return false;
+        }
+
+        BK_DEBUG_PRINT(F("\tR82<--- "));
+        BK_DEBUG_PRINTLN(m_replybuffer);
+    }
+
+    return true;
+}
+
+/// @brief 
+/// @param onoff 
+/// @param ntpserver 
+/// @param timeZone 
+/// @return 
+boolean BK_modem_7080::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, uint16 timeZone)
+{
+    return BK_modem::enableNTPTimeSync( onoff,  ntpserver,  timeZone, pdpidx);
 }
 
 #pragma GCC diagnostic pop

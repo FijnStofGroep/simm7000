@@ -50,10 +50,11 @@ namespace cfg7
     extern char gprsapn[LEN_SIMM7000];
     extern char gprsUser[LEN_SIMM7000];
     extern char gprsPass[LEN_SIMM7000];
-    extern char gprsPIN[LEN_SEN5X_SYM];
+    extern char gprsPIN[MAX_PORT_DIGITS];
 
-    extern char s7000_type[LEN_SIMM7000];
-    extern char s7000_mode[LEN_SIMM7000];
+    extern unsigned sim_type;
+    extern unsigned mode_selection;
+    extern unsigned communication_type;
 
     // init: set default values to options.
     extern void initNonTrivials();
@@ -126,5 +127,10 @@ String GetLTELocalIP(void);
 /// @brief 
 /// @param  
 void WifiAPmodePowerSave(void);
+
+/// @brief 
+/// @param  
+/// @return 
+String GetSimDriverName(void);
 
 #endif // _SIM7000GSM_H

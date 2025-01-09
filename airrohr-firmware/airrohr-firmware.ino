@@ -79,7 +79,10 @@
  * 		Special engineer Debug lines send to USB port					*
  * 																		*
  * 2024-08-28 															*
- *   SIM7000 LTE communication module: send data to the API's and MQTT  *
+ *   SIM7000 LTE/GPS module: send sensor data only to MQTT              *
+ *                                                                      *
+ * 2025-01-08 															*
+ *   SIM7080 LTE/GPS module: send sensor data ony to MQTT               *
  *                                                                      *
  * documentation Exception error list                                   *
  *https://arduino-esp8266.readthedocs.io/en/latest/exception_causes.html*
@@ -103,9 +106,13 @@
  * RAM:     [=====     ]  47.9% (used 39264 bytes from 81920 bytes)		*
  * PROGRAM: [======    ]  64.4% (used 672501 bytes from 1044464 bytes)	*
  *                                                                      *
- * latest build 2024-11-11  											*
+ * latest build 2024-08-28  											*
  * RAM:     [=====     ]  49.0% (used 40112 bytes from 81920 bytes)     *
  * PROGRAM: [=======   ]  65.5% (used 684009 bytes from 1044464 bytes)  *
+ *                                                                      *
+ *  * latest build 2025-01-11  											*
+ * RAM:     [=====     ]  47.6% (used 38972 bytes from 81920 bytes)     *
+ * PROGRAM: [=======   ]  65.8% (used 687509 bytes from 1044464 bytes)  *
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -115,7 +122,7 @@
 #include <pgmspace.h>
 
 // increment on change
-#define SOFTWARE_VERSION_STR "FWL-2024-10-B4_8"
+#define SOFTWARE_VERSION_STR "FWL-2025-01-B5_1"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -191,7 +198,7 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include "./RCWL-0516.h"
 
 #if defined(ESP8266)
-// BK-SIM7000 source code + header files located in ".\lib" folder.
+// BK-SIM70XX source code + header files located in ".\lib" folder.
 #include "./SIM7000GSM.h"
 #include "./airrohr-cfg7000.h"
 #include "./sim7000_html.h"
@@ -383,7 +390,7 @@ namespace cfg
 //*************************************************************************************************************************************************
 
 #define JSON_BUFFER_SIZE 3500					// 2300 -> 3500	=> increase: 11-11-2023
-#define JSON_BUFFER_SIZE_SIMM7000 500			// Simm7000 module settings.
+#define JSON_BUFFER_SIZE_SIMM7000 500			// Simm70xx module settings.
 
 ESP8266WiFiMulti wifiMulti;
 
@@ -1480,13 +1487,13 @@ static void readConfig(bool oldconfig = false)
 	//debug_outln_info(F("*** call readConfigBase()... ***"));
 	readConfigBase( oldconfig);
 
-	//debug_outln_info(F("*** call readConfigS7000()... ***"));
-	readConfigS7000( oldconfig);
+	//debug_outln_info(F("*** call readConfigS700xx()... ***"));
+	readConfigS700xx( oldconfig);
 }
 
 /*****************************************************************
 /// @brief 
-/// Read config data from SPIFFS E-memory.
+/// Read Base config data from SPIFFS E-memory.
 /// @param oldconfig
 ******************************************************************/
 static void readConfigBase(bool oldconfig)
@@ -1698,10 +1705,10 @@ static void readConfigBase(bool oldconfig)
 
 /*****************************************************************
 /// @brief 
-/// Read config S7000 data from SPIFFS E-memory.
+/// Read config Sim70xx data from SPIFFS E-memory.
 /// @param oldconfig
 ******************************************************************/
-static void readConfigS7000(bool oldconfig)
+static void readConfigS700xx(bool oldconfig)
 {
 	bool rewriteConfig = false;
 
@@ -1721,19 +1728,19 @@ static void readConfigS7000(bool oldconfig)
 	{
 		if (!oldconfig)
 		{	// call 
-			return readConfigS7000(true /* configFile */);
+			return readConfigS700xx(true /* configFile */);
 		}
 
-		debug_outln_error(F("Failed to open config S7000 file."));
+		debug_outln_error(F("Failed to open config S70xx file."));
 		return;
 	}
 
-	debug_outln_info(F("Opened config S7000 file..."));
+	debug_outln_info(F("Opened config S70xx file..."));
 
 	DynamicJsonDocument json(JSON_BUFFER_SIZE_SIMM7000);
 	DeserializationError err = deserializeJson(json, configFile.readString());
 
-	debug_outln_info(F("Read JSON S7000 format.....\nJson memory size: "), String(json.memoryUsage()) + 
+	debug_outln_info(F("Read JSON S70xx format.....\nJson memory size: "), String(json.memoryUsage()) + 
 					 F(" | Elementen in array: ") + String(json.size()) + 
 					 F(" | Error Code = ") + err.code() + F(" => ") + err.f_str() );
 
@@ -1803,12 +1810,12 @@ static void readConfigS7000(bool oldconfig)
 	}
 	else
 	{
-		debug_outln_error(F("failed to load JSON S7000 config"));
+		debug_outln_error(F("failed to load JSON S70xx config"));
 
 		if (!oldconfig)
 		{
-			debug_outln_error(F("Simm7000 -return readConfig(true /* oldconfig */"));
-			return readConfigS7000(true /* oldconfig */);
+			debug_outln_error(F("Simm70xx -return readConfig(true /* oldconfig */"));
+			return readConfigS700xx(true /* oldconfig */);
 		}
 	}
 
@@ -1816,12 +1823,12 @@ static void readConfigS7000(bool oldconfig)
 
 	if (rewriteConfig)
 	{
-		writeConfigS7000();
+		writeConfigS700xx();
 	}
 
-	//debug_outln_info(F("Exit: readConfigS7000() methode."));
+	//debug_outln_info(F("Exit: readConfigS700xx() methode."));
 	
-}	// readConfigS7000()
+}	// readConfigS700xx()
 
 /*****************************************************************
 /// @brief 
@@ -1890,13 +1897,13 @@ static void init_config()
 static bool writeConfig()
 {
 	bool ret = writeConfigBase();
-	ret |= writeConfigS7000();
+	ret |= writeConfigS700xx();
 
 	return ret;
 }
 
 /*****************************************************************
- * write config to spiffs                                        *
+ * write base config to spiffs                                   *
  *****************************************************************/
 static bool writeConfigBase()
 {
@@ -1994,13 +2001,13 @@ static bool writeConfigBase()
 }
 
 /*****************************************************************
- * write config to spiffs                                        *
+ * write Sim70xx config to spiffs                                *
  *****************************************************************/
-static bool writeConfigS7000()
+static bool writeConfigS700xx()
 {
 	DynamicJsonDocument json(JSON_BUFFER_SIZE_SIMM7000);
 
-	debug_outln_info(F("Saving S7000 config..."));
+	debug_outln_info(F("Saving S70xx config..."));
 
 	for (unsigned e = 0; e < sizeof(configShape7) / sizeof(configShape7[0]); ++e)
 	{
@@ -2023,12 +2030,12 @@ static bool writeConfigS7000()
 		};
 	}
 
-	// debug_outln_info(F("JSON 7000 format.....\nJson memory size: "), String(json.memoryUsage()) + 
+	// debug_outln_info(F("JSON 70xx format.....\nJson memory size: "), String(json.memoryUsage()) + 
 	// 				 " | Elementen in array: " + String(json.size()));
 
   	// String json_string;
   	// serializeJson(json, json_string);
-	// debug_outln_info(F("writeConfigS7000() => [JSON] format: \n"), json_string.c_str());
+	// debug_outln_info(F("writeConfigS700xx() => [JSON] format: \n"), json_string.c_str());
 
 
 #pragma GCC diagnostic push
@@ -2049,7 +2056,7 @@ static bool writeConfigS7000()
 		delay(2000);
 		configFile.close();
 
-		debug_outln_info(F("Write JSON 7000 format.....\nJson memory size: "), String(json.memoryUsage()) + 
+		debug_outln_info(F("Write JSON 70xx format.....\nJson memory size: "), String(json.memoryUsage()) + 
 					 	 F(" | Elementen in array: ") + String(json.size()) +
 						 F("\nConfig written successfully."));
 
@@ -2057,12 +2064,12 @@ static bool writeConfigS7000()
         {
             String json_string;
             serializeJson(json, json_string);
-            debug_outln_info(F("writeConfigS7000() => [JSON] S7000 format: \n"), json_string.c_str());
+            debug_outln_info(F("writeConfigS700xx() => [JSON] S70xx format: \n"), json_string.c_str());
         }
     }
 	else
 	{
-		debug_outln_error(F("writeConfigS7000():failed to open config S7000 file for writing"));
+		debug_outln_error(F("writeConfigS700xx():failed to open config S70xx file for writing"));
 		return false;
 	}
 
@@ -2379,10 +2386,10 @@ static void add_age_last_values(String &sourceStr)
 	sourceStr += String((time_since_last + 500) / 1000);
 	sourceStr += FPSTR(INTL_TIME_SINCE_LAST_MEASUREMENT);
 	sourceStr += "<br/><br/>";
-	sourceStr += FPSTR(INTL_TIME_UTC);
+	sourceStr += FPSTR(INTL_TIME_GMT);
 	sourceStr += "&nbsp;";
 	//sourceStr += String(ctime(&now));
-    sourceStr += getDateTime(false);
+    sourceStr += getDateTime();
 
 	sourceStr += FPSTR(WEB_B_BR_BR);
 }
@@ -2458,7 +2465,7 @@ static void webserver_root()
     page_content.replace(F("{t}"), FPSTR(INTL_CURRENT_DATA));
     page_content.replace(F("{s}"), FPSTR(INTL_DEVICE_STATUS));
     page_content.replace(F("{conf}"), FPSTR(INTL_CONFIGURATION));
-    page_content.replace(F("{s7000}"), FPSTR(INTL_SIM7000_CONFIGURATION));
+    page_content.replace(F("{s70xx}"), FPSTR(INTL_SIM7000_CONFIGURATION));
     page_content.replace(F("{restart}"), FPSTR(INTL_RESTART_SENSOR));
     page_content.replace(F("{debug}"), FPSTR(INTL_DEBUG_LEVEL));
     page_content.replace(F("{update}"), FPSTR(INTL_UPDATE_FIRMWARE));
@@ -2855,7 +2862,7 @@ static void webserver_config_send_body_post(String &page_content)
 }
 
 /*****************************************************************
- * Webserver sim7000 config: show sim7000 config page            *
+ * Webserver sim70xx config: show sim70xx config page            *
  *****************************************************************/
 static void webserver_config_send_body_get7(String &page_content)
 {
@@ -2869,17 +2876,21 @@ static void webserver_config_send_body_get7(String &page_content)
 	// 	add_form_checkbox7(cfgid, add_sensor_type(info));
 	// };
 
-	debug_outln_info(F("begin webserver_simm7000_body_get ..."));
-	debug_outln_info(F("SIM7000 enable: "), cfg::has_s7000);
+	debug_outln_info(F("begin webserver_simm70xx_body_get ..."));
+	debug_outln_info(F("SIM70xx enable: "), cfg::has_s7000);
 
-	page_content += F("<form method='POST' action='/s7000' style='width:100%;'>\n");
+	page_content += F("<form method='POST' action='/s70xx' style='width:100%;'>\n");
 	page_content += FPSTR(WEB_BR_BR);
 	page_content += FPSTR(TABLE_TAG_OPEN);
-	// add_form_input7(page_content, Config7000_mode, FPSTR(INTL_SIM_MODE), LEN_SIMM7000 - 1);
+
 	add_form_input7(page_content, Config7000_gprsapn, FPSTR(INTL_SIM_APN), LEN_SIMM7000 - 1);
     add_form_input7(page_content, Config7000_gprsUser, FPSTR(INTL_SIM_USER), LEN_SIMM7000 - 1);
     add_form_input7(page_content, Config7000_gprsPass, FPSTR(INTL_SIM_PASS), LEN_SIMM7000 - 1);
-//	add_form_input7(page_content, Config7000_type, FPSTR(INTL_SIM_TYPE), LEN_SIMM7000 - 1);
+
+    // add_form_input7(page_content, Config7000_type, FPSTR(INTL_SIM_TYPE), LEN_SEN5X_SYM - 1);
+    // add_form_input7(page_content, Config7000_mode, FPSTR(INTL_SIM_MODE), LEN_SEN5X_SYM - 1);
+    page_content += form_select_type7();
+    page_content += FPSTR(WEB_BR_BR);
 	page_content += form_select_mode7();
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	page_content += FPSTR(WEB_BR_BR);
@@ -2888,7 +2899,7 @@ static void webserver_config_send_body_get7(String &page_content)
 	page_content += form_submit(FPSTR(INTL_SAVE_AND_RESTART));
 	page_content += FPSTR(WEB_BR_FORM);
 
-	debug_outln_info(F("End webserver_simm7000 ..."));
+	debug_outln_info(F("End webserver_simm70xx ..."));
 
 	server.sendContent(page_content);
 
@@ -2896,7 +2907,7 @@ static void webserver_config_send_body_get7(String &page_content)
 }
 
 /*********************************************************************************************
- * Webserver sim7000 config: post the changed page to sim7000 config file and restart appl.  *
+ * Webserver sim70xx config: post the changed page to sim70xx config file and restart appl.  *
  *********************************************************************************************/
 static void webserver_config_send_body_post7(String &page_content)
 {
@@ -3008,7 +3019,7 @@ static void webserver_config()
 }
 
 /*
-	Write webside settings into ConfigS7000 file.
+	Write webside settings into ConfigS70xx file.
 */
 static void webserver_config7()
 {
@@ -3017,7 +3028,7 @@ static void webserver_config7()
 		return;
 	}
 
-	debug_outln_info(F("ws: config page S7000..."));
+	debug_outln_info(F("ws: config page S70xx..."));
 
 	server.sendHeader(F("Cache-Control"), F("no-cache, no-store, must-revalidate"));
 	server.sendHeader(F("Pragma"), F("no-cache"));
@@ -3036,13 +3047,13 @@ static void webserver_config7()
 
 	if (server.method() == HTTP_GET)
 	{
-		debug_outln_info(F("SIM7000: HTTP_GET."));
+		debug_outln_info(F("SIM70xx: HTTP_GET."));
 		webserver_config_send_body_get7(page_content);
 
 	}
 	else
 	{
-		debug_outln_info(F("SIM7000: HTTP_POST."));
+		debug_outln_info(F("SIM70xx: HTTP_POST."));
 		webserver_config_send_body_post7(page_content);
 	}
 
@@ -3085,7 +3096,7 @@ static void sensor_restart()
     delay(100);
 
     if (cfg::has_s7000)
-    { // BK-Sim7000 Modem Power Off.
+    { // BK-Sim70xx Modem Power Off.
         modemPowerOff();
     }
 #endif
@@ -4119,7 +4130,7 @@ static void setup_webserver()
 {
 	server.on("/", webserver_root);
 	server.on(F("/config"), webserver_config);
-	server.on(F("/s7000"), webserver_config7);
+	server.on(F("/s70xx"), webserver_config7);
 	server.on(F("/wifi"), webserver_wifi);
 	server.on(F("/values"), webserver_values);
 	server.on(F("/status"), webserver_status);
@@ -4449,7 +4460,7 @@ static void wifi_AP_Config()
 	debug_outln_info_bool(F("MQTT: "), cfg::send2mqtt);
 	debug_outln_info_bool(F("Fix IP address: "), cfg::has_fix_ip);
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
-	debug_outln_info_bool(F("SIMM-7000: "), cfg::has_s7000);
+	debug_outln_info_bool(F("SIMM-70xx: "), cfg::has_s7000);
 	debug_outln_info_bool(F("RCWL-0516: "), cfg::has_radarmotion);
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 	debug_outln_info_bool(F("Autoupdate: "), cfg::auto_update);
@@ -6716,7 +6727,7 @@ static __noinline void fetchSensorGPS(String &s)
         }
     }
     else
-    {   // SIM7000 GPS
+    {   // SIM70xx GPS
         float latitude, longitude, altitude;
         RESERVE_STRING(gps_datetime, 20);
 
@@ -8632,7 +8643,7 @@ static void setupNetworkTime()
 	static char ntpServer1[18], ntpServer2[18];
 
 #if defined(ESP8266)
-        // optional: set callback function if time was sent from NTPSERVER.
+    // set callback function when time value sent from NTPSERVER.
 	settimeofday_cb([]()	
 						{
 							if (!sntp_time_set)
@@ -8915,14 +8926,14 @@ void setup(void)
       // Start Server Configuration website.
         wifi_AP_Config();
 
-		debug_outln_info(F("** Start BK-SIM7000 PCB communication... **"));
+		debug_outln_info(F("** Start BK-SIM70XX PCB communication... **"));
 		if( Sim7000_setup(SETUP_STATE::INIT))
 		{
-			debug_outln_info(F("** BK-SIM7000 Board connected. **"));
+			debug_outln_info(F("** BK-") + GetSimDriverName() + F(" PCB connected. **"));
 		}
 		else
 		{
-			debug_outln_info(F("** BK-SIM7000 Board \"NOT\" connected. **"));
+			debug_outln_info(F("** BK-SIM70XX PCB \"NOT\" connected. **"));
 		}
     }
 

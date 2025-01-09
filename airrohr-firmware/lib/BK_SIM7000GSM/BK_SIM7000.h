@@ -20,8 +20,9 @@
  * set in the appropriate header.
  * 
  * Moved to platformio.ini file: [common] build_flags -D BK_MODEM_DEBUG
- */
-//#define BK_MODEM_DEBUG
+ *
+ *   #define BK_MODEM_DEBUG
+*/
 
 #include "BK_Common.h"
 
@@ -87,17 +88,17 @@ enum PinStatus
 enum RegStatus {
   REG_NO_RESULT    = -1,
   REG_UNREGISTERED = 0,
+  REG_OK_HOME      = 1,
   REG_SEARCHING    = 2,
   REG_DENIED       = 3,
-  REG_OK_HOME      = 1,
-  REG_OK_ROAMING   = 5,
   REG_UNKNOWN      = 4,
+  REG_OK_ROAMING   = 5,
 };
 
 #ifndef LTE_GSM_YIELD
     #define LTE_GSM_YIELD_MS 0
     #define LTE_GSM_YIELD() \
-    { delay(LTE_GSM_YIELD_MS); }      // #define TINY_GSM_YIELD_MS 0
+            { delay(LTE_GSM_YIELD_MS); }      // #define TINY_GSM_YIELD_MS 0
 #endif
 
 #define RESERVE_STRING(name, size) String name((const char*)nullptr); name.reserve(size)
@@ -113,11 +114,12 @@ class BK_modem : public BK_SIM7000_StreamType
 {
 public:
     BK_modem(void);
-    ~BK_modem();
+    virtual ~BK_modem();
 
     void init(BK_SIM7000_StreamType &comPort, HardwareSerial &debugPort, uint8_t pin_pwr);
     boolean begin();
     boolean TestAT(int16_t timeout = 15000);
+    void base_stop();
 
     // Stream functions (these are virtual functions() see Stream.h file)
     int available(void);
@@ -183,7 +185,6 @@ public:
     // Time
     boolean enableNetworkTimeSync(boolean onoff);
     uint8_t getNTPstatus();
-    boolean enableNTPTimeSync(boolean onoff, FStringPtr ntpserver = 0, uint16 timeZone = 0);
     boolean getTime(char *buff, uint16_t maxlen);
 
     // RTC
@@ -191,7 +192,6 @@ public:
     boolean readRTC(uint8_t *year, uint8_t *month, uint8_t *date, uint8_t *hr, uint8_t *min, uint8_t *sec, int8_t *tz);
 
     // GPRS handling
-    boolean enableGPRS(boolean onoff);
     int8_t GPRSstate(void);
     bool isGprsConnected();
     boolean getGSMLoc(uint16_t *replycode, char *buff, uint16_t maxlen);
@@ -201,14 +201,9 @@ public:
     boolean postData(const char *server, uint16_t port, const char *connType, const char *URL, const char *body = "");
     int8_t getNetworkSystemMode(char *typeStringBuffer);
 
-    int8_t getBearerStatus(void);
     boolean getIPv4(char *ipStringBuffer, size_t bufferLength);
     void getNetworkInfo(String &infoLine);
     bool getNetworkInfoLong(void);
-
-    // Network connection (AT+CNACT)
-    boolean openWirelessConnection(bool onoff);
-    boolean wirelessConnStatus(void);
 
     // GPS handling
     boolean enableGPS()     { return enableGPS(true); }
@@ -225,7 +220,7 @@ public:
     boolean UDPconnect(char *server, uint16_t port);
 
     // TCP raw connections
-    boolean TCPconnect(char *server, uint16_t port);
+    boolean TCPconnect(char *server, uint16_t port, uint8_t mux = 0);
     boolean TCPclose(void);
     boolean TCPconnected(void);
     boolean TCPsend(char *packet, uint8_t len);
@@ -247,7 +242,8 @@ public:
     boolean FTP_Quit();
     boolean FTP_Rename(const char *filePath, const char *oldName, const char *newName);
     boolean FTP_Delete(const char *fileName, const char *filePath);
-    boolean FTP_MDTM(const char *fileName, const char *filePath, uint16_t *year, uint8_t *month, uint8_t *day, uint8_t *hour, uint8_t *minute, uint8_t *second);
+    boolean FTP_MDTM(const char *fileName, const char *filePath, 
+                     uint16_t *year, uint8_t *month, uint8_t *day, uint8_t *hour, uint8_t *minute, uint8_t *second);
     // boolean FTP_GET(const char* fileName, const char* filePath, uint16_t numBytes, char * replybuffer);
     const char *FTP_GET(const char *fileName, const char *filePath, uint16_t numBytes);
     boolean FTP_PUT(const char *fileName, const char *filePath, char *content, size_t numBytes);
@@ -288,8 +284,54 @@ public:
     // Helper functions to verify responses.
     boolean expectReply(FStringPtr reply, uint16_t timeout = 10000);
     boolean sendCheckReply(const char *send, const char *reply, uint16_t timeout = BK_SIM7000_DEFAULT_TIMEOUT_MS);
-    boolean sendCheckReply(FStringPtr send, FStringPtr reply, uint16_t timeout = BK_SIM7000_DEFAULT_TIMEOUT_MS);
-    boolean sendCheckReply(const char *send, FStringPtr reply, uint16_t timeout = BK_SIM7000_DEFAULT_TIMEOUT_MS);
+    boolean sendCheckReply(FStringPtr send, FStringPtr reply,   uint16_t timeout = BK_SIM7000_DEFAULT_TIMEOUT_MS, boolean multiline = false);
+    boolean sendCheckReply(const char *send, FStringPtr reply,  uint16_t timeout = BK_SIM7000_DEFAULT_TIMEOUT_MS);
+
+    boolean isNetworkConnected();
+    uint8_t waitForNetworkConnection(bool check_signal = false, uint32_t timeout_ms = 60000L);
+    String  getNetworkModes(void);
+    int16_t getNetworkMode(void);
+    String  getPreferredModes(void);
+    int16_t getPreferredMode(void);
+    boolean setPreferredMode(uint8_t mode);
+    boolean setPreferredLTEMode(uint8_t mode);
+    boolean setOperatingBand(const char *mode, uint8_t band);
+    boolean hangUp(void);
+
+    boolean GetHTTP_status(void);
+
+    // MQTT
+    String  MQTT_getParameters(void);
+    boolean MQTT_setParameter(const char *paramTag, const char *paramValue, uint16_t port = 0);
+    boolean MQTT_setParameter(const char *paramTag, uint32_t paramValue);
+    boolean MQTT_connect(bool yesno, uint16_t timeout = 15000L);
+    boolean MQTT_connectionStatus(void);
+    boolean MQTT_subscribe(const char *topic, byte QoS);
+    boolean MQTT_unsubscribe(const char *topic);
+    boolean MQTT_publish(const char *topic, const char *payload, uint16_t contentLength, byte QoS, byte retain);
+    boolean MQTT_dataFormatHex(bool yesno);
+
+    // HTTP
+    boolean HTTP_connect(const char *server);
+    boolean HTTP_addHeader(const char *type, const char *value, uint16_t maxlen); // max length of value
+    boolean HTTP_addBody(const char *body, uint16_t bodylen);
+    boolean HTTP_addPara(const char *key, const char *value, uint16_t maxlen);    // max length of value
+    boolean HTTP_GET(const char *URI);
+    boolean HTTP_POST(const char *URI, const char *body, uint8_t bodylen, uint16_t *status, uint16_t *datalen);
+
+
+    // define: BK_modem abstract functions().
+    virtual boolean enableGPRS( boolean flag) = 0;
+    virtual boolean openWirelessConnection( boolean flag) = 0;
+    virtual String Name() = 0;
+    virtual void stop() = 0;
+    virtual boolean enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, uint16 timeZone) = 0;
+
+    // define: BK_modem override functions().
+    virtual boolean wirelessConnStatus(void);   // Check for Network connection status
+    virtual int8_t  getBearerStatus(void);
+    virtual String  getGPRSIP(void);
+    virtual void AT_powerDown(void);
 
 protected:
     //int8_t m_rstpin;
@@ -309,6 +351,7 @@ protected:
     FStringPtr m_ok_reply;
 
     boolean enableGPS(boolean onoff);
+    boolean enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, uint16 timeZone, uint16_t cid);
     uint8_t getGPS_Navigation_Information(uint8_t arg, char *buffer, uint8_t maxbuff);
 
     // HTTP helpers
@@ -358,7 +401,6 @@ protected:
     // Power, battery, and ADC
     void PowerOff(uint8_t BK_PWRKEY);
     void powerOn(uint8_t BK_PWRKEY);
-    void AT_powerDown(void);
 
     static boolean _incomingCall;
     static void onIncomingCall();
@@ -373,49 +415,68 @@ protected:
     // NodeMCU ESP8266 Serial port instance. (set baudrate, data lenght, ...)
     BK_SIM7000_StreamType   *SerialSIM;
 
-};
+};// class BK_modem
 
 /*
-    BK Sim7000 modem LTE class.
+    BK Sim70X0 modem classes.
 */
-class BK_modem_LTE : public BK_modem
+/*---------------- BK_SIM-7000 modem PCB ---------------*/
+
+/// @brief : BK_modem_7000 class, BK_modem is the basis class.
+class BK_modem_7000 : public BK_modem
 {
-
 public:
-    BK_modem_LTE();
+    BK_modem_7000() : BK_modem() {}
+    ~BK_modem_7000() {};
 
-    boolean isNetworkConnected();
-    uint8_t waitForNetworkConnection(bool check_signal = false, uint32_t timeout_ms = 60000L);
-    String  getNetworkModes(void);
-    int16_t getNetworkMode(void);
-    String  getPreferredModes(void);
-    int16_t getPreferredMode(void);
-    boolean setPreferredMode(uint8_t mode);
-    boolean setPreferredLTEMode(uint8_t mode);
-    boolean setOperatingBand(const char *mode, uint8_t band);
-    boolean setBaudrate(uint32_t baud);
-    boolean hangUp(void);
-    String  getGPRSIP(void);
-    boolean GetHTTP_status(void);
+    // These are abstract functions() see base class "BK_modem"
+    // Interface function defines
+    boolean enableGPRS(boolean onoff);
+    boolean openWirelessConnection(bool onoff);
+    String Name();
+    void stop();
+    boolean enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, uint16 timeZone);
 
-    // MQTT
-    String  MQTT_getParameters(void);
-    boolean MQTT_setParameter(const char *paramTag, const char *paramValue, uint16_t port = 0);
-    boolean MQTT_setParameter(const char *paramTag, uint32_t paramValue);
-    boolean MQTT_connect(bool yesno);
-    boolean MQTT_connectionStatus(void);
-    boolean MQTT_subscribe(const char *topic, byte QoS);
-    boolean MQTT_unsubscribe(const char *topic);
-    boolean MQTT_publish(const char *topic, const char *payload, uint16_t contentLength, byte QoS, byte retain);
-    boolean MQTT_dataFormatHex(bool yesno);
+    // Override functions() from functions in the base class "BK_modem"
+    int8_t getBearerStatus(void) override;
 
-    // HTTP
-    boolean HTTP_connect(const char *server);
-    boolean HTTP_addHeader(const char *type, const char *value, uint16_t maxlen); // max length of value
-    boolean HTTP_addBody(const char *body, uint16_t bodylen);
-    boolean HTTP_addPara(const char *key, const char *value, uint16_t maxlen);    // max length of value
-    boolean HTTP_GET(const char *URI);
-    boolean HTTP_POST(const char *URI, const char *body, uint8_t bodylen, uint16_t *status, uint16_t *datalen);
+};
+
+/*---------------- BK_SIM-7080 modem PCB ---------------*/
+
+
+#define GSM_MUX_COUNT 12
+
+/// @brief : BK_modem_7080 class, BK_modem is the basis class.
+class BK_modem_7080 : public BK_modem
+{
+public:
+    BK_modem_7080();
+    BK_modem_7080( uint8_t mux);
+    ~BK_modem_7080();
+ 
+    // These are abstract functions() see Base class "BK_modem"
+    // Interface function defines
+    boolean enableGPRS(boolean onoff);
+    boolean openWirelessConnection(bool onoff);
+    String Name();
+    boolean enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, uint16 timeZone);
+
+    // Override functions() from functions in the base class "BK_modem"
+    boolean wirelessConnStatus(void) override;
+    //int8_t getBearerStatus(void) override;
+    void stop() override;
+    String  getGPRSIP(void) override;
+    void AT_powerDown(void) override;
+
+protected:
+    uint8_t mux;                        // Set TCP/UDP Identifier (Range is 0-12)
+    uint16_t pdpidx;                    // (PDP Context Identifier) a numeric parameter which specifies a
+                                        // particular PDP context definition. The parameter is local to the TE-MT
+                                        // interface and is used in other PDP context-related commands. 
+                                        // The minimum value=0, range = 0…3 
+
+    void stop(uint32_t maxWaitMs);
 };
 
 #endif // BK_SIM7000_MODEM_H
