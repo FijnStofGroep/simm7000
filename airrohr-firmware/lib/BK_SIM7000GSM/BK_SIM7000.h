@@ -29,7 +29,7 @@
 // memory size of internet, at least 512
 #define RECEIVE_BUFFER_LENGHT_MAX 512
 
-#define GSMMODEM_BAUD 9600
+#define LTEMODEM_BAUD 9600
 #define SERIALSIM_BAUD 115200
 
 // Set the preferred SMS storage.
@@ -141,7 +141,7 @@ public:
     String getResponseMessage(void);
 
     // Power, battery, and ADC
-    void modemPowerOn();
+    void LTE_modem_PowerUp();
     void modemPowerOff();
     void modemPowerRestart();
     
@@ -151,7 +151,7 @@ public:
 
     // Functionality and operation mode settings
     boolean setFunctionality(uint8_t option);                                                           // AT+CFUN command
-    boolean enableSleepMode(bool onoff);                                                                // AT+CSCLK command
+    boolean enableSleepMode(int8_t onoff);                                                              // AT+CSCLK command
     boolean set_eDRX(uint8_t mode, uint8_t connType, char *eDRX_val);                                   // AT+CEDRXS command
     boolean enablePSM(bool onoff);                                                                      // AT+CPSMS command
     boolean enablePSM(bool onoff, char *TAU_val, char *activeTime_val);                                 // AT+CPSMS command
@@ -398,28 +398,27 @@ protected:
                                 char divider = ',', 
                                 uint8_t index = 0);
 
-    // Power, battery, and ADC
-    void PowerOff(uint8_t BK_PWRKEY);
-    void powerOn(uint8_t BK_PWRKEY);
 
     static boolean _incomingCall;
     static void onIncomingCall();
 
+    void LTE_modem_PowerOff();
+
 #ifdef BK_MODEM_DEBUG
 // DebugStream sets the Stream output to use
 // for debug (only applies when BK_MODEM_DEBUG is defined in platformIO.ini file)
-    HardwareSerial *DebugStream;
+    HardwareSerial  *DebugStream = NULL;
 #endif
 
     // create 'SerialSIM' instance pointer on Heap.
     // NodeMCU ESP8266 Serial port instance. (set baudrate, data lenght, ...)
-    BK_SIM7000_StreamType   *SerialSIM;
+    BK_SIM7000_StreamType   *SerialSIM = NULL;
 
-};// class BK_modem
+};// Base class BK_modem
 
-/*
-    BK Sim70X0 modem classes.
-*/
+/***************************************************************************************
+                        BK Sim70X0 modem classes.
+****************************************************************************************/
 /*---------------- BK_SIM-7000 modem PCB ---------------*/
 
 /// @brief : BK_modem_7000 class, BK_modem is the basis class.

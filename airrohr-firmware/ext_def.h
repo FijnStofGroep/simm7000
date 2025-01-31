@@ -159,11 +159,14 @@ static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
 #define GPS_SERIAL_RX D5
 #define GPS_SERIAL_TX D6
 
-// SoftwareSerial communication port pins to SIM7000 unit => define pins for BK-SIM7000 board.
-#define SIM_PIN_RX  D5              // Serial RX pin no: D5 -> GPIO14  <---- TX SIM7000
-#define SIM_PIN_TX  D6              // Serial TX pin no: D6 -> GPIO12  ----> RX SIM7000
-#define SIM_PIN_PWR D7              // PowerPin no:      D7 -> GPIO13  ----> SIM7000 PWRPIN
-// #define PIN_DTR 25   xx
+//define Serial pins from NodeMCU8266 to BK-SIM70XX board.
+#define SIM_PIN_RX   D5              // RX pin no: D5 -> GPIO14  <---- TX SIM70XX
+#define SIM_PIN_TX   D6              // TX pin no: D6 -> GPIO12  ----> RX SIM70XX
+#define SIM_PIN_SRX  D6              // Swap RX pin no: D6 -> GPIO14  <---- TX SIM70XX
+#define SIM_PIN_STX  D5              // Swap TX pin no: D5 -> GPIO12  ----> RX SIM70XX
+
+#define SIM_PIN_PWR  D7              // PowerPin no:    D7 -> GPIO13  ----> Power unit controled by MOSFET
+#define SIM_PIN_DTR  D8
 
 // define serial interface pins for Next PM Sensor
 #define NPM_SERIAL_RX D1

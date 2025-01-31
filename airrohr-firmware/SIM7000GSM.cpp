@@ -91,7 +91,14 @@ namespace cfg7
     // set GSM PIN, if any (#define GSM_PIN "")
     char gprsPIN[MAX_PORT_DIGITS];
 
+	/// @brief : sim_type:
+    ///                 0 = No type
+    ///                 1 = SIM7000_RXD5_TXD6,
+	///			        2 = SIM7000_RXD6_TXD5,
+	///			        3 = SIM7080_RXD5_TXD6,
+	///			        4 = SIM7080_RXD6_TXD5
 	unsigned sim_type = 0;
+
 	unsigned mode_selection = 2;        // default 38
     unsigned communication_type = 1;    // default 1
 
@@ -211,7 +218,7 @@ int32_t GetWiFi_RSSI( void)
 {
     if (lte_init_failed)
     {
-        debug_outln_verbose(F("RSSI: GSM module (GPRS) \"NOT\" connected.. "));
+        debug_outln_verbose(F("RSSI: LTE module (GPRS) \"NOT\" connected.. "));
         return 0;
     }
 
@@ -230,7 +237,7 @@ String GetLTELocalIP(void)
 {
     if (lte_init_failed)
     {
-        debug_outln_info(F("IP: GSM module (GPRS) \"NOT\" connected.. "));
+        debug_outln_info(F("IP: LTE module (GPRS) \"NOT\" connected.. "));
         return String("0.0.0.0");
     }
 
@@ -248,16 +255,28 @@ String GetSimDriverName(void)
 /// @brief BK-SIM70XX PCB Power OFF.
 void modemPowerOff()
 {
-    LTEmodem->modemPowerOff();
+    if(LTEmodem != NULL)
+    {
+        LTEmodem->modemPowerOff();
+    }
 }
 
-/// @brief Restart BK-SIM70XX PCB.
+/// @brief Restart BK-SIM70XX LTE modem.
 bool RestartLTEModem()
 {
-    debug_outln_info(F("Restart LTE Modem SIM7xxx process."));
+    if (LTEmodem != NULL)
+    {
+        debug_outln_info(F("Restart LTE Modem SIM70xx process."));
 
-    LTEmodem->modemPowerRestart();
-    return Sim7000_setup(SETUP_STATE::RESTART);
+        // LTEmodem->modemPowerRestart();
+        LTEmodem->modemPowerOff();
+
+        return Sim7000_setup(SETUP_STATE::RESTART);
+    }
+    else
+    {
+        return true;
+    }
 }
 
 /// @brief 
@@ -389,38 +408,66 @@ bool Sim7000_setup( int state)
 
     if(LTEmodem != NULL )
     {
-        debug_outln_info( F("Remove from memory PCB Driver instance = ") + LTEmodem->Name());
+        debug_outln_info( F("Remove from Heap-memory: SIM70XX Driver instance = ") + LTEmodem->Name());
         delete LTEmodem;        // clean-up all "BK_modem" resources.
+        LTEmodem = NULL;
     }
 
-    switch(cfg7::sim_type)
+    uint16_t rx = 0;
+    uint16_t tx = 0;
+
+    if (LTEmodem == NULL)
     {
+        switch (cfg7::sim_type)
+        {
         default:
-        case 0:
-            LTEmodem = new BK_modem_7000();
-            break;
-  
+        case 1:
+            rx = SIM_PIN_RX;
+            tx = SIM_PIN_TX;
+            goto exit_7000;
+
         case 2:
-            LTEmodem = new BK_modem_7080();
+            rx = SIM_PIN_SRX;
+            tx = SIM_PIN_STX;
+
+        exit_7000:
+            LTEmodem = new BK_modem_7000(); // create LTEmodem 7000 instance.
             break;
+
+        case 3:
+            rx = SIM_PIN_RX;
+            tx = SIM_PIN_TX;
+            goto exit_7080;
+
+        case 4:
+            rx = SIM_PIN_SRX;
+            tx = SIM_PIN_STX;
+
+        exit_7080:
+            LTEmodem = new BK_modem_7080(); // create LTEmodem 7080 instance.
+            break;
+        }
     }
 
-    debug_outln_info( F("SIM70XX Driver Instance = ") + LTEmodem->Name());
+    debug_outln_info( F("\tSIM70XX Driver Instance = ") + LTEmodem->Name());
 
-    // set RS-232 port settings between ESP8266 and BK-SIM70XX module.
-    SerialSIM.begin(SERIALSIM_BAUD, SWSERIAL_8N1, SIM_PIN_RX, SIM_PIN_TX); // start with default SIM7000 shield baud rate.
-
-    // initialize LTEmodem instance.
+    // initialize LTEmodem settings.
     LTEmodem->init(SerialSIM, Debug, SIM_PIN_PWR);
 
-    // Set BK-SIM70XX GSM-modem baud rate to lower value.
-    LTEmodem->setBaudrate(GSMMODEM_BAUD);
+    LTEmodem->LTE_modem_PowerUp();
 
-    // set NodeMCU serial port to same baud.
-    SerialSIM.begin(GSMMODEM_BAUD, SWSERIAL_8N1); 
-    delay(100);
+    // set RS-232 port settings between NodeMCU-ESP8266 and BK-SIM70XX module.
+    SerialSIM.begin(SERIALSIM_BAUD, SWSERIAL_8N1, rx, tx); // start with default SIM70XX shield baudrate.
+    delay(50);
 
-    debug_outln_info(F("Initializing BK_Sim7000 Modem PCB..."));
+    // Set BK-SIM70XX LTE-modem baudrate to lower value.
+    LTEmodem->setBaudrate(LTEMODEM_BAUD);
+
+    // set NodeMCU serial port to same baudrate.
+    SerialSIM.begin(LTEMODEM_BAUD, SWSERIAL_8N1);
+    delay(50);
+
+    debug_outln_info(F("Initializing BK_Sim70XX Modem PCB..."));
 
     if (!LTEmodem->begin())
     {
@@ -436,7 +483,7 @@ bool Sim7000_setup( int state)
     debug_outln_info(F("Modem Name: "), name);
 
     String modemInfo = LTEmodem->getModemInfo();
-    debug_outln_info(F("GSM Modem Info: "), modemInfo);
+    debug_outln_info(F("LTE Modem Info: "), modemInfo);
 
     // Unlock your SIM card with a PIN if needed
     int8_t stat = LTEmodem->getPINStatus();
@@ -460,18 +507,15 @@ bool Sim7000_setup( int state)
         return false;
     }
 
-    Debug.print(F("Waiting for network..."));
-    // int res;
-    // if ( (res = LTEmodem->waitForNetworkConnection()) > 0)
-    // {
-        RegStatus epsStatus = (RegStatus)LTEmodem->getNetworkStatus();
-        if (epsStatus == RegStatus::REG_DENIED || epsStatus == RegStatus::REG_UNKNOWN)
-        {
-            debug_outln_info(F(" Failed error code: ") + String(epsStatus));
-            lte_init_failed = true;
-            return false;
-        }
-    //}
+    Debug.print(F("Waiting for network provider..."));
+
+    RegStatus epsStatus = (RegStatus)LTEmodem->getNetworkStatus();
+    if (epsStatus == RegStatus::REG_DENIED || epsStatus == RegStatus::REG_UNKNOWN)
+    {
+        debug_outln_info(F(" Failed error code: ") + String(epsStatus));
+        lte_init_failed = true;
+        return false;
+    }
 
     debug_outln_info(F(" Success."));
 
@@ -495,7 +539,7 @@ bool Sim7000_setup( int state)
     if (cfg7::s7000_has_gps)
     { // Perform first-time GPS/data setup if the shield is going to remain on,
       // otherwise these won't be enabled in loop() and it won't work!
-      // Enable GPS, first time take some time to start GPS process in sim7000 module.
+      // Enable GPS, first time take some time to start GPS process in sim70xx module.
       // max 60 sec.
 
         for(int reply = 30; reply > 0; reply--)
@@ -540,7 +584,6 @@ bool Sim7000_setup( int state)
     }
 
     wait_NTP_sync_time = 15000;                       // wait 15 sec. before the first call to "setNTPTimeSync();""
-
     m_starttime = millis();                           // store the start time
 
     return true;
@@ -564,7 +607,7 @@ boolean GetGPSLocation(float *latitude, float *longitude, float *altitude, Strin
 {
     if (lte_init_failed)
     {
-        debug_outln_info(F("GPS: GSM module (GPRS) \"NOT\" connected.. "));
+        debug_outln_info(F("GPS module \"NOT\" connected.. "));
         return false;
     }
 
@@ -645,7 +688,7 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
 {
     if (lte_init_failed)
     {
-        debug_outln_info(F("MQTT: GSM module (GPRS) \"NOT\" connected.. "));
+        debug_outln_info(F("MQTT: LTE module (GPRS) \"NOT\" connected.. "));
         return false;
     }
 
@@ -706,7 +749,8 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
         LTEmodem->MQTT_setParameter("CLEANSS", 1);
         LTEmodem->MQTT_setParameter("QOS", 1);
 
-#ifdef BK_MODEM_DEBUG
+#ifdef VS_DEBUG
+        debug_outln_info(F("Connecting to MQTT broker...\nMQTT Parameters:\n");     // display is done by BK_SIM7000 driver.
         String stmp = LTEmodem->MQTT_getParameters();
         //debug_outln_info(F("Connecting to MQTT broker...\nMQTT Parameters:\n") + stmp);
 #else
@@ -766,7 +810,7 @@ int32_t sendDataByLTE(const LoggerEntry logger, const String &str_JsonData, cons
 {
     if (lte_init_failed)
     {
-        debug_outln_info(F("GSM module (GPRS) \"NOT\" connected.. "));
+        debug_outln_info(F("API's: LTE module (GPRS) \"NOT\" connected.. "));
         return 0;
     }
 
@@ -979,6 +1023,12 @@ void SyncNTPTime(void)
     if( (act_milli - m_starttime) > wait_NTP_sync_time)
     {
         debug_outln_info(F("Start: Sync NTP Date/Time process."));
+
+        if( wait_NTP_sync_time == ONE_DAY_IN_MS)
+        {
+            RestartLTEModem();              // Restart SIM70xx PCB firmware every day.
+            delay(200);
+        }
 
         setNTPTimeSync();
 

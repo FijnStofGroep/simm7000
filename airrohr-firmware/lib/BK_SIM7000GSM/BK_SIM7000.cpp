@@ -102,12 +102,15 @@ void BK_modem::init(BK_SIM7000_StreamType &comPort, HardwareSerial &debugPort, u
 
 #ifdef BK_MODEM_DEBUG
     // Set DebugStream instance to Stream output to use for debug log info.
-    DebugStream = &debugPort;
+    if( DebugStream == NULL)
+    {
+        DebugStream = &debugPort;
+    }
 #endif
 
     m_PIN_PWR = pin_pwr;
-    pinMode(m_PIN_PWR, OUTPUT);
-    digitalWrite(m_PIN_PWR, HIGH); // Default state
+    pinMode(m_PIN_PWR, OUTPUT);             // set GPIO property.
+    digitalWrite(m_PIN_PWR, LOW);           // LOW = Default OFF state.
 }
 
 /// @brief  : SIM7000 takes about 3s to turn on.
@@ -129,10 +132,13 @@ boolean BK_modem::begin()
     }
 
     // Set Echo Off"
-    sendCheckReply(F("ATE0"), m_ok_reply); // Echo Off
+    //sendCheckReply(F("ATE0"), m_ok_reply);
 
     // turn on error result codes.
     setMobileEquipmentError(1);
+
+    //Default: SIM70XXG will do: nothing when the 'DTR' pin is pulling up.
+    enableSleepMode(0);       
 
     /*  When "get local timestamp" function is enabled, the following URC may be
         reported if network sends the message to the MS to provide the MS with
@@ -160,8 +166,9 @@ boolean BK_modem::begin()
         // return (ret == SIM_READY || ret == SIM_PUK);
     }
 
-    // Set the network status LED blinking pattern while connected to a network (see AT+SLEDS command)
-    setNetLED(true, 2, 64, 3000); // on/off, mode, timer_on, timer_off
+    // Set the network status green LED blinking pattern while connected to a network.
+    setNetLED(true, 2,  500, 3000);     // Connected to network: on/off, mode, timer_on, timer_off
+    setNetLED(true, 3, 1000, 5000);     // Data connection enabled: on/off, mode, timer_on, timer_off  (default: 64, 300)
 
     BK_DEBUG_PRINTLN(F("BK_modem::Begin() End..."));
     return true;
@@ -184,7 +191,7 @@ boolean BK_modem::TestAT(int16_t timeout)
         }
 
         if (sendCheckReply(F("AT"), m_ok_reply))
-        {
+        {// exit.
             break;
         }
 
@@ -195,7 +202,7 @@ boolean BK_modem::TestAT(int16_t timeout)
 
         if (sendCheckReply(F("AT"), F("AT")))
         {
-            sendCheckReply(F("ATE0"), m_ok_reply); // Echo Off
+            sendCheckReply(F("ATE0"), m_ok_reply);  // set "Echo Off"
             //break;
         }
 
@@ -240,17 +247,6 @@ boolean BK_modem::TestAT(int16_t timeout)
 }
 
 /*****************************************************************
-    BK-Sim7000 modem Power On.
-******************************************************************/
-void BK_modem::modemPowerOn()
-{
-    BK_DEBUG_PRINTLN(F("BK-Sim7000 Power-On process."));
-
-    powerOn(m_PIN_PWR);
-    delay(2100);
-}
-
-/*****************************************************************
     BK-Sim7000 modem Power Off.
 ******************************************************************/
 void BK_modem::modemPowerOff()
@@ -259,13 +255,12 @@ void BK_modem::modemPowerOff()
     if (SerialSIM != NULL)
     {// SIM-70xx PCB communication active.
         AT_powerDown();
-        delay(2100);
+        delay(1200);
 
-        BK_DEBUG_PRINTLN(F("BK-Sim7000 Power-Off process."));
+        LTE_modem_PowerOff();
+
+        BK_DEBUG_PRINTLN(F("BK-Sim70XX Power-Off process."));
     }
-
-    PowerOff(m_PIN_PWR);
-    delay(2100);
 }
 
 /*****************************************************************
@@ -279,29 +274,28 @@ void BK_modem::modemPowerRestart()
         return;
     }
 
-    BK_DEBUG_PRINTLN(F("BK-Sim7000 PCB Power Restart process START"));
+    BK_DEBUG_PRINTLN(F("BK-Sim70XX PCB Power Restart process START"));
 
     flushInput();
 
-    modemPowerOff();
+    modemPowerOff();            // BK-modem Software Abort
 
-    modemPowerOn();
+    LTE_modem_PowerUp();        // BK-modem Hardware restart.
 
-    BK_DEBUG_PRINTLN(F("BK-Sim7000 PCB Power Restart process ENDED"));
+    BK_DEBUG_PRINTLN(F("BK-Sim70XX PCB Power Restart process ENDED"));
 }
 
 /// @brief 
 /// @param 
 void BK_modem::base_stop()
 {
-    BK_DEBUG_PRINTLN(F("BK-Sim7000 => base_stop()"));
+    BK_DEBUG_PRINTLN(F("BK_modem => base_stop()"));
 
     // disconnect all sockets and close bearer and detach from GPRS Service.
     sendCheckReply(F("AT+CIPSHUT"), F("SHUT OK"), 8000);
 }
 
 /********* Serial port ****************************************************/
-
 /// @brief
 /// @param baud
 /// @return
@@ -311,46 +305,51 @@ boolean BK_modem::setBaudrate(uint32_t baud)
 }
 
 /********* POWER, BATTERY & ADC ********************************************/
-
-/* returns value in mV (uint16_t) */
-boolean BK_modem::getBattVoltage(uint16_t *v)
+/// @brief 
+/// @param _value 
+/// @return value in mV (uint16_t)
+boolean BK_modem::getBattVoltage(uint16_t *_value)
 {
-    return sendParseReply(F("AT+CBC"), F("+CBC: "), v, ',', 2);
+    return sendParseReply(F("AT+CBC"), F("+CBC: "), _value, ',', 2);
 }
 
 /*****************************************************************
-    BK-Sim7000 By restart firmware Power Off.
+    BK-Sim7000 By restart firmware Power Off/On.
 ******************************************************************/
-void BK_modem::PowerOff(uint8_t PwrKey)
+/// @brief Hardware PCB:  Power-Off / Power-ON
+/// @attention: DON'T change the delay() timer values.
+void BK_modem::LTE_modem_PowerUp()
 {
-    // All UART communication gives some time Exception (28): when firmware restart().
-    //BK_DEBUG_PRINTLN(F("BK-Sim7000 Power-Off process."));
+    BK_DEBUG_PRINTLN(F("LTE_modem PCB Power OFF..."));
 
-    // pinMode(m_PIN_PWR, OUTPUT);
-    digitalWrite(PwrKey, HIGH);
-    delay(1500);                    // Datasheet Toned mintues = minimal 1.2S
-    digitalWrite(PwrKey, LOW);
+    digitalWrite(m_PIN_PWR, LOW);
+    delay(3000);                          // Datasheet Toned seconds = minimal 3sec.
+
+    BK_DEBUG_PRINTLN(F("LTE_modem PCB Power ON..."));
+    digitalWrite(m_PIN_PWR, HIGH);
+    delay(4000);                          // wait that sim70xx mcu start-up. 
+
+    BK_DEBUG_PRINTLN(F("LTE_modem, wait till MCU firmware running..."));
+                                          // See spec sheets for your particular module
+    delay(5000);                          // Datasheet Toned seconds = minimal 5Sec. (9000)
 }
 
-/* powers on the module */
-void BK_modem::powerOn(uint8_t PwrKey)
+/// @brief Hardware PCB:  Power-Off 
+void BK_modem::LTE_modem_PowerOff()
 {
-    // pinMode(_PWRKEY, OUTPUT);
-    digitalWrite(PwrKey, LOW);
-
-    // See spec sheets for your particular module
-    delay(1100); // At least 1s
-
-    digitalWrite(PwrKey, HIGH);
+    digitalWrite(m_PIN_PWR, LOW);
+    delay(1200);
 }
 
 /// @brief : powers down the SIM7000 module.
+///          Module is powered down by AT command "AT+CPOWD=1"
 /// @param  
 void BK_modem::AT_powerDown(void)
 {
     // disconnect all sockets and close bearer and detach from GPRS Service.
     stop();
-    delay(200);
+
+    delay(1);                           // to reset Soft WDT
 
     sendCheckReply(F("AT+CPOWD=1"), F("NORMAL POWER DOWN"));     // Normal power off
 }
@@ -372,24 +371,38 @@ boolean BK_modem::getADCVoltage(uint16_t *adcValue)
 }
 
 /********* NETWORK AND WIRELESS CONNECTION SETTINGS ***********************/
-
+// Set Phone Functionality:
 // Uses the AT+CFUN command to set functionality (refer to AT+CFUN in manual)
-// 0 --> Minimum functionality
-// 1 --> Full functionality
-// 4 --> Disable RF
-// 5 --> Factory test mode
-// 6 --> Restarts module
-// 7 --> Offline mode
+//              0 --> Minimum functionality
+//              1 --> Full functionality
+//              4 --> Disable RF
+//              5 --> Factory test mode
+//              6 --> Restarts module
+//              7 --> Offline mode
 boolean BK_modem::setFunctionality(uint8_t option)
 {
     return sendCheckReply(F("AT+CFUN="), option, m_ok_reply);
 }
 
-// Sleep mode reduces power consumption significantly while remaining registered to the network
-// NOTE: USB port must be disconnected before this will take effect
-boolean BK_modem::enableSleepMode(bool onoff)
+/// @brief Sleep mode reduces power consumption significantly while remaining registered to the network
+/// Disable or enable slow clock
+///                 0 Disable slow clock, module will not enter sleep mode. 
+///                 1 Enable slow clock, it is controlled by DTR. 
+///                         When DTR is high, module can enter sleep mode. 
+///                         When DTR changes to low level, module can quit sleep mode.
+/// @param onoff 
+/// @return 
+boolean BK_modem::enableSleepMode(int8_t onoff)
 {
-    return sendCheckReply(F("AT+CSCLK="), onoff, m_ok_reply);
+    uint16_t n_value;
+    sendParseReply(F("AT+CSCLK?"), F("+CSCLK: "), &n_value, ',', 1); // Read Configure Slow Clock value
+    
+    if( n_value != onoff)
+    {
+        sendCheckReply(F("AT+CSCLK="), onoff, m_ok_reply);
+    }
+
+    return true;
 }
 
 //
@@ -465,16 +478,18 @@ boolean BK_modem::enablePSM(bool onoff, char *TAU_val, char *activeTime_val)
     return sendCheckReply(auxStr, m_ok_reply);
 }
 
+//
 // Enable, disable, or set the blinking frequency of the network status LED
 // Default settings are the following:
-// Not connected to network --> 1,64,800
-// Connected to network     --> 2,64,3000
-// Data connection enabled  --> 3,64,300
+//   mode:    0  set default netlight blinking periode: 64ms on/300ms off
+//            1  Not connected to network --> 1,64,800
+//            2  Connected to network     --> 2,64,3000
+//            3  Data connection enabled  --> 3,64,300
 boolean BK_modem::setNetLED(bool onoff, uint8_t mode, uint16_t timer_on, uint16_t timer_off)
 {
     if (onoff)
     {
-        getReply(F("AT+CSGS?")); // Netlight Indication of GPRS Status.
+        getReply(F("AT+CSGS?"));    // Netlight Indication of GPRS Status.
 
         uint16_t stsMode;
         parseReply(F("+CSGS:"), &stsMode);
@@ -482,35 +497,36 @@ boolean BK_modem::setNetLED(bool onoff, uint8_t mode, uint16_t timer_on, uint16_
             <stsMode>
                 0 Disable
                 1 Enable, the netlight will be forced to enter into 64ms on/300ms off
-                  blinking state in GPRS data transmission service. 
+                  blinking state in GPRS data transmission service.
                   Otherwise, the netlight state is not restricted.
-                2 Enable, the netlight will blink according to AT+SLEDS in GPRS data transmission service.
+                2 Enable, the netlight will blink according to "AT+SLEDS" in GPRS data transmission service.
         */
 
-        if (stsMode == 2)
+        if (mode == 0 )
         {
-            if (!sendCheckReply(F("AT+CNETLIGHT=1"), m_ok_reply))       // Open It to Shining
+            sendCheckReply(F("AT+CSGS=1"), m_ok_reply);
+            sendCheckReply(F("AT+CNETLIGHT=1"), m_ok_reply);        // Open It to Shining)
+            return true;
+        }
+        else
+        {
+            if (!sendCheckReply(F("AT+CSGS=2"), m_ok_reply) ||      // set Slow Clock value = Enable
+                !sendCheckReply(F("AT+CNETLIGHT=1"), m_ok_reply))   // Open It to Shining)
             {
                 return false;
             }
 
-            if (mode > 0)
-            {
-                char auxStr[25];
+            char auxStr[25];
 
-                sprintf(auxStr, "AT+SLEDS=%i,%i,%i", mode, timer_on, timer_off);
-                return sendCheckReply(auxStr, m_ok_reply);
-            }
-            else
-            {
-                return true;
-            }
+            sprintf(auxStr, "AT+SLEDS=%i,%i,%i", mode, timer_on, timer_off);
+            return sendCheckReply(auxStr, m_ok_reply);
         }
 
         return true;
     }
     else
-    {   // Close the Net Light
+    { // Close the Net Light
+        sendCheckReply(F("AT+CSGS=0"), m_ok_reply);
         return sendCheckReply(F("AT+CNETLIGHT=0"), m_ok_reply);
     }
 }
@@ -5381,7 +5397,8 @@ BK_modem_7080::BK_modem_7080(uint8_t mux) : BK_modem_7080()
 */
 BK_modem_7080::~BK_modem_7080()
 {
-
+    // Call base destrcutor
+    //BK_modem::~BK_modem()
 }
 
 /// @brief 
@@ -5399,14 +5416,16 @@ void BK_modem_7080::stop(uint32_t maxWaitMs)
 {
     BK_DEBUG_PRINTLN(F("BK_modem_7080 => stop()"));
 
-    //sendCheckReply(F("AT+CACLOSE="), mux, m_ok_reply, maxWaitMs);
-    sendCheckReply(F("AT+CNACT=0,0"), m_ok_reply, 60000L);
+    //sendCheckReply(F("AT+CACLOSE="), mux, m_ok_reply, maxWaitMs); //Close a TCP/UDP Connection
+    char buff[16];
+    sprintf(buff, "AT+CNACT=%d,0", pdpidx);            // AT+CNACT=<pdpidx>,<action>
+    sendCheckReply(buff, m_ok_reply, maxWaitMs);       //Close APP Network Active.
 }
 
 /// @brief : override base stop() function.
 void BK_modem_7080::stop()
 {
-    stop(15000L);
+    stop(5000L);
 }
 
 /// @brief : powers down the SIM7000 module.
@@ -5414,7 +5433,7 @@ void BK_modem_7080::stop()
 void BK_modem_7080::AT_powerDown(void)
 {
     // disconnect all sockets and close bearer and detach from GPRS Service.
-    stop(15000L);
+    stop(9000L);
 }
 
 // APP Network Active context status

@@ -84,6 +84,16 @@
  * 2025-01-08 															*
  *   SIM7080 LTE/GPS module: send sensor data ony to MQTT               *
  *                                                                      *
+ * Soft WDT exception:                                                  *
+ * By Wifi connection or LTE modem connection to a provider             *
+ * The ESP8266 the watchdog (WDT) turned on by default.                 *
+ * If the watchdog timer isn't periodically reset then it will          *
+ * automatically reset your ESP8266.                                    *
+ * The watchdog is reset every time one of the following occurs:        *
+ *        Return from loop() (i.e., reach the end of the function)      *
+ *        call delay(0)                                                 *
+ *        call yield()                                                  *
+ *                                                                      *
  * documentation Exception error list                                   *
  *https://arduino-esp8266.readthedocs.io/en/latest/exception_causes.html*
  ************************************************************************
@@ -110,9 +120,9 @@
  * RAM:     [=====     ]  49.0% (used 40112 bytes from 81920 bytes)     *
  * PROGRAM: [=======   ]  65.5% (used 684009 bytes from 1044464 bytes)  *
  *                                                                      *
- *  * latest build 2025-01-11  											*
- * RAM:     [=====     ]  47.6% (used 38972 bytes from 81920 bytes)     *
- * PROGRAM: [=======   ]  65.8% (used 687509 bytes from 1044464 bytes)  *
+ *  * latest build 2025-01-30  											*
+ * RAM:     [=====     ]  47.6% (used 38988 bytes from 81920 bytes)     *
+ * PROGRAM: [=======   ]  65.9% (used 687961 bytes from 1044464 bytes)  *
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -121,8 +131,15 @@
 #include <WString.h>
 #include <pgmspace.h>
 
-// increment on change
-#define SOFTWARE_VERSION_STR "FWL-2025-01-B5_1"
+// increment on change.
+#if defined(VS_DEBUG)
+// Beta version:
+ #define SOFTWARE_VERSION_STR "FWL-2025-01-B5_3"
+#else
+// Production version:
+ #define SOFTWARE_VERSION_STR "FWL-2025-01-P3"
+#endif
+
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 
 /*****************************************************************
@@ -3426,9 +3443,11 @@ static void webserver_values()
 			add_table_nc_value(FPSTR(SENSORS_SEN55), FPSTR(WEB_NC4k0), last_value_SEN5X_N4);
 			add_table_nc_value(FPSTR(SENSORS_SEN55), FPSTR(WEB_NC10), last_value_SEN5X_N10);
 			add_table_value(FPSTR(SENSORS_SEN55), FPSTR(WEB_TPS), check_display_value(last_value_SEN5X_TS, -1, 1, 0), "µm");
+
 			page_content += FPSTR(EMPTY_ROW);
 			add_table_t_value(FPSTR(SENSORS_SEN55), FPSTR(INTL_TEMPERATURE), last_value_SEN5X_T);
 			add_table_h_value(FPSTR(SENSORS_SEN55), FPSTR(INTL_HUMIDITY), last_value_SEN5X_H);
+
 			page_content += FPSTR(EMPTY_ROW);
 			add_table_value(FPSTR(SENSORS_SEN55), FPSTR(INTL_VOC), check_display_value(last_value_SEN5X_VOC, -1.0, 2, 0), "(index)");
 			add_table_value(FPSTR(SENSORS_SEN55), FPSTR(INTL_NOX), check_display_value(last_value_SEN5X_NOX, -1.0, 2, 0), "ppm");
@@ -4498,7 +4517,7 @@ static void waitForMultiWiFiToConnect(int maxRetries, uint16_t connectTimeOutPer
 	// Wait for ESP8266 to scan the local area and connect with the strongest of the networks defined above
 	while ((retryCount < maxRetries) && wifiMulti.run(connectTimeOutPerAP) != WL_CONNECTED )
 	{
-		//delay(50);
+		delay(1);
 		debug_out("*", DEBUG_MIN_INFO);
 		retryCount++;
 	}
@@ -6406,8 +6425,8 @@ static void fetchSensorSEN5X(String &s)
 	add_Value2Json(s, FPSTR((result_SEN5X + F("N1")).c_str()),  F("NC1.0: "), last_value_SEN5X_N1);
 	add_Value2Json(s, FPSTR((result_SEN5X + F("N25")).c_str()), F("NC2.5: "), last_value_SEN5X_N25);
 	add_Value2Json(s, FPSTR((result_SEN5X + F("N4")).c_str()),  F("NC4.0: "), last_value_SEN5X_N4);
-	add_Value2Json(s, FPSTR((result_SEN5X + F("N10")).c_str()), F("NC10: "), last_value_SEN5X_N10);
-	add_Value2Json(s, FPSTR((result_SEN5X + F("TS")).c_str()),  F("TPS: "), last_value_SEN5X_TS);
+	add_Value2Json(s, FPSTR((result_SEN5X + F("N10")).c_str()), F("NC10: "),  last_value_SEN5X_N10);
+	add_Value2Json(s, FPSTR((result_SEN5X + F("TPS")).c_str()), F("TPS: "),   last_value_SEN5X_TS);
 
 	debug_outln_info( FPSTR((result_SEN5X + " read counter: ").c_str()), String(SEN5X_read_counter));
 	debug_outln_info( FPSTR((result_SEN5X + " read error counter: ").c_str()), String(SEN5X_read_error_counter));
@@ -6467,7 +6486,7 @@ static void fetchSensorSEN5X_THN(String &s,  bool flg_Nox = true, bool flg_clear
 
 		if (flg_Nox)
 		{	// NOx value.
-			add_Value2Json(s, FPSTR((result_SEN5X + F("co2_ppm")).c_str()), FPSTR(DBG_TXT_NOX), last_value_SEN5X_NOX);
+			add_Value2Json(s, FPSTR((result_SEN5X + F("NOX")).c_str()), FPSTR(DBG_TXT_NOX), last_value_SEN5X_NOX);
 		}
 
 	// sensor community server can't handle this ID, (server response code = 400)
@@ -6852,10 +6871,11 @@ static void GetSen5XSensorData()
 			value_SEN5X_N10 += numberConcentrationPm10p0;
 			value_SEN5X_TS += typicalParticleSize;
 
-			debug_outln_verbose(F("PM1 (sec.): "), String(massConcentrationPm1p0));
-			debug_outln_verbose(F("PM2.5 (sec.): "), String(massConcentrationPm2p5));
-			debug_outln_verbose(F("PM4 (sec.) : "), String(massConcentrationPm4p0));
-			debug_outln_verbose(F("PM10 (sec.) : "), String(massConcentrationPm10p0));
+			debug_outln_verbose(F("PM1: "), String(massConcentrationPm1p0));
+			debug_outln_verbose(F("PM2.5: "), String(massConcentrationPm2p5));
+			debug_outln_verbose(F("PM4: "), String(massConcentrationPm4p0));
+			debug_outln_verbose(F("PM10: "), String(massConcentrationPm10p0));
+            debug_outln_verbose(F("TPS: "), String(typicalParticleSize));
 		}
 
 		error = sen5x.readMeasuredValues(massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, massConcentrationPm10p0,
@@ -6875,9 +6895,9 @@ static void GetSen5XSensorData()
 			value_SEN5X_VOC += vocIndex;
 			value_SEN5X_NOX += noxIndex;
 
-			debug_outln_verbose(F("Temp (sec.): "), String(ambientTemperature));
-			debug_outln_verbose(F("Hum (sec.): "), String(ambientHumidity));
-			debug_outln_verbose(F("NOx (index): "), String(noxIndex));
+			debug_outln_verbose(F("Temp: "), String(ambientTemperature));
+			debug_outln_verbose(F("Hum: "), String(ambientHumidity));
+			debug_outln_verbose(F("NOx: "), String(noxIndex));
 		}
 
 		SEN5X_measurement_count++;
@@ -8797,11 +8817,12 @@ static unsigned long sendDataToOptionalApis(const String &data)
 		data_sensemap = data;
 
 		if (cfg::sen5x_read && !is_Sen5x_init_failed && memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
-		{// Add VOC index to sensor MQTT send string.
+		{// Add 'TPS' and 'VOC' index to sensor MQTT send string.
 			data_sensemap.remove(data_sensemap.length() - 2);	// remove "]}"
 			data_sensemap += ',';
 
 			add_Value2Json(data_sensemap, FPSTR((String(F("SEN5X_")) + F("VOC")).c_str()), F("\nVOC: "), last_value_SEN5X_VOC);
+            //add_Value2Json(data_sensemap, FPSTR((String(F("SEN5X_")) + F("TPS")).c_str()), F("TPS: "), last_value_SEN5X_TS);
 
 			data_sensemap.remove(data_sensemap.length() - 1);	// remove ','
 			data_sensemap += "]}";								// set JSON end chars.
@@ -9194,7 +9215,7 @@ void loop(void)
 
             if(last_signal_strength == 0)
             {
-                //try to re-open the LTE connection.
+                //try to re-open the LTE modem connection.
                 RestartLTEModem();
             }
         }
@@ -9527,7 +9548,7 @@ void loop(void)
 		RCWL0516.loop();
 	}
 
-    if(cfg::has_s7000 )
+    if(cfg::has_s7000 && !send_now )
     {
         SyncNTPTime();
         WifiAPmodePowerSave();

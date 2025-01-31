@@ -99,7 +99,7 @@ constexpr const unsigned long PAUSE_BETWEEN_UPDATE_ATTEMPTS_MS = ONE_DAY_IN_MS;	
 constexpr const unsigned long DURATION_BEFORE_FORCED_RESTART_MS = ONE_DAY_IN_MS * 28;	// force a reboot every ~4 weeks
 
 constexpr const unsigned long SAMPLETIME_SEN5X_MS = 1200;								// time between two measurements of the SEN5X PM / temp. / hum. sensor.
-constexpr const unsigned long READINGTIME_SEN5X_MS = 15 * SAMPLETIME_SEN5X_MS;			// how many times reading sensor data (PM/No/tem/hum/..) from the SEN5X sensors.
+constexpr const unsigned long READINGTIME_SEN5X_MS = 25 * SAMPLETIME_SEN5X_MS;			// how many times reading sensor data (PM/No/tem/hum/..) from the SEN5X sensors.
 constexpr const unsigned long SEN5X_WAITING_AFTER_LAST_READ = 31000;                    // 31 sec. waiting time after Start reading mesurement command in ms.
 constexpr const unsigned long SEN5X_AUTO_CLEANING_INTERVAL = 1 * 24 * 60 * 60 * 1000;   // SEN5X Sensor FAN auto cleaning every 1 day(s). time in seconds.
 
