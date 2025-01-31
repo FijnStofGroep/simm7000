@@ -750,7 +750,7 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
         LTEmodem->MQTT_setParameter("QOS", 1);
 
 #ifdef VS_DEBUG
-        debug_outln_info(F("Connecting to MQTT broker...\nMQTT Parameters:\n");     // display is done by BK_SIM7000 driver.
+        debug_outln_info(F("Connecting to MQTT broker...\nMQTT Parameters:\n"));     // display is done by BK_SIM7000 driver.
         String stmp = LTEmodem->MQTT_getParameters();
         //debug_outln_info(F("Connecting to MQTT broker...\nMQTT Parameters:\n") + stmp);
 #else
