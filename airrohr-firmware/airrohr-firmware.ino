@@ -78,6 +78,9 @@
  * New Debug level code 88 ("DEBUG_ENGINEER_INFO"):						*
  * 		Special engineer Debug lines send to USB port					*
  * 																		*
+ * New Build flag in platformio.ini file:								*
+ * 		-DPassword_Encryption	=> encode password in config file.		*
+ * 																		*
  * 2024-08-28 															*
  *   SIM7000 LTE/GPS module: send sensor data only to MQTT              *
  *                                                                      *
@@ -120,9 +123,9 @@
  * RAM:     [=====     ]  49.0% (used 40112 bytes from 81920 bytes)     *
  * PROGRAM: [=======   ]  65.5% (used 684009 bytes from 1044464 bytes)  *
  *                                                                      *
- *  * latest build 2025-01-30  											*
- * RAM:     [=====     ]  47.6% (used 38988 bytes from 81920 bytes)     *
- * PROGRAM: [=======   ]  65.9% (used 687961 bytes from 1044464 bytes)  *
+ *  * latest build 2025-02-03  											*
+ * RAM:     [=====     ]  46.9% (used 38432 bytes from 81920 bytes)     *
+ * PROGRAM: [=======   ]  65.6% (used 685429 bytes from 1044464 bytes)  *
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -133,11 +136,11 @@
 
 // increment on change.
 #if defined(VS_DEBUG)
-// Beta version:
- #define SOFTWARE_VERSION_STR "FWL-2025-01-B5_3"
+// Debug / Beta version:
+ #define SOFTWARE_VERSION_STR "FWL-2025-01-B6_2"
 #else
 // Production version:
- #define SOFTWARE_VERSION_STR "FWL-2025-01-P3"
+ #define SOFTWARE_VERSION_STR "FWL-2025-01-P4"
 #endif
 
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
@@ -212,7 +215,6 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include "./utils.h"
 #include "ext_def.h"
 #include "html-content.h"
-#include "./RCWL-0516.h"
 
 #if defined(ESP8266)
 // BK-SIM70XX source code + header files located in ".\lib" folder.
@@ -220,9 +222,9 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include "./airrohr-cfg7000.h"
 #include "./sim7000_html.h"
 
-// #if defined(Password_Encryption)
-// #include <ESP8266_base64.h>
-// #endif
+#if defined(Password_Encryption)
+#include <ESP8266_base64.h>
+#endif
 
 #endif
 
@@ -349,14 +351,6 @@ namespace cfg
 	char user_custom[LEN_USER_CUSTOM] = USER_CUSTOM;
 	char pwd_custom[LEN_CFG_PASSWORD] = PWD_CUSTOM;
 
-	// Radar motion setting
-	bool has_radarmotion = HAS_RADARMOTION;
-	char host_radar[LEN_HOST_CUSTOM];
-	unsigned  port_radar = PORT_RADAR;
-	unsigned  motion_wait_time = 15;					// default wait 15 sec. before sent to MQTT broker.
-	char user_radar[LEN_USER_CUSTOM] = USER_RADAR;
-	char pwd_radar[LEN_CFG_PASSWORD] = PWD_RADAR;
-
 #if defined(ESP8266)
 	/*	MQTT  */
 	char mqtt_server[LEN_HOST_CUSTOM];
@@ -391,8 +385,6 @@ namespace cfg
 		strcpy_P(cfg::static_subnet, STATIC_SUBNET);
 		strcpy_P(cfg::static_gateway, STATIC_GATEWAY);
 		strcpy_P(cfg::static_dns, STATIC_DNS);
-
-		strcpy_P(cfg::host_radar, HOST_RADAR);
 
 		if (!*cfg::fs_ssid)
 		{
@@ -1589,11 +1581,11 @@ static void readConfigBase(bool oldconfig)
 			debug_outln_info(F("Parsed json...\nJson memory size: "), String(json.memoryUsage()) + String(" chars."));
 		}
 
-// #if defined(Password_Encryption)
-// 		String _base64Password;
-// 		_base64Password.reserve(256);
-// 		char _password[256];
-// #endif
+#if defined(Password_Encryption)
+		String _base64Password;
+		_base64Password.reserve(256);
+		char _password[256];
+#endif
 
 		// "configShape" memory array[], defined in airrohr-cfg.h
 		for (unsigned e = 0; e < sizeof(configShape) / sizeof(configShape[0]); ++e)
@@ -1620,28 +1612,27 @@ static void readConfigBase(bool oldconfig)
 					break;
 
 				case Config_Type_Password:
-// #if defined(Password_Encryption)
-// 					_base64Password.clear();
-// 					_password[0] = '\0';
-// 					_base64Password = String(json[c.cfg_key()].as<const char *>());		// Get encrypt password from config file.
+#if defined(Password_Encryption)
+                    _base64Password.clear();
+                    _password[0] = '\0';
+                    _base64Password = String(json[c.cfg_key()].as<const char *>()); // Get encrypt password from config file.
 
-// 					if(_base64Password.length() > 0)
-// 					{
-// 						b64_decode( _password, (char *)_base64Password.c_str() , _base64Password.length());
-// 						strncpy(c.cfg_val.as_str, _password, c.cfg_len);	// strlen(_password)
-// 						c.cfg_val.as_str[c.cfg_len] = '\0';					// set terminator char.
+                    if (_base64Password.length() > 0)
+                    {
+                        b64_decode(_password, (char *)_base64Password.c_str(), _base64Password.length());
+                        strncpy(c.cfg_val.as_str, _password, c.cfg_len); // strlen(_password)
+                        c.cfg_val.as_str[c.cfg_len] = '\0';              // set terminator char.
 
-// 						if (cfg::debug == DEBUG_ENGINEER_INFO)
-// 						{
-// 							debug_outln_info(F("Input: Base64Password: "), _base64Password);
-// 							debug_outln_info(F("Cfg Password setting: "), String(c.cfg_val.as_str)); // or String(_password)
-// 						}
+#if defined(VS_DEBUG)
+                        debug_outln_info(F("Input: Base64Password: "), _base64Password);
+                        debug_outln_info(F("Cfg Password setting: "), String(c.cfg_val.as_str)); // or String(_password)
 
-// 						break;
-// 					}
-// #endif
+#endif
+                        break;
+                    }
+#endif
 
-				case Config_Type_String:
+                case Config_Type_String:
 					strncpy(c.cfg_val.as_str, json[c.cfg_key()].as<const char *>(), c.cfg_len);
 					c.cfg_val.as_str[c.cfg_len] = '\0';						// set terminator char.
 					break;
@@ -1796,6 +1787,12 @@ static void readConfigS700xx(bool oldconfig)
 			debug_outln_info(F("Parsed json7...\nJson memory size: "), String(json.memoryUsage()) + String(" chars."));
 		}
 
+// #if defined(Password_Encryption)
+// 		String _base64Password;
+// 		_base64Password.reserve(256);
+// 		char _password[256];
+// #endif
+
 		// "configShape" memory array[], defined in airrohr-cfg.h
 		for (unsigned e = 0; e < sizeof(configShape7) / sizeof(configShape7[0]); ++e)
 		{
@@ -1818,6 +1815,26 @@ static void readConfigS700xx(bool oldconfig)
 					*(c.cfg_val.as_uint) = json[c.cfg_key()].as<unsigned int>();
 					break;
 
+                case Config7_Type_Password:
+// #if defined(Password_Encryption)
+//                     _base64Password.clear();
+//                     _password[0] = '\0';
+//                     _base64Password = String(json[c.cfg_key()].as<const char *>()); // Get encrypt password from config file.
+
+//                     if (_base64Password.length() > 0)
+//                     {
+//                         b64_decode(_password, (char *)_base64Password.c_str(), _base64Password.length());
+//                         strncpy(c.cfg_val.as_str, _password, c.cfg_len); // strlen(_password)
+//                         c.cfg_val.as_str[c.cfg_len] = '\0';              // set terminator char.
+
+// #if defined(VS_DEBUG)
+//                         debug_outln_info(F("Input: Base64Password: "), _base64Password);
+//                         debug_outln_info(F("Cfg Password setting: "), String(c.cfg_val.as_str)); // or String(_password)
+
+// #endif
+//                         break;
+//                     }
+// #endif
 				case Config7_Type_String:
 					strncpy(c.cfg_val.as_str, json[c.cfg_key()].as<const char *>(), c.cfg_len);
 					c.cfg_val.as_str[c.cfg_len] = '\0';			// set terminator char.
@@ -1926,11 +1943,11 @@ static bool writeConfigBase()
 {
 	DynamicJsonDocument json(JSON_BUFFER_SIZE);
 
-// #if defined(Password_Encryption)
-// 	String _password;
-// 	_password.reserve(256);
-// 	char _base64Password[256];
-// #endif
+#if defined(Password_Encryption)
+	String _password;
+	_password.reserve(256);
+	char _base64Password[256];
+#endif
 
 	debug_outln_info(F("Saving config..."));
 
@@ -1953,24 +1970,22 @@ static bool writeConfigBase()
 				break;
 
 			case Config_Type_Password:
-// #if defined(Password_Encryption)
-// 				_base64Password[0] = '\0';
-// 				_password = String(c.cfg_val.as_str);		// get password from website.
+#if defined(Password_Encryption)
+				_base64Password[0] = '\0';
+				_password = String(c.cfg_val.as_str);		// get password from website.
 
-// 				if( _password.length() > 0)
-// 				{
-// 					b64_encode( _base64Password, (char *)_password.c_str(), _password.length());
-// 					json[c.cfg_key()].set(_base64Password);
+				if( _password.length() > 0)
+				{
+					b64_encode( _base64Password, (char *)_password.c_str(), _password.length());
+					json[c.cfg_key()].set(_base64Password);
 
-// 					if (cfg::debug == DEBUG_ENGINEER_INFO)
-// 					{
-// 						debug_outln_info(F("Input: Password: "), _password);
-// 						debug_outln_info(F("CFG Base64Password: "), String(json[c.cfg_key()])); // or String(_base64Password)
-// 					}
-
-// 					break;
-// 				}
-// #endif
+#if defined(VS_DEBUG)
+					debug_outln_info(F("Input: Password: "), _password);
+					debug_outln_info(F("CFG Base64Password: "), String(json[c.cfg_key()])); // or String(_base64Password)
+#endif
+					break;
+				}
+#endif
 
 			case Config_Type_String:
 				json[c.cfg_key()].set(c.cfg_val.as_str);
@@ -2041,6 +2056,7 @@ static bool writeConfigS700xx()
 				json[c.cfg_key()].set(*c.cfg_val.as_uint);
 				break;
 
+            case Config7_Type_Password:
 			case Config7_Type_String:
 				json[c.cfg_key()].set(c.cfg_val.as_str);
 				break;
@@ -2583,19 +2599,7 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content += F("<hr/>");
 	//page_content += FPSTR(WEB_BR_LF);
 	add_form_checkbox(Config_has_s7000, FPSTR(INTL_ENABLE_S7000));
-	page_content += FPSTR(WEB_BR_LF);
-	add_form_checkbox(Config_has_radarmotion, FPSTR(INTL_ENABLE_RCWL_0516));
-
-	if (cfg::has_radarmotion)
-	{
-		page_content += FPSTR(TABLE_TAG_OPEN);
-		add_form_input(page_content, Config_host_radar, FPSTR(INTL_SERVER), LEN_HOST_CUSTOM - 1);
-		add_form_input(page_content, Config_port_radar, FPSTR(INTL_PORT), MAX_PORT_DIGITS);
-		add_form_input(page_content, Config_motion_wait_time, FPSTR(INTL_MOTION_WAIT_TIME), MAX_PORT_DIGITS);
-		add_form_input(page_content, Config_user_radar, FPSTR(INTL_USER), LEN_USER_CUSTOM - 1);
-		add_form_input(page_content, Config_pwd_radar,  FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
-		page_content += FPSTR(TABLE_TAG_CLOSE_BR);
-	}
+	//page_content += FPSTR(WEB_BR_LF);
 
 	page_content += FPSTR(WEB_BR_LF_B);
 	page_content += F("<hr/>");
@@ -2958,13 +2962,13 @@ static void webserver_config_send_body_post7(String &page_content)
 			c.cfg_val.as_str[c.cfg_len] = '\0';
 			break;
 
-	/*	case Config7_Type_Password:
-			if (server_arg.length())
-			{
-				server_arg.toCharArray(c.cfg_val.as_str, LEN_CFG_PASSWORD);
-			}
+		case Config7_Type_Password:
+			// if (server_arg.length())
+			// {
+			// 	    server_arg.toCharArray(c.cfg_val.as_str, LEN_CFG_PASSWORD);
+			// }
 			break;
-	*/
+	
 		}
 
 	}
@@ -3016,12 +3020,6 @@ static void webserver_config()
 	if (server.method() == HTTP_POST)
 	{
 		display_debug(F("Writing config"), emptyString);
-
-		if (cfg::has_radarmotion)
-		{
-			debug_outln_info(F("STOP Radar motion sensor (RCWL_0516) process."));
-			RCWL0516.end();
-		}
 
 		if (writeConfig())
 		{ // TODO: devide in two section to know which writeconfig has a error.
@@ -3080,12 +3078,6 @@ static void webserver_config7()
 	{
 		display_debug(F("Writing config"), emptyString);
 
-		if (cfg::has_radarmotion)
-		{
-			debug_outln_info(F("STOP Radar motion sensor (RCWL_0516) process."));
-			RCWL0516.end();
-		}
-
 		if (writeConfig())
 		{ // TODO: devide in two section to know which writeconfig has a error.
 			display_debug(F("Writing config"), F("and restarting"));
@@ -3132,11 +3124,6 @@ static void sensor_restart()
 	else
 	{
 		serialSDS.end();
-	}
-
-	if (cfg::has_radarmotion)
-	{// Stop Radar motion Event process.
-		RCWL0516.end();
 	}
 
 	debug_outln_info(F("Restart."));
@@ -3706,19 +3693,21 @@ static void webserver_status()
 	}
 
 	if (cfg::sen5x_read)
-	{// Display Sen5x settings.
-		// if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
-		// {
-		// 	//String manufacturer = F("Sensirion ") + String(SENSORS_SEN54);
-		// 	add_table_row_from_value(page_content, FPSTR((String(MANUFACTURER) + String(SENSORS_SEN54)).c_str()), emptyString);
-		// }
-		// else
-		{
-			//String manufacturer = F("Sensirion ") + String(SENSORS_SEN55);
-			add_table_row_from_value( page_content, FPSTR((String(MANUFACTURER) + String(SENSORS_SEN55)).c_str()), emptyString);
-		}
+    { // Display Sen5x settings.
+        page_content += FPSTR(EMPTY_ROW);
 
-		if (!is_Sen5x_init_failed)
+        // if (memcmp(SEN5X_type, SENSOR_SEN54, 6) == 0)
+        // {
+        // 	//String manufacturer = F("Sensirion ") + String(SENSORS_SEN54);
+        // 	add_table_row_from_value(page_content, FPSTR((String(MANUFACTURER) + String(SENSORS_SEN54)).c_str()), emptyString);
+        // }
+        // else
+        //{
+        // String manufacturer = F("Sensirion ") + String(SENSORS_SEN55);
+        add_table_row_from_value(page_content, FPSTR((String(MANUFACTURER) + String(SENSORS_SEN55)).c_str()), emptyString);
+        //}
+
+        if (!is_Sen5x_init_failed)
 		{
 			float offsetTemp;
 			sen5x.getTemperatureOffsetSimple(offsetTemp);
@@ -3735,9 +3724,17 @@ static void webserver_status()
 		{// SEN5X Sensor Hardware Not connected.
 			add_table_row_from_value( page_content, FPSTR(emptyString.c_str()), FPSTR(INTL_SEN5X_NOT_CONNECTED));
 		}
-	}
+    }
 
-	page_content += FPSTR(EMPTY_ROW);
+    if (cfg::has_s7000)
+    {
+        page_content += FPSTR(EMPTY_ROW);
+
+        add_table_row_from_value(page_content, FPSTR(GetSimDriverName().c_str()), emptyString);
+        add_table_row_from_value(page_content, F("Restart counter: "), String(GetLTE_RestartCounter()));
+    }
+
+    page_content += FPSTR(EMPTY_ROW);
 	page_content += F("<tr><td colspan='2'><b>" INTL_ERROR "</b></td></tr>");
 
 	String wifiStatus(WiFi_error_count);
@@ -3821,10 +3818,6 @@ static void webserver_status()
 			add_table_row_from_value(page_content, F(INTL_TIME_SENDING_MS), String(sending_time), "ms");
 		}
 
-		if (cfg::has_radarmotion)
-		{
-			add_table_row_from_value(page_content, F(INTL_NUMBER_OF_RADARMOTION), String(RCWL0516.GetMotionCount()));
-		}
 	}
 
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
@@ -4246,18 +4239,9 @@ static void setup_mqtt_broker(const char *host, const int port)
 //  {
 //      Debug.write((char)payload[i], 1);
 //  }
+//
 //  debug_outln_info();
 //
-// 	String topicmesg = String(mqtt_header) + String("/radar");
-// 	if (String(topic) == topicmesg)
-// 	{
-// 		debug_outln_info(F("MQTT Callback: Message arrived ["));
-// 		debug_out(String(topic),DEBUG_MIN_INFO);
-// 		debug_out(F("]:\npayload: "),DEBUG_MIN_INFO);
-// 		Debug.write(payload, len);
-// 		debug_out(F(" ,payload lenght: "),DEBUG_MIN_INFO);
-// 		debug_outln_info(String(len));
-// 	}
 // }
 
 /************************************************************************************
@@ -4480,7 +4464,6 @@ static void wifi_AP_Config()
 	debug_outln_info_bool(F("Fix IP address: "), cfg::has_fix_ip);
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 	debug_outln_info_bool(F("SIMM-70xx: "), cfg::has_s7000);
-	debug_outln_info_bool(F("RCWL-0516: "), cfg::has_radarmotion);
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 	debug_outln_info_bool(F("Autoupdate: "), cfg::auto_update);
 	debug_outln_info_bool(F("Display: "), cfg::has_display);
@@ -4979,7 +4962,16 @@ static void sendmqtt(const String &data)
             payload_status += "\":\"";
             payload_status += ESP.getResetReason();
             payload_status += "\",\"";
-			payload_status += FPSTR(INTL_MQTT_STAT);
+
+            if (cfg::has_s7000 && cfg7::sim_type > 0)
+            {
+                payload_status += F("SIM70XX Type");
+                payload_status += "\":\"";
+                payload_status += GetSimDriverName();
+                payload_status += "\",\"";
+            }
+
+            payload_status += FPSTR(INTL_MQTT_STAT);
 			payload_status += "\":\"" + mqtt_error + "\"}";
 
 			debug_outln_info(F("- status topic = "), (String &)status_header);
@@ -6485,7 +6477,8 @@ static void fetchSensorSEN5X_THN(String &s,  bool flg_Nox = true, bool flg_clear
 		add_Value2Json(s, FPSTR((result_SEN5X + F("humidity")).c_str()),    FPSTR(DBG_TXT_HUMIDITY),    last_value_SEN5X_H);
 
 		if (flg_Nox)
-		{	// NOx value.
+		{	// VOC / NOx value.
+            debug_outln_info( FPSTR(DBG_TXT_VOCINDEX), last_value_SEN5X_VOC);
 			add_Value2Json(s, FPSTR((result_SEN5X + F("NOX")).c_str()), FPSTR(DBG_TXT_NOX), last_value_SEN5X_NOX);
 		}
 
@@ -6895,9 +6888,11 @@ static void GetSen5XSensorData()
 			value_SEN5X_VOC += vocIndex;
 			value_SEN5X_NOX += noxIndex;
 
+            debug_outln_verbose(FPSTR(DBG_TXT_SEP));
 			debug_outln_verbose(F("Temp: "), String(ambientTemperature));
 			debug_outln_verbose(F("Hum: "), String(ambientHumidity));
-			debug_outln_verbose(F("NOx: "), String(noxIndex));
+			debug_outln_verbose(F("VOC: "), String(vocIndex));
+            debug_outln_verbose(F("NOx: "), String(noxIndex));
 		}
 
 		SEN5X_measurement_count++;
@@ -7304,12 +7299,6 @@ static void StartTwoStageOTAUpdate()
 
 	debug_outln_info(F("Update md5: "), newFwmd5);
 	debug_outln_info(F("Current Sketch md5: "), ESP.getSketchMD5());
-
-	// We're entering update phase, kill off everything else
-	if (cfg::has_radarmotion)
-	{// Stop Radar motion Event process.
-		RCWL0516.end();
-	}
 
 	WiFiUDP::stopAll();
 	WiFiClient::stopAllExcept(&client);
@@ -8572,7 +8561,7 @@ static void powerOnTestSensors()
 static void logEnabledAPIs()
 {
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
-	debug_outln_info(F("Send to :"));
+	debug_outln_info(F("Send to:"));
 
 	if (cfg::send2dusti)
 	{
@@ -8947,6 +8936,9 @@ void setup(void)
       // Start Server Configuration website.
         wifi_AP_Config();
 
+        // 13dBM == 50mW
+        WiFi.setOutputPower(13.0f);
+
 		debug_outln_info(F("** Start BK-SIM70XX PCB communication... **"));
 		if( Sim7000_setup(SETUP_STATE::INIT))
 		{
@@ -8971,14 +8963,6 @@ void setup(void)
 		strcpy(mqtt_client_id, SSID_BASENAME);
 		strcat(mqtt_client_id, esp_chipid.c_str());			// airRohr-<chipid>
 		//debug_outln_info(F("MQTT Client_id = ") + String(mqtt_client_id));
-
-		if (cfg::has_radarmotion)
-		{
-			// implementation of MQTT communication.
-			setup_mqtt_broker( cfg::mqtt_server, cfg::mqtt_port);
-			RCWL0516.setMQTTClient(mqtt_client, mqtt_header, mqtt_lwt_header);
-			debug_outln_info(F("RCWL_0516 => setup MQTT Client instance."));
-		}
 	}
 
 
@@ -9016,23 +9000,6 @@ void setup(void)
 	else
 	{
 		last_display_millis = starttime_SDS = starttime;
-	}
-
-	// Radar Motion.
-	if (cfg::has_radarmotion)
-	{
-		debug_outln_info(F("Start to Initialize Radar motion sensor (RCWL_0516)."));
-
-		RCWL0516.init(cfg::motion_wait_time); // set wait max time value. in sec.
-
-		if(!RCWL0516.begin(cfg::host_radar, cfg::port_radar))
-		{
-			debug_outln_info(F("Couldn't connected to Motion Server: "), String(cfg::host_radar) + F(":") + String(cfg::port_radar));
-		}
-		else
-		{
-			debug_outln_info(F("RCWL_0516 => Radar motion driver started."));
-		}
 	}
 
 } // end setup()
@@ -9215,7 +9182,7 @@ void loop(void)
 
             if(last_signal_strength == 0)
             {
-                //try to re-open the LTE modem connection.
+                //try to re-open the LTE modem network connection.
                 RestartLTEModem();
             }
         }
@@ -9524,31 +9491,7 @@ void loop(void)
 		serialSDS.perform_work();
 	}
 
-	if (cfg::has_radarmotion && sntp_time_set > 0)
-	{
-		if( cfg::send2mqtt && !mqtt_client.connected())
-		{// after x time MQTT connection will be lost wifi connection.... but why ????
-			debug_outln_info(F("** RCWL0516 => MQTT Broker lost WIFI connection. **\nRetry......"));
-
-			setup_mqtt_broker( cfg::mqtt_server, cfg::mqtt_port);
-
-			// only for test, maybe FFU
-			// abonneer op MQTT broker via topic name: "LeusdenCentrum/airRohr-xxxxxxx/radar"
-			// if( mqtt_client.subscribe( (String(mqtt_header) + String("/radar")).c_str()))
-			// {
-			// 	String mesg = String(mqtt_header) + String("/radar");
-			// 	debug_outln_info(F("subscribe => OKAY, "),mesg);
-			// }
-			// else
-			// {
-			// 	debug_outln_info(F("subscribe => ERROR"));
-			// }
-		}
-
-		RCWL0516.loop();
-	}
-
-    if(cfg::has_s7000 && !send_now )
+    if (cfg::has_s7000 && !send_now)
     {
         SyncNTPTime();
         WifiAPmodePowerSave();
