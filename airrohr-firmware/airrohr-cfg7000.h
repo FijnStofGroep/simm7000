@@ -9,6 +9,7 @@ enum Config7000EntryType : unsigned short
 	Config7_Type_Bool,
 	Config7_Type_UInt,
 	Config7_Type_String,
+    Config7_Type_Password,
 };
 
 /// @brief 
