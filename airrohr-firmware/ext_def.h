@@ -389,13 +389,6 @@ static const char SERVER_MQTT[]  PROGMEM = "192.168.1.202";
 // Show device info on displays
 #define DISPLAY_DEVICE_INFO 0
 
-// RCWL-0516 sensor => Radar Motion.
-static const char HOST_RADAR[] PROGMEM = "192.168.10.13";
-#define PORT_RADAR 21                                           // 443
-#define HAS_RADARMOTION 0
-#define USER_RADAR "ftp"
-#define PWD_RADAR "secret"
-
 // Set debug level for serial output?
 // Default DEBUG level, DON'T change.
 #define DEBUG 6
