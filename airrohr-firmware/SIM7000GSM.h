@@ -50,7 +50,7 @@ namespace cfg7
     extern char gprsapn[LEN_SIMM7000];
     extern char gprsUser[LEN_SIMM7000];
     extern char gprsPass[LEN_SIMM7000];
-    extern char gprsPIN[MAX_PORT_DIGITS];
+    extern char gprsPIN[LEN_SEN5X_SYM];
 
     extern unsigned sim_type;
     extern unsigned mode_selection;

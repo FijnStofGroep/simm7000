@@ -632,8 +632,8 @@ uint8_t BK_modem::unlockSIM(const char *pin)
     // sendbuff[13] = '\"';
     // sendbuff[14] = 0x00;
 
-    sendbuff[8] = pin[0];
-    sendbuff[9] = pin[1];
+    sendbuff[8]  = pin[0];
+    sendbuff[9]  = pin[1];
     sendbuff[10] = pin[2];
     sendbuff[11] = pin[3];
     sendbuff[12] = '\0';
@@ -4741,7 +4741,7 @@ boolean BK_modem::MQTT_setParameter(const char *paramTag, uint32_t paramValue)
     return true;
 }
 
-/// @brief
+/// @brief : TODO: password hide.
 /// @param
 /// @return: MQTT Parameters.
 String BK_modem::MQTT_getParameters(void)
@@ -4750,7 +4750,7 @@ String BK_modem::MQTT_getParameters(void)
 
     // skip: leading: "+SMCONF: \r\n" and end: "\r\nOK\r\n"
     String res = String(m_replybuffer);
-    return res.substring(10, (res.length() > 10 ? res.length() - 5 : res.length()));
+    return res.substring(9, (res.length() > 9 ? res.length() - 5 : res.length()));
     //return String(m_replybuffer+10);
 }
 
@@ -5119,7 +5119,7 @@ boolean BK_modem::HTTP_POST(const char *URI, const char *body, uint8_t bodylen, 
 }
 
 
-/*-------------------------- SIM-7000 ---------------------------------------------------------------------*/
+/*-------------------------------- SIM-7000 ---------------------------------------------------------------------*/
 /*
   Destructor: clean-up all resource of this class.
 */
@@ -5395,7 +5395,7 @@ boolean BK_modem_7000::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, ui
     return BK_modem::enableNTPTimeSync( onoff,  ntpserver,  timeZone, 7000);
 }
 
-/*------------------ SIM-7080 --------------------------------------------------------------------*/
+/*-------------------------------- SIM-7080 --------------------------------------------------------------------*/
 
 /// @brief : default constructor
 BK_modem_7080::BK_modem_7080() : BK_modem()

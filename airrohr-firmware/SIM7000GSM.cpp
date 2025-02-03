@@ -79,6 +79,8 @@ unsigned long last_status_attempt = 0;
 unsigned long wait_NTP_sync_time = ONE_DAY_IN_MS;
 
 u_int32_t m_cnt_LTE_Restarts = 0;
+bool lte_init_failed = false;
+char m_imei[16] = {0};                        // Use this for LTE modem device ID.
 
 /*
     BK-SIM70XX settings.
@@ -91,7 +93,7 @@ namespace cfg7
     char gprsUser[LEN_SIMM7000];
     char gprsPass[LEN_SIMM7000];
     // set GSM PIN, if any (#define GSM_PIN "")
-    char gprsPIN[MAX_PORT_DIGITS];
+    char gprsPIN[LEN_SEN5X_SYM];
 
 	/// @brief : sim_type:
     ///                 0 = No type
@@ -119,13 +121,8 @@ namespace cfg7
 // Serial instance for Communication between nodeMCU and BK-Sim70XX PCB.
 SoftwareSerial SerialSIM;
 
-// Use this one for LTE CAT-M/NB-IoT modules (BK-SIM70XX development PCB)
-
-//BK_modem_LTE LTEmodem = BK_modem_LTE();
+// LTEmodem instance of SIM70XX module. (BK-SIM70XX development PCB)
 BK_modem * LTEmodem = NULL; 
-
-bool lte_init_failed = false;
-char m_imei[16] = {0};                        // Use this for LTE modem device ID.
 
 //***************************************************************************************************************************************************
 
@@ -296,7 +293,7 @@ bool RestartLTEModem()
 /// @return
 inline boolean GPRSConnect()
 {
-    debug_outln_info(F("GPRSConnect():Waiting for LTE network..."));
+    debug_outln_info(F("GPRS Wait for network connection..."));
 
     // Connect to cell network and verify connection
     // If unsuccessful, retrying max 3 times with 2 sec. delay, to a connection is made.
@@ -320,7 +317,7 @@ inline boolean GPRSConnect()
         delay(2000);
     }
 
-    debug_outln_info(F("Connected to LTE network!"));
+    debug_outln_verbose(F("Connected to LTE network!"));
 
     // Disable data just to make sure it was actually off so that we can turn it on
     // LTEmodem.openWirelessConnection(false);
@@ -352,15 +349,15 @@ inline boolean GPRSConnect()
             return false;
         }
 
-        debug_outln_info( F("GPRS-IP address: ") + LTEmodem->getGPRSIP());
+        debug_outln_verbose( F("GPRS-IP address: ") + LTEmodem->getGPRSIP());
 
         debug_outln_info(F("GPRS connection Enabled."));
 
-        wdt_reset(); // watchdog timer reset => nodemcu ESP8266 still alive.
+        wdt_reset();        // watchdog timer reset => nodemcu ESP8266 still alive.
     }
     else
     {
-        debug_outln_info(F("LTE connection already enabled."));
+        debug_outln_info(F("GPRS connection already enabled."));
     }
 
     return true;
@@ -765,9 +762,12 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
         LTEmodem->MQTT_setParameter("QOS", 1);
 
 #ifdef VS_DEBUG
-        debug_outln_info(F("Connecting to MQTT broker...\nMQTT Parameters:\n"));     // display is done by BK_SIM7000 driver.
-        String stmp = LTEmodem->MQTT_getParameters();
-        //debug_outln_info(F("Connecting to MQTT broker...\nMQTT Parameters:\n") + stmp);
+#ifdef BK_MODEM_DEBUG
+        debug_outln_info(F("Connecting to MQTT broker...\nDriver Parameters:\n")); // Display is done by BK_SIM7000 driver.
+        LTEmodem->MQTT_getParameters();
+#else
+        debug_outln_info(F("Connecting to MQTT broker...\nMQTT Parameters:\n") + LTEmodem->MQTT_getParameters());
+#endif
 #else
         debug_outln_info(F("Connecting to MQTT broker..."));
 #endif
