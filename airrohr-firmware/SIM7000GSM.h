@@ -133,4 +133,9 @@ void WifiAPmodePowerSave(void);
 /// @return 
 String GetSimDriverName(void);
 
+/// @brief 
+/// @param  
+/// @return 
+u_int32_t GetLTE_RestartCounter(void);
+
 #endif // _SIM7000GSM_H

@@ -4575,18 +4575,39 @@ String BK_modem::getGPRSIP(void)
         return "0.0.0.0";
     }
 
-    // Format of response:
-    // +CNACT: <status>,<ip_addr>   (+CNACT: 1,"10.36.213.2")
+    // Response:
+    //      +CNACT: <status>,<ip_addr>   (+CNACT: 1,"10.36.213.2")
     String res = String(m_replybuffer);
     String tmpstr = res.substring(10, res.length());    // input: "10.36.213.2"
     return tmpstr.substring(1, tmpstr.length()-1);      // skip '"' chars
 }
 
-// Useful for choosing a certain carrier only
-// For example, AT&T uses band 12 in the US for LTE CAT-M
-// whereas Verizon uses band 13
-// Mode: "CAT-M" or "NB-IOT"
-// Band: The cellular EUTRAN band number.
+/// @brief Get current CAT-M or NB-IOT Band configuration
+/// @return 
+String BK_modem::getOperatingBand()
+{
+    if (!sendCheckReply(F("AT+CBANDCFG?"), F("+CBANDCFG:")))
+    {
+        return "";
+    }
+
+    // Response:
+    //      +CBANDCFG: "CAT-M",1,2,3,4,5,8,12,13,14,18,19,20,25,26,27,28,66,85
+    String res = String(m_replybuffer);
+
+    readline(); // eat 'OK'
+
+    String tmpstr = res.substring(10, res.length());    // input: (CAT-M,NB-IOT),(1,2,3,4,5,8,12,13,14,18,19,20,25,26,27,28,66,71,85)
+    return tmpstr;                                      //tmpstr.substring(1, tmpstr.length()-1);      // skip '"' chars
+}
+
+/// @brief Useful for choosing a certain carrier only
+///        For example, AT&T uses band 12 in the US for LTE CAT-M whereas Verizon uses band 13
+///        Mode: "CAT-M" or "NB-IOT"
+///        Band: The cellular EUTRAN band number.
+/// @param mode => String type  
+/// @param band 
+/// @return 
 boolean BK_modem::setOperatingBand(const char *mode, uint8_t band)
 {
     char cmdBuff[24];

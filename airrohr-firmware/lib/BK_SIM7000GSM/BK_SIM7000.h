@@ -295,6 +295,7 @@ public:
     int16_t getPreferredMode(void);
     boolean setPreferredMode(uint8_t mode);
     boolean setPreferredLTEMode(uint8_t mode);
+    String  getOperatingBand();
     boolean setOperatingBand(const char *mode, uint8_t band);
     boolean hangUp(void);
 

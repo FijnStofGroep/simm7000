@@ -78,6 +78,8 @@ boolean m_statusSend = true;     // force to send status message to MQTT broker.
 unsigned long last_status_attempt = 0;
 unsigned long wait_NTP_sync_time = ONE_DAY_IN_MS;
 
+u_int32_t m_cnt_LTE_Restarts = 0;
+
 /*
     BK-SIM70XX settings.
 */
@@ -252,6 +254,15 @@ String GetSimDriverName(void)
     return LTEmodem->Name();
 }
 
+/// @brief Software Restart LTE modem counter.
+/// @param  
+/// @return 
+u_int32_t GetLTE_RestartCounter(void)
+{
+    return m_cnt_LTE_Restarts;
+}
+
+
 /// @brief BK-SIM70XX PCB Power OFF.
 void modemPowerOff()
 {
@@ -266,10 +277,12 @@ bool RestartLTEModem()
 {
     if (LTEmodem != NULL)
     {
-        debug_outln_info(F("Restart LTE Modem SIM70xx process."));
+        debug_outln_info(F("Restart LTE Modem SIM70xx firmware process."));
 
         // LTEmodem->modemPowerRestart();
         LTEmodem->modemPowerOff();
+
+        m_cnt_LTE_Restarts++;
 
         return Sim7000_setup(SETUP_STATE::RESTART);
     }
@@ -286,14 +299,14 @@ inline boolean GPRSConnect()
     debug_outln_info(F("GPRSConnect():Waiting for LTE network..."));
 
     // Connect to cell network and verify connection
-    // If unsuccessful, keep retrying every 2s until a connection is made.
+    // If unsuccessful, retrying max 3 times with 2 sec. delay, to a connection is made.
     int retry = 1;
 
     while (!LTEmodem->isNetworkConnected())
     {
         if (--retry < 0)
         {
-            debug_outln_info(F("Failed to connect to LTE network: restart connection with SIM7000 module..."));
+            debug_outln_info(F("Failed to connect to LTE network: restart connection with SIM70xx module..."));
 
             if ( retry < -1 || !RestartLTEModem())
             {
@@ -303,11 +316,11 @@ inline boolean GPRSConnect()
             continue;
         }
 
-        debug_outln_info(F("Failed to connect to GSM/LTE network: retrying..."));
+        debug_outln_info(F("Failed to connect to LTE network: retrying..."));
         delay(2000);
     }
 
-    debug_outln_info(F("Connected to GSM/LTE network!"));
+    debug_outln_info(F("Connected to LTE network!"));
 
     // Disable data just to make sure it was actually off so that we can turn it on
     // LTEmodem.openWirelessConnection(false);
@@ -339,15 +352,15 @@ inline boolean GPRSConnect()
             return false;
         }
 
-        debug_outln_info( F("GSM/LTE-GPRS-IP address: ") + LTEmodem->getGPRSIP());
+        debug_outln_info( F("GPRS-IP address: ") + LTEmodem->getGPRSIP());
 
-        debug_outln_info(F("GSM/LTE-GPRS connection Enabled."));
+        debug_outln_info(F("GPRS connection Enabled."));
 
         wdt_reset(); // watchdog timer reset => nodemcu ESP8266 still alive.
     }
     else
     {
-        debug_outln_info(F("GSM/LTE connection already enabled."));
+        debug_outln_info(F("LTE connection already enabled."));
     }
 
     return true;
@@ -451,6 +464,8 @@ bool Sim7000_setup( int state)
 
     debug_outln_info( F("\tSIM70XX Driver Instance = ") + LTEmodem->Name());
 
+    debug_outln_info(F("Set-Up communication with BK_SIM70XX Modem PCB..."));
+
     // initialize LTEmodem settings.
     LTEmodem->init(SerialSIM, Debug, SIM_PIN_PWR);
 
@@ -467,11 +482,11 @@ bool Sim7000_setup( int state)
     SerialSIM.begin(LTEMODEM_BAUD, SWSERIAL_8N1);
     delay(50);
 
-    debug_outln_info(F("Initializing BK_Sim70XX Modem PCB..."));
+    debug_outln_info(F("Initializing BK_SIM70XX Modem PCB..."));
 
     if (!LTEmodem->begin())
     {
-        debug_outln_info(F("GSM Modem init Failed.."));
+        debug_outln_info(F("LTE Modem init Failed.."));
         lte_init_failed = true;
         return false;
     }
@@ -584,7 +599,7 @@ bool Sim7000_setup( int state)
     }
 
     wait_NTP_sync_time = 15000;                       // wait 15 sec. before the first call to "setNTPTimeSync();""
-    m_starttime = millis();                           // store the start time
+    m_starttime = millis();                           // set the start time for get new NTP time.
 
     return true;
 
@@ -1017,23 +1032,24 @@ void setNTPTimeSync(void)
 }
 
 /// @brief : sync NTP time one time a day.
-/// @param  
+/// @param
 void SyncNTPTime(void)
 {
-    if( (act_milli - m_starttime) > wait_NTP_sync_time)
+    if ((act_milli - m_starttime) > wait_NTP_sync_time)
     {
-        debug_outln_info(F("Start: Sync NTP Date/Time process."));
-
-        if( wait_NTP_sync_time == ONE_DAY_IN_MS)
+        if (wait_NTP_sync_time == ONE_DAY_IN_MS)
         {
+            debug_outln_info(F("Restart SIM70xx PCB firmware."));
+
             RestartLTEModem();              // Restart SIM70xx PCB firmware every day.
-            delay(200);
+            return;
         }
 
+        debug_outln_info(F("Start: Sync NTP Date/Time process."));
         setNTPTimeSync();
 
-        // store new date/time value.
-        m_starttime = millis();                             
+        // set new date/time value.
+        m_starttime = millis();
     }
 }
 
