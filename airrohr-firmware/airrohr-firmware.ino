@@ -8177,6 +8177,11 @@ static void initSEN5X()
 		return;
 	}
 
+    if (cfg::sen5x_on)
+    {//Warm start behavior as a value in the range from 0 (cold start, default value) to 65535 (warm start). (default value: 0)
+        sen5x.setWarmStartParameter(32767);
+    }
+
     // Adjust tempOffset to account for additional temperature offsets
     // exceeding the SEN5X module's self heating.
     String hlp_temp_correction = String(cfg::scd30_temp_correction);
@@ -8936,7 +8941,7 @@ void setup(void)
       // Start Server Configuration website.
         wifi_AP_Config();
 
-        // 13dBM == 50mW
+        // 13dBM == 20mW
         WiFi.setOutputPower(13.0f);
 
 		debug_outln_info(F("** Start BK-SIM70XX PCB communication... **"));
