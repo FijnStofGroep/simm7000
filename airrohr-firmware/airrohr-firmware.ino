@@ -8170,7 +8170,12 @@ static void initSEN5X()
 	printSerialNumber();
 #endif
 
-	if (sen5x.setFanAutoCleaningInterval(SEN5X_AUTO_CLEANING_INTERVAL) != 0)
+    if (cfg::sending_intervall_ms < (READINGTIME_SEN5X_MS + SEN5X_WAITING_AFTER_LAST_READ))
+    {
+        cfg::sending_intervall_ms = (READINGTIME_SEN5X_MS + SEN5X_WAITING_AFTER_LAST_READ) * 2;
+    }
+
+    if (sen5x.setFanAutoCleaningInterval(SEN5X_AUTO_CLEANING_INTERVAL) != 0)
 	{
 		debug_outln_error(F("setting of Auto Cleaning Intervall SEN5X failed!"));
 		is_Sen5x_init_failed = true;
