@@ -8170,11 +8170,6 @@ static void initSEN5X()
 	printSerialNumber();
 #endif
 
-    if (cfg::sending_intervall_ms < (READINGTIME_SEN5X_MS + SEN5X_WAITING_AFTER_LAST_READ))
-    {
-        cfg::sending_intervall_ms = (READINGTIME_SEN5X_MS + SEN5X_WAITING_AFTER_LAST_READ) * 2;
-    }
-
     if (sen5x.setFanAutoCleaningInterval(SEN5X_AUTO_CLEANING_INTERVAL) != 0)
 	{
 		debug_outln_error(F("setting of Auto Cleaning Intervall SEN5X failed!"));
@@ -8183,8 +8178,15 @@ static void initSEN5X()
 	}
 
     if (cfg::sen5x_on)
-    {//Warm start behavior as a value in the range from 0 (cold start, default value) to 65535 (warm start). (default value: 0)
+    { // Warm start behavior as a value in the range from 0 (cold start, default value) to 65535 (warm start). (default value: 0)
         sen5x.setWarmStartParameter(32767);
+    }
+    else
+    {// Start/Stop mode.
+        if (cfg::sending_intervall_ms < (READINGTIME_SEN5X_MS + SEN5X_WAITING_AFTER_LAST_READ))
+        {
+            cfg::sending_intervall_ms = (READINGTIME_SEN5X_MS + SEN5X_WAITING_AFTER_LAST_READ) * 2;
+        }
     }
 
     // Adjust tempOffset to account for additional temperature offsets
