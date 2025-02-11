@@ -173,12 +173,12 @@ extern void debug_outln_info_bool(const __FlashStringHelper* text, const bool op
 
 
 extern bool SDS_checksum_valid(const uint8_t (&data)[8]);
-extern void SDS_rawcmd(const uint8_t cmd_head1, const uint8_t cmd_head2, const uint8_t cmd_head3);
-extern bool SDS_cmd(PmSensorCmd cmd);
-extern bool PMS_cmd(PmSensorCmd cmd);
-extern bool HPM_cmd(PmSensorCmd cmd);
-extern void NPM_cmd(PmSensorCmd2 cmd);
-extern void IPS_cmd(PmSensorCmd3 cmd);
+extern void SDS_send_rawcmd(const uint8_t cmd_head1, const uint8_t cmd_head2, const uint8_t cmd_head3);
+extern bool SDS_send_cmd(PmSensorCmd cmd);
+extern bool PMS_send_cmd(PmSensorCmd cmd);
+extern bool HPM_send_cmd(PmSensorCmd cmd);
+extern void IPS_send_cmd(PmSensorCmd3 cmd);
+extern void NPM_send_cmd(PmSensorCmd2 cmd);
 extern bool NPM_checksum_valid_4(const uint8_t (&data)[4]);
 extern bool NPM_checksum_valid_5(const uint8_t (&data)[5]);
 extern bool NPM_checksum_valid_6(const uint8_t (&data)[6]);

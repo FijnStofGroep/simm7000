@@ -993,7 +993,7 @@ static String SDS_version_date()
 	if (cfg::sds_read && !last_value_SDS_version.length())
 	{
 		debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(DBG_TXT_SDS011_VERSION_DATE));
-		is_SDS_running = SDS_cmd(PmSensorCmd::Start);
+		is_SDS_running = SDS_send_cmd(PmSensorCmd::Start);
 		delay(250);
 
 #if defined(ESP8266)
@@ -1003,7 +1003,7 @@ static String SDS_version_date()
 		serialSDS.flush();
 
 		// Query Version/Date
-		SDS_rawcmd(0x07, 0x00, 0x00);
+		SDS_send_rawcmd(0x07, 0x00, 0x00);
 		delay(400);
 		const constexpr uint8_t header_cmd_response[2] = {0xAA, 0xC5};
 
@@ -1037,7 +1037,7 @@ static uint8_t NPM_get_state()
 	uint8_t result = 0;
 	NPM_waiting_for_4 = NPM_REPLY_HEADER_4;
 	debug_outln_info(F("State NPM..."));
-	NPM_cmd(PmSensorCmd2::State);
+	NPM_send_cmd(PmSensorCmd2::State);
 
 	while (!serialNPM.available())
 	{
@@ -1089,7 +1089,7 @@ static bool NPM_start_stop()
 	bool result = false;
 	NPM_waiting_for_4 = NPM_REPLY_HEADER_4;
 	debug_outln_info(F("Switch start/stop NPM..."));
-	NPM_cmd(PmSensorCmd2::Change);
+	NPM_send_cmd(PmSensorCmd2::Change);
 
 	while (!serialNPM.available())
 	{
@@ -1157,7 +1157,7 @@ static String NPM_version_date()
 	delay(250);
 	NPM_waiting_for_6 = NPM_REPLY_HEADER_6;
 	debug_outln_info(F("Version NPM..."));
-	NPM_cmd(PmSensorCmd2::Version);
+	NPM_send_cmd(PmSensorCmd2::Version);
 
 	while (!serialNPM.available())
 	{
@@ -1223,7 +1223,7 @@ static void NPM_fan_speed()
 {
 	NPM_waiting_for_5 = NPM_REPLY_HEADER_5;
 	debug_outln_info(F("Set fan speed to 50 %..."));
-	NPM_cmd(PmSensorCmd2::Speed);
+	NPM_send_cmd(PmSensorCmd2::Speed);
 
 	while (!serialNPM.available())
 	{
@@ -1256,6 +1256,7 @@ static void NPM_fan_speed()
 			{
 				NPM_data_reader(data, 1);
 			}
+
 			NPM_waiting_for_5 = NPM_REPLY_CHECKSUM_5;
 			break;
 
@@ -1278,15 +1279,17 @@ static void NPM_fan_speed()
 
 #pragma GCC diagnostic pop
 
-
+/// @brief 
+/// @return 
 static String NPM_temp_humi()
 {
 	uint16_t NPM_temp = 0;
 	uint16_t NPM_humi = 0;
+    debug_outln_info(F("Temperature/Humidity in Next PM..."));
 	NPM_waiting_for_8 = NPM_REPLY_HEADER_8;
-	debug_outln_info(F("Temperature/Humidity in Next PM..."));
 
-	NPM_cmd(PmSensorCmd2::Temphumi);
+	NPM_send_cmd(PmSensorCmd2::Temphumi);
+
 	while (!serialNPM.available())
 	{
 		debug_outln("Wait for Serial...", DEBUG_MAX_INFO);
@@ -1347,15 +1350,17 @@ static String NPM_temp_humi()
 }
 
 /*****************************************************************
- * read IPS-7100 sensor serial and firmware date                   *
-*****************************************************************/
+ * read IPS-7100 sensor serial and firmware date                 *
+******************************************************************/
 
+/// @brief 
+/// @return 
 static String IPS_version_date()
 {
 	debug_outln_info(F("Version IPS..."));
 	String serial_data;
 
-	IPS_cmd(PmSensorCmd3::Reset);
+	IPS_send_cmd(PmSensorCmd3::Reset);
 
 	if (serialIPS.available() > 0)
 	{
@@ -5396,14 +5401,14 @@ static void fetchSensorSDS(String &s)
 	{
 		if (is_SDS_running)
 		{
-			is_SDS_running = SDS_cmd(PmSensorCmd::Stop);
+			is_SDS_running = SDS_send_cmd(PmSensorCmd::Stop);
 		}
 	}
 	else
 	{
 		if (!is_SDS_running)
 		{
-			is_SDS_running = SDS_cmd(PmSensorCmd::Start);
+			is_SDS_running = SDS_send_cmd(PmSensorCmd::Start);
 			SDS_waiting_for = SDS_REPLY_HDR;
 		}
 
@@ -5500,7 +5505,7 @@ static void fetchSensorSDS(String &s)
 
 			if (is_SDS_running)
 			{
-				is_SDS_running = SDS_cmd(PmSensorCmd::Stop);
+				is_SDS_running = SDS_send_cmd(PmSensorCmd::Stop);
 			}
 		}
 	}
@@ -5528,14 +5533,14 @@ static __noinline void fetchSensorPMS(String &s)
 	{
 		if (is_PMS_running)
 		{
-			is_PMS_running = PMS_cmd(PmSensorCmd::Stop);
+			is_PMS_running = PMS_send_cmd(PmSensorCmd::Stop);
 		}
 	}
 	else
 	{
 		if (!is_PMS_running)
 		{
-			is_PMS_running = PMS_cmd(PmSensorCmd::Start);
+			is_PMS_running = PMS_send_cmd(PmSensorCmd::Start);
 		}
 
 		while (serialSDS.available() > 0)
@@ -5669,12 +5674,14 @@ static __noinline void fetchSensorPMS(String &s)
 		if (pms_val_count > 0)
 		{
 			debug_outln_info(FPSTR(DBG_TXT_SEP));
+
 			last_value_PMS_P0 = float(pms_pm1_sum) / float(pms_val_count);
 			last_value_PMS_P1 = float(pms_pm10_sum) / float(pms_val_count);
 			last_value_PMS_P2 = float(pms_pm25_sum) / float(pms_val_count);
 			add_Value2Json(s, F("PMS_P0"), F("PM1:   "), last_value_PMS_P0);
 			add_Value2Json(s, F("PMS_P1"), F("PM10:  "), last_value_PMS_P1);
 			add_Value2Json(s, F("PMS_P2"), F("PM2.5: "), last_value_PMS_P2);
+            
 			debug_outln_info(FPSTR(DBG_TXT_SEP));
 		}
 
@@ -5691,7 +5698,7 @@ static __noinline void fetchSensorPMS(String &s)
 
 		if (cfg::sending_intervall_ms > (WARMUPTIME_SDS_MS + READINGTIME_SDS_MS))
 		{
-			is_PMS_running = PMS_cmd(PmSensorCmd::Stop);
+			is_PMS_running = PMS_send_cmd(PmSensorCmd::Stop);
 		}
 	}
 
@@ -5718,14 +5725,14 @@ static __noinline void fetchSensorHPM(String &s)
 	{
 		if (is_HPM_running)
 		{
-			is_HPM_running = HPM_cmd(PmSensorCmd::Stop);
+			is_HPM_running = HPM_send_cmd(PmSensorCmd::Stop);
 		}
 	}
 	else
 	{
 		if (!is_HPM_running)
 		{
-			is_HPM_running = HPM_cmd(PmSensorCmd::Start);
+			is_HPM_running = HPM_send_cmd(PmSensorCmd::Start);
 		}
 
 		while (serialSDS.available() > 0)
@@ -5845,7 +5852,7 @@ static __noinline void fetchSensorHPM(String &s)
 
 		if (cfg::sending_intervall_ms > (WARMUPTIME_SDS_MS + READINGTIME_SDS_MS))
 		{
-			is_HPM_running = HPM_cmd(PmSensorCmd::Stop);
+			is_HPM_running = HPM_send_cmd(PmSensorCmd::Stop);
 		}
 	}
 
@@ -5885,7 +5892,8 @@ static void fetchSensorNPM(String &s)
 		{ // DIMINUER LE READING TIME
 
 			debug_outln_info(F("Concentration NPM..."));
-			NPM_cmd(PmSensorCmd2::Concentration);
+			NPM_send_cmd(PmSensorCmd2::Concentration);
+
 			while (!serialNPM.available())
 			{
 				debug_outln("Wait for Serial...", DEBUG_MAX_INFO);
@@ -6069,7 +6077,7 @@ static void fetchSensorNPM(String &s)
 }
 
 /*****************************************************************
- * read Piera Systems IPS-7100 sensor sensor values                 *
+ * read Piera Systems IPS-7100 sensor sensor values              *
  *****************************************************************/
 
 static void fetchSensorIPS(String &s)
@@ -6077,7 +6085,7 @@ static void fetchSensorIPS(String &s)
 	debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_IPS));
 
 	while (serialIPS.available() > 0)
-	{
+	{// clear receive buffer.
 		serialIPS.read();
 	}
 
@@ -6086,7 +6094,7 @@ static void fetchSensorIPS(String &s)
 		if (is_IPS_running)
 		{
 			debug_outln_info(F("Change IPS to stop..."));
-			IPS_cmd(PmSensorCmd3::Stop);
+			IPS_send_cmd(PmSensorCmd3::Stop);
 			is_IPS_running = false;
 		}
 	}
@@ -6095,7 +6103,7 @@ static void fetchSensorIPS(String &s)
 		if (!is_IPS_running)
 		{
 			debug_outln_info(F("Change IPS to start..."));
-			IPS_cmd(PmSensorCmd3::Start);
+			IPS_send_cmd(PmSensorCmd3::Start);
 			is_IPS_running = true;
 		}
 
@@ -6106,13 +6114,14 @@ static void fetchSensorIPS(String &s)
 
 			debug_outln_info(F("Concentration IPS..."));
 			String serial_data;
-			// String serial_data2;
 
-			// while (Serial.available() > 0) {
+			// String serial_data2;
+			// while (Serial.available() > 0) 
+            // {
 			// 	Serial.read();
 			// }
 
-			IPS_cmd(PmSensorCmd3::Get);
+			IPS_send_cmd(PmSensorCmd3::Get);
 
 			if (serialIPS.available() > 0)
 			{
@@ -6220,7 +6229,6 @@ static void fetchSensorIPS(String &s)
 
 	if (send_now)
 	{
-
 		last_value_IPS_P0 = -1.0;  // PM1
 		last_value_IPS_P1 = -1.0;  // PM10
 		last_value_IPS_P2 = -1.0;  // PM2.5
@@ -6358,7 +6366,7 @@ static void fetchSensorIPS(String &s)
 			if (is_IPS_running)
 			{
 				debug_outln_info(F("Change IPS to stop after measure..."));
-				IPS_cmd(PmSensorCmd3::Stop);
+				IPS_send_cmd(PmSensorCmd3::Stop);
 				is_IPS_running = false;
 			}
 		}
@@ -8306,10 +8314,10 @@ static void powerOnTestSensors()
 	if (cfg::sds_read)
 	{
 		debug_outln_info(F("Read SDS...: "), SDS_version_date());
-		SDS_cmd(PmSensorCmd::ContinuousMode);
+		SDS_send_cmd(PmSensorCmd::ContinuousMode);
 		delay(100);
 		debug_outln_info(F("Stopping SDS011..."));
-		is_SDS_running = SDS_cmd(PmSensorCmd::Stop);
+		is_SDS_running = SDS_send_cmd(PmSensorCmd::Stop);
 
 		if( !is_SDS_running)
 		{
@@ -8320,23 +8328,23 @@ static void powerOnTestSensors()
 	if (cfg::pms_read)
 	{
 		debug_outln_info(F("Read PMS(1,3,5,6,7)003..."));
-		PMS_cmd(PmSensorCmd::Start);
+		PMS_send_cmd(PmSensorCmd::Start);
 		delay(100);
-		PMS_cmd(PmSensorCmd::ContinuousMode);
+		PMS_send_cmd(PmSensorCmd::ContinuousMode);
 		delay(100);
 		debug_outln_info(F("Stopping PMS..."));
-		is_PMS_running = PMS_cmd(PmSensorCmd::Stop);
+		is_PMS_running = PMS_send_cmd(PmSensorCmd::Stop);
 	}
 
 	if (cfg::hpm_read)
 	{
 		debug_outln_info(F("Read HPM..."));
-		HPM_cmd(PmSensorCmd::Start);
+		HPM_send_cmd(PmSensorCmd::Start);
 		delay(100);
-		HPM_cmd(PmSensorCmd::ContinuousMode);
+		HPM_send_cmd(PmSensorCmd::ContinuousMode);
 		delay(100);
 		debug_outln_info(F("Stopping HPM..."));
-		is_HPM_running = HPM_cmd(PmSensorCmd::Stop);
+		is_HPM_running = HPM_send_cmd(PmSensorCmd::Stop);
 	}
 
 	if (cfg::npm_read)
@@ -8437,15 +8445,15 @@ static void powerOnTestSensors()
 
 	if (cfg::ips_read)
 	{
-		IPS_cmd(PmSensorCmd3::Factory); // set to Factory
+		IPS_send_cmd(PmSensorCmd3::Factory); // set to Factory
 		delay(1000);
 		IPS_version_date();
 		delay(1000);
-		IPS_cmd(PmSensorCmd3::Smoke); // no smoke detection
+		IPS_send_cmd(PmSensorCmd3::Smoke); // no smoke detection
 		delay(1000);
-		IPS_cmd(PmSensorCmd3::Interval); // Set interval to 0 = manual mode
+		IPS_send_cmd(PmSensorCmd3::Interval); // Set interval to 0 = manual mode
 		delay(1000);
-		IPS_cmd(PmSensorCmd3::Stop);
+		IPS_send_cmd(PmSensorCmd3::Stop);
 		delay(1000);
 		is_IPS_running = false;
 	}
