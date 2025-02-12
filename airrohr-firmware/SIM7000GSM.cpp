@@ -1057,7 +1057,7 @@ void SyncNTPTime(void)
 ///          Wifi APmode PowerSave in case of SIM7xxx
 ///    
 /// @param
-void WifiAPmodePowerSave(void)
+void LTEmodePowerSave(void)
 {
     if( lte_init_failed)
     {// SIM-7xxx module NOT connected.

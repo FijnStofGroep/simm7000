@@ -4285,9 +4285,9 @@ static int selectChannelForAp()
  *****************************************************************/
 static void wifi_AP_Config()
 {
-	debug_outln_info(F("Starting WiFiManager"));
-	debug_outln_info(F("AP ID: "), String(cfg::fs_ssid));
-	debug_outln_info(F("Password: "), String(cfg::fs_pwd));
+	debug_outln_info(F("Starting WiFi-Server Manager."));
+	debug_outln_info(F("AP SSID: "), String(cfg::fs_ssid));
+	//debug_outln_info(F("Password: "), String(cfg::fs_pwd));
 
 	wificonfig_loop = true;
 
@@ -4354,7 +4354,7 @@ static void wifi_AP_Config()
 	WiFi.softAP(cfg::fs_ssid, cfg::fs_pwd, selectChannelForAp());
 
 	// In case we create a unique password at first start
-	debug_outln_info(F("AP Password is: "), cfg::fs_pwd);
+	debug_outln_info(F("AP Password: "), cfg::fs_pwd);
 
     if (cfg::has_s7000) 
     {// Wifi interface allways in AP mode in case of GSM mode.
@@ -9514,15 +9514,24 @@ void loop(void)
     if (cfg::has_s7000 && !send_now)
     {
         SyncNTPTime();
-        WifiAPmodePowerSave();
+        LTEmodePowerSave();
     }
 
 #endif
 
-	// Sleep if all of the tasks have an event in the future. The chip can then
-	// enter a lower power mode.
+	// Sleep if all of the tasks have an event in the future. 
+    // The chip can then enter a lower power mode.
 	if (cfg::powersave)
 	{
+        // need to TEST before release.
+        // Deep-sleep for 35 seconds, and then wake up. 
+        //sleep = 35000 * 1000;         // time in usec.
+        //system_deep_sleep_instant(sleep);
+
+        // function so that the chip will not perform RF calibration after waking up
+        // from Deep-sleep to reduce the initialization time and current consumption. 
+        //system_deep_sleep_set_option(2);
+
 		delay(sleep);
 	}
 

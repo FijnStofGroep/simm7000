@@ -126,7 +126,7 @@ String GetLTELocalIP(void);
 
 /// @brief 
 /// @param  
-void WifiAPmodePowerSave(void);
+void LTEmodePowerSave(void);
 
 /// @brief 
 /// @param  
