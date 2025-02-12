@@ -44,7 +44,7 @@ typedef const   __FlashStringHelper             *FStringPtr;
 #define prog_char_strstr(a, b)					strstr_P((a), (b))
 #define prog_char_strlen(a)						strlen_P((a))
 #define prog_char_strcpy(to, fromprogmem)		strcpy_P((to), (fromprogmem))
-//define prog_char_strncpy(to, from, len)		strncpy_P((to), (fromprogmem), (len))
+//define prog_char_strncpy(to, fromprogmem, len)    strncpy_P((to), (fromprogmem), (len))
 #define prog_char_strcat(to, fromprogmem)       strcat_P((to), (fromprogmem))
 
 #endif /* BK_COMMON_H */
