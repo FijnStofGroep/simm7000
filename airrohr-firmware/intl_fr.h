@@ -164,5 +164,6 @@ const char INTL_SIM_MODE[] PROGMEM = "Mode";
 
 #define INTL_ENABLE_RCWL_0516 "Enable Radar Motion (after enable reboot and insert server credentials)"
 
-#define INTL_MODE "Mode"
-#define INTL_TYPE "Type"
+#define INTL_MODE   "Mode"
+#define INTL_TYPE   "Type"
+#define INTL_LPWAN  "LPWAN"
