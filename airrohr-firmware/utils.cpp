@@ -281,7 +281,7 @@ void add_Value2Json(String& res, const __FlashStringHelper* type, const String& 
 }
 
 /*
-	add Value 2 Json format string.
+	add Value into Json format string.
 	Send Json format string to Debug output.
 
 	debug_type = print text:
