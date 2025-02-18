@@ -85,6 +85,8 @@ input[type=submit]:hover{background:#167908} \
 #sen5x_sym_th{background:#055d52;color:#fff} \
 #sen5x_pin{background:#055d52;color:#fff} \
 #sim_type{background:#055d52;color:#fff} \
+#mode_selection{background:#055d52;color:#fff} \
+#communication_type{background:#055d52;color:#fff} \
 #current_lang{background:#055d52;color:#fff} \
 input[type=checkbox]{accent-color: rgb(255, 255, 128);}";
 

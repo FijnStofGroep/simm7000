@@ -15,7 +15,8 @@
 String form_select_mode7()		// mode selection
 {
 	String s_select = F(" selected='selected'");
-	String s = F("<tr>"
+	String s = F("<br/>\n"
+                 "<tr>"
 				 "<td>" INTL_MODE ":&nbsp;</td>"
 				 "<td>"
 				 "<select id='mode_selection' name='mode_selection'>"
@@ -29,9 +30,9 @@ String form_select_mode7()		// mode selection
 
 	s.replace("=" + String(cfg7::mode_selection) + ">", "=" + String(cfg7::mode_selection) + s_select + ">");
 
-	String s1 = F("<br/><br/>"
-                "<tr>"
-				 "<td>" INTL_MODE ":&nbsp;</td>"
+	String s1 = F("<br/>\n"
+                 "<tr>"
+				 "<td>" INTL_LPWAN ":&nbsp;</td>"
 				 "<td>"
 				 "<select id='communication_type' name='communication_type'>"
 				 "<option value=1>CAT-M</option>"
@@ -53,7 +54,8 @@ String form_select_mode7()		// mode selection
 String form_select_type7()		// mode SIM7000
 {
 	String s_select = F(" selected='selected'");
-	String s = F("<tr>"
+	String s = F("<br/><br/>"
+                 "<tr>"
 				 "<td>" INTL_TYPE ":&nbsp;</td>"
 				 "<td>"
 				 "<select id='sim_type' name='sim_type'>"
