@@ -127,87 +127,89 @@ BK_modem * LTEmodem = NULL;
 //***************************************************************************************************************************************************
 
 /*****************************************************************
-    GPRS Modem Info()
+ *   GPRS Modem Info()                                           *
 ******************************************************************/
 void Display_GPRSModemInfo()
 {
-    if (cfg::debug < DEBUG_MAX_INFO)
-    {
-        // String local = LTEmodem.getGPRSIP();
-        // debug_outln_info(F("Local IP: "), local);
+    // if (cfg::debug < DEBUG_MAX_INFO)
+    // {
+    //     // String local = LTEmodem.getGPRSIP();
+    //     // debug_outln_verbose(F("Local IP: "), local);
 
-        String oper = LTEmodem->getOperator();
-        debug_outln_info(F("Operator: "), oper);
+    //     String oper = LTEmodem->getOperator();
+    //     debug_outln_verbose(F("Operator: "), oper);
 
-        return;
-    }
+    //     last_signal_strength = GetWiFi_RSSI();
+
+    //     return;
+    // }
 
     int16_t imode;
     RESERVE_STRING(smode, MED_STR);
 
-    debug_outln_info(F("\n--- Display GPRS Information ---"));
+    debug_outln_verbose(F("\n--- Display GPRS Information ---"));
 
     if (LTEmodem->isGprsConnected())
     {
-        debug_outln_info(F("GPRS status: connected."));
+        debug_outln_verbose(F("GPRS status: connected."));
     }
     else
     {
-        debug_outln_info(F("GPRS status: not connected."));
+        debug_outln_verbose(F("GPRS status: not connected."));
     }
 
-    debug_outln_info(F("Software ") + LTEmodem->getModemSoftware_Revision());
+    debug_outln_verbose(F("Software ") + LTEmodem->getModemSoftware_Revision());
 
     imode = LTEmodem->getNetworkMode();
-    debug_outln_info(F("Network Modes: \"2 Automatic , 13 GSM only , 38 LTE only , 51 GSM and LTE only\".\n\t\tNetwork Mode => "), String(imode));
+    debug_outln_verbose(F("Network Modes: \"2 Automatic , 13 GSM only , 38 LTE only , 51 GSM and LTE only\".\n\t\tNetwork Mode => "), String(imode));
 
     uint8_t epsStatus = LTEmodem->getNetworkStatus();
-    debug_out(F("\t\tNetwork status code: ") + String(epsStatus) + F(" => "), DEBUG_MIN_INFO);
+    debug_out(F("\t\tNetwork status code: ") + String(epsStatus) + F(" => "), DEBUG_MED_INFO);
 
     if (epsStatus == 0) 
-        debug_outln_info(F("Not registered"));
+        debug_outln_verbose(F("Not registered"));
     else if (epsStatus == 1) 
-        debug_outln_info(F("Registered (home)"));
+        debug_outln_verbose(F("Registered (home)"));
     else if (epsStatus == 2) 
-        debug_outln_info(F("Not registered (searching)"));
+        debug_outln_verbose(F("Not registered (searching)"));
     else if (epsStatus == 3) 
-        debug_outln_info(F("Denied"));
+        debug_outln_verbose(F("Denied"));
     else if (epsStatus == 4) 
-        debug_outln_info(F("Unknown"));
+        debug_outln_verbose(F("Unknown"));
     else if (epsStatus == 5) 
-        debug_outln_info(F("Registered roaming"));
+        debug_outln_verbose(F("Registered roaming"));
 
     char status[13];
     imode = LTEmodem->getNetworkSystemMode(status);
-    debug_outln_info(F("\t\tNetwork System Mode: "), String(imode) + F(" => ") + String(status));
+    debug_outln_verbose(F("\t\tNetwork System Mode: "), String(imode) + F(" => ") + String(status));
 
     smode = LTEmodem->getPreferredModes();
     imode = LTEmodem->getPreferredMode();
-    debug_outln_info("Availlable Preferred Modes: " + smode + ".\n\t\tCurrent Preferred Mode = " + String(imode));
+    debug_outln_verbose("Availlable Preferred Modes: " + smode + ".\n\t\tCurrent Preferred Mode = " + String(imode));
 
     char ccid[64];
     LTEmodem->getSIMCCID(ccid);
-    debug_outln_info(F("CCID: "), String(ccid));
+    debug_outln_verbose(F("CCID: "), String(ccid));
 
     LTEmodem->getIMEI(m_imei);
-    debug_outln_info(F("IMEI: "), String(m_imei));
+    debug_outln_verbose(F("IMEI: "), String(m_imei));
 
     smode.clear();
     smode = LTEmodem->getOperator();
-    debug_outln_info(F("Operator: "), smode);
+    debug_outln_verbose(F("Operator: "), smode);
 
     smode.clear();
     smode = LTEmodem->getSIMCOMATI();
-    debug_outln_info(F("SIMCOMATI:\n"), smode);
+    debug_outln_verbose(F("SIMCOMATI:\n"), smode);
     
     last_signal_strength = GetWiFi_RSSI();
 
     // Get connection type and band.
     smode.clear();
     LTEmodem->getNetworkInfo(smode);
-    debug_outln_info(F("The current network parameters: "), smode);
+    debug_outln_verbose(F("The current network parameters: "), smode);
 
-    debug_outln_info(F("--- End of GPRS Information ---\n"));
+    debug_outln_verbose(F("--- End GPRS Display Information ---\n"));
 }
 
 /// @brief 
@@ -225,7 +227,7 @@ int32_t GetWiFi_RSSI( void)
     int8 rssi = 0; 
     LTEmodem->getSignalQuality(&csq, &rssi);
 
-    debug_outln_info( F("Wifi signal strength: ") + String(rssi) + F("dBM") + F(", Signal quality: ") + String(csq) + F("%"));
+    debug_outln_verbose( F("Wifi signal strength: ") + String(rssi) + F("dBM") + F(", Signal quality: ") + String(csq) + F("%"));
 
     return rssi;
 }
