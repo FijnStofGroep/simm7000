@@ -43,8 +43,7 @@
 #define LoggerCount  7                          // see enum LoggerEntry {..}
 extern LoggerConfig loggerConfigs[LoggerCount];
 
-// original in 
-//#define SOFTWARE_VERSION_STR "FWL-2024-05-B1"
+// see "SOFTWARE_VERSION_STR" in airrohr-firmware.ino file.
 extern String SOFTWARE_VERSION;
 
 extern int last_sendData_returncode;
@@ -52,6 +51,7 @@ extern String esp_chipid;
 extern String esp_mac_id;
 
 extern int last_signal_strength;
+extern unsigned long WiFi_error_count;
 extern unsigned long last_page_load;
 
 extern char mqtt_client_id[LEN_MQTT_HEADER];
@@ -309,6 +309,7 @@ inline boolean GPRSConnect()
 
             if ( retry < -1 || !RestartLTEModem())
             {
+                WiFi_error_count++;
                 return false;
             }
 
@@ -348,6 +349,7 @@ inline boolean GPRSConnect()
         if (retry == 0)
         {
             LTEmodem->openWirelessConnection(false);
+            WiFi_error_count++;
             return false;
         }
 
@@ -526,8 +528,9 @@ bool Sim7000_setup( int state)
     RegStatus epsStatus = (RegStatus)LTEmodem->getNetworkStatus();
     if (epsStatus == RegStatus::REG_DENIED || epsStatus == RegStatus::REG_UNKNOWN)
     {
-        debug_outln_info(F(" Failed error code: ") + String(epsStatus));
+        debug_outln_info(F("Failed error code: ") + String(epsStatus));
         lte_init_failed = true;
+        WiFi_error_count++;
         return false;
     }
 

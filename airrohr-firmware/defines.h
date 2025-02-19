@@ -23,7 +23,7 @@
 #endif
 
 #define SSID_BASENAME "airRohr-"
-#define HOSTNAME_BASE "airRohr-"
+#define AP_SSID_BASENAME "FWL_Device-"
 
 #define WIFI_MAX_RETRY 5
 
