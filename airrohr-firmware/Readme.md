@@ -153,7 +153,23 @@ VCC and GND can be provided by board (use 3.3v!)
 **Note**: Serial connections are always crossed (RX on one side is connected with TX on other side)
 
 * TX von Neo -> Pin D5 (RX) 
-* RX von Neo -> Pin D6 (TX) 
+* RX von Neo -> Pin D6 (TX)
+
+### SIM70xx LTE PCB module 
+
+* SIM7080G supports **NB-IoT** and **Cat-M** in global frequency bands, but does **not support 2G/3G/4G**. 
+* - Please confirm that the SIM card used supports **NB-IoT** or **Cat-M** before use.
+* - SIM7080G cannot connect to cellular "(LTE)" network and "GPS" positioning at the same time
+* The SIM card must be inserted first before starting the SIM7080. If the SIM card is inserted after the SIM7080 is turned on, 
+* the modem will not be able to detect the SIM card.
+
+* VCC and GND can be provided by board (use 4.2v ~ 5v), maximum charging current as `500mA`
+
+**Note**: Serial connections are always crossed (RX on one side is connected with TX on other side)
+* TX von SIM70xx       -> Pin D5 (RX) -> GPIO14
+* RX von SIM70xx       -> Pin D6 (TX) -> GPIO12
+* PowerPin von SIM70xx -> Pin D7      -> GPIO13  ----> signal for switch MOSFET.
+* Sleep von Sim70xx    -> pin GND
 
 ## Sensor.Community API "Pins"
 

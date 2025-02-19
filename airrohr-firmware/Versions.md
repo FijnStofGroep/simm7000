@@ -1,7 +1,23 @@
-FWL-2024-10-B3
-* Set ESP8266 Serial pins for connection to SIM7000 board:
-*   -PIN_RX to D5 (GPIO14)  <---- TX SIM7000
-*   -PIN_TX to D6 (GPIO12)  ----> RX SIM7000
+FWL-2025-01-P7  (Fijnstof Werkgroep Leusden)
+* Add BK-SIM7080 PCB LTE module.
+*   - SIM7080G supports **NB-IoT** and **Cat-M** in global frequency bands, but does **not support 2G/3G/4G**. 
+*   - Please confirm that the SIM card used supports **NB-IoT** or **Cat-M** before use.
+*   - SIM7080G cannot connect to cellular "(LTE)" network and "GPS" positioning at the same time
+* BK-SIM70xx PCB controled by power management process.
+* Add password encryption
+* In LTE mode AP-SSID Basename: "FWL_Device-<ESP_ID>"
+* Add on device status web page SIM70xx LTE network information.
+
+FWL-2025-01-B3
+* Set ESP8266 Serial pins for connection to SIM70xx board:
+*   Pin swap setting in Configuration:  
+*       (Pin D5 (GPIO14) / Pin D6 (GPIO12))
+*   -PIN_RX/TX  <----> SIM7000_RXD5TXD6
+*   -PIN_RX/TX  <----> SIM7000_RXD6TXD5
+*   -PIN_RX/TX  <----> SIM7080_RXD5TXD6
+*   -PIN_RX/TX  <----> SIM7080_RXD6TXD5
+*   PowerPin von SIM70xx -> Pin D7  -> GPIO13  ----> signal for switch MOSFET.
+*   Sleep von Sim70xx    -> pin GND
 
 FWL-2024-04-B5_7
 * Add own SIM7000LTE library to project.
