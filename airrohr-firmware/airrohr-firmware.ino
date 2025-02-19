@@ -124,8 +124,8 @@
  * PROGRAM: [=======   ]  65.5% (used 684009 bytes from 1044464 bytes)  *
  *                                                                      *
  *  * latest build 2025-02-03  											*
- * RAM:     [=====     ]  46.9% (used 38432 bytes from 81920 bytes)     *
- * PROGRAM: [=======   ]  65.6% (used 685429 bytes from 1044464 bytes)  *
+ * RAM:     [=====     ]  46.9% (used 38448 bytes from 81920 bytes)     *
+ * PROGRAM: [=======   ]  65.7% (used 686053 bytes from 1044464 bytes)  *
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -140,7 +140,7 @@
  #define SOFTWARE_VERSION_STR "FWL-2025-01-B6_2"
 #else
 // Production version:
- #define SOFTWARE_VERSION_STR "FWL-2025-01-P4"
+ #define SOFTWARE_VERSION_STR "FWL-2025-01-P7"
 #endif
 
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
@@ -902,7 +902,7 @@ const char JSON_SENSOR_DATA_VALUES[] PROGMEM = "sensordatavalues";
  *****************************************************************/
 static void display_debug(const String &text1, const String &text2)
 {
-	debug_outln_info(F("output debug text to displays..."));
+	debug_outln_info(F("Display debug messages..."));
 
 	if (oled_ssd1306)
 	{
@@ -1683,18 +1683,51 @@ static void readConfigBase(bool oldconfig)
 			rewriteConfig = true;
 		}
 
-		if (boolFromJSON(json, F("pm24_read")) || boolFromJSON(json, F("pms32_read")))
-		{
-			cfg::pms_read = true;
-			rewriteConfig = true;
-		}
+		// if (boolFromJSON(json, F("pm24_read")) || boolFromJSON(json, F("pms32_read")))
+		// {
+		// 	cfg::pms_read = true;
+		// 	rewriteConfig = true;
+		// }
 
-		if (boolFromJSON(json, F("bmp280_read")) || boolFromJSON(json, F("bme280_read")))
-		{
-			cfg::bmx280_read = true;
-			rewriteConfig = true;
-		}
-	}
+		// if (boolFromJSON(json, F("bmp280_read")) || boolFromJSON(json, F("bme280_read")))
+		// {
+		// 	cfg::bmx280_read = true;
+		// 	rewriteConfig = true;
+		// }
+
+        if (cfg::has_s7000)
+        {
+            if (strncmp(cfg::fs_ssid, AP_SSID_BASENAME, sizeof(AP_SSID_BASENAME) - 1) != 0)
+            {
+#if defined(VS_DEBUG)
+                debug_outln_info(F("**** Set AP-SSID name for LTE mode: ") + String(cfg::fs_ssid));
+#endif
+                strcpy(cfg::fs_ssid, AP_SSID_BASENAME);   // Set AP-Host SSID name for LTE mode.
+                strcat(cfg::fs_ssid, esp_chipid.c_str()); // NodeMCU 8266 chipid.
+
+                // reset all "APIs".
+                cfg::send2dusti = false;
+                cfg::send2madavi = false;
+                cfg::send2sensemap = false;
+                cfg::send2fsapp = false;
+                cfg::send2aircms = false;
+                cfg::send2custom = false;
+                cfg::send2influx = false;
+                cfg::send2csv = false;
+
+                cfg::send2mqtt = true;
+
+                rewriteConfig = true;
+            }
+        }
+        else if (strncmp(cfg::fs_ssid, AP_SSID_BASENAME, sizeof(AP_SSID_BASENAME) - 1) == 0)
+        {
+            strcpy(cfg::fs_ssid, SSID_BASENAME);      // Set default AP-Host SSID name.
+            strcat(cfg::fs_ssid, esp_chipid.c_str()); // NodeMCU 8266 chipid.
+
+            rewriteConfig = true;
+        }
+    }
 	else
 	{
 		debug_outln_error(F("Failed to load json config"));
@@ -2448,7 +2481,9 @@ static bool webserver_request_auth()
 			server.requestAuthentication(BASIC_AUTH, "Sensor Login", F("Authentication failed"));
 			return false;
 		}
-	}
+
+        debug_outln_info(F("***Validate auth. OKAY ***"));
+    }
 
 	return true;
 }
@@ -2545,30 +2580,34 @@ static void webserver_config_send_body_get(String &page_content)
 					  "</label></div><div class='panels'>"
 					  "<div class='panel' id='panel1'>");
 
-	if (wificonfig_loop)
-	{ // scan for wlan ssid's
-		page_content += F("<div id='wifilist'>" INTL_WIFI_NETWORKS "</div><br/>");
-	}
 
-	page_content += FPSTR(TABLE_TAG_OPEN);
-	add_form_checkbox(Config_has_morewifi, FPSTR(INTL_ENABLE_MOREWIFI));
-	add_form_input(page_content, Config_wlanssid, FPSTR(INTL_FS_WIFI_NAME), LEN_WLANSSID - 1);
-	add_form_input(page_content, Config_wlanpwd, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
+    if (!cfg::has_s7000)
+    {
+        if (wificonfig_loop)
+        { // scan for wlan ssid's
+            page_content += F("<div id='wifilist'>" INTL_WIFI_NETWORKS "</div><br/>");
+        }
 
-	if (cfg::has_morewifi)
-	{
-		add_form_input(page_content, Config_wlanssid_2, FPSTR(INTL_FS_WIFI_NAME_2), LEN_WLANSSID - 1);
-		add_form_input(page_content, Config_wlanpwd_2, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
-		add_form_input(page_content, Config_wlanssid_3, FPSTR(INTL_FS_WIFI_NAME_3), LEN_WLANSSID - 1);
-		add_form_input(page_content, Config_wlanpwd_3, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
-	}
+        page_content += FPSTR(TABLE_TAG_OPEN);
 
-	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
-	page_content += FPSTR(WEB_BR_LF_B);
-	page_content += F("<hr/>");
+        add_form_checkbox(Config_has_morewifi, FPSTR(INTL_ENABLE_MOREWIFI));
+        add_form_input(page_content, Config_wlanssid, FPSTR(INTL_FS_WIFI_NAME), LEN_WLANSSID - 1);
+        add_form_input(page_content, Config_wlanpwd, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
 
+        if (cfg::has_morewifi)
+        {
+            add_form_input(page_content, Config_wlanssid_2, FPSTR(INTL_FS_WIFI_NAME_2), LEN_WLANSSID - 1);
+            add_form_input(page_content, Config_wlanpwd_2, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
+            add_form_input(page_content, Config_wlanssid_3, FPSTR(INTL_FS_WIFI_NAME_3), LEN_WLANSSID - 1);
+            add_form_input(page_content, Config_wlanpwd_3, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
+        }
 
-	page_content += FPSTR(INTL_AB_HIER_NUR_ANDERN);
+        page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+        page_content += FPSTR(WEB_BR_LF_B);
+        page_content += F("<hr/>");
+    }
+
+    page_content += FPSTR(INTL_AB_HIER_NUR_ANDERN);
 	page_content += FPSTR(WEB_B_BR);
 	page_content += FPSTR(BR_TAG);
 
@@ -2577,6 +2616,7 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content = emptyString;
 
 	add_form_checkbox(Config_www_basicauth_enabled, FPSTR(INTL_BASICAUTH));
+
 	page_content += FPSTR(TABLE_TAG_OPEN);
 	add_form_input(page_content, Config_www_username, FPSTR(INTL_USER), LEN_WWW_USERNAME - 1);
 	add_form_input(page_content, Config_www_password, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
@@ -2609,21 +2649,24 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content += FPSTR(WEB_BR_LF_B);
 	page_content += F("<hr/>");
 
-	// Add IP static (FVD)
-	// add checkbox
-	add_form_checkbox(Config_has_fix_ip, FPSTR(INTL_STATIC_IP_TEXT));
-	page_content += FPSTR(TABLE_TAG_OPEN);
+    if (!cfg::has_s7000)
+    {
+        // Add IP static (FVD)
+        // add checkbox
+        add_form_checkbox(Config_has_fix_ip, FPSTR(INTL_STATIC_IP_TEXT));
+        page_content += FPSTR(TABLE_TAG_OPEN);
 
-	add_form_input(page_content, Config_static_ip, FPSTR(INTL_STATIC_IP), 15);
-	add_form_input(page_content, Config_static_subnet, FPSTR(INTL_STATIC_SUBNET), 15);
-	add_form_input(page_content, Config_static_gateway, FPSTR(INTL_STATIC_GATEWAY), 15);
-	add_form_input(page_content, Config_static_dns, FPSTR(INTL_STATIC_DNS), 15);
+        add_form_input(page_content, Config_static_ip, FPSTR(INTL_STATIC_IP), 15);
+        add_form_input(page_content, Config_static_subnet, FPSTR(INTL_STATIC_SUBNET), 15);
+        add_form_input(page_content, Config_static_gateway, FPSTR(INTL_STATIC_GATEWAY), 15);
+        add_form_input(page_content, Config_static_dns, FPSTR(INTL_STATIC_DNS), 15);
 
-	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+        page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+    }
 
-	server.sendContent(page_content);
+    server.sendContent(page_content);
 
-	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(2));
+	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(2));           // tab blad 2
 
 	add_form_checkbox(Config_has_display, FPSTR(INTL_DISPLAY));
 	add_form_checkbox(Config_has_sh1106, FPSTR(INTL_SH1106));
@@ -2660,13 +2703,17 @@ static void webserver_config_send_body_get(String &page_content)
 					  "</script>");
 
 	//page_content += FPSTR(WEB_BR_LF);
-	add_form_checkbox(Config_auto_update, FPSTR(INTL_AUTO_UPDATE));
-	add_form_checkbox(Config_use_beta, FPSTR(INTL_USE_BETA));
-	//page_content += FPSTR(BR_TAG);
-	add_form_checkbox(Config_powersave, FPSTR(INTL_POWERSAVE));
-	page_content += FPSTR(WEB_BR_LF);
 
-	page_content += FPSTR(TABLE_TAG_OPEN);
+    if (!cfg::has_s7000)
+    {
+        add_form_checkbox(Config_auto_update, FPSTR(INTL_AUTO_UPDATE));
+        add_form_checkbox(Config_use_beta, FPSTR(INTL_USE_BETA));
+        // page_content += FPSTR(BR_TAG);
+        add_form_checkbox(Config_powersave, FPSTR(INTL_POWERSAVE));
+    }
+
+    page_content += FPSTR(WEB_BR_LF);
+    page_content += FPSTR(TABLE_TAG_OPEN);
 	add_form_input(page_content, Config_debug, FPSTR(INTL_DEBUG_LEVEL), 1);
 	add_form_input(page_content, Config_sending_intervall_ms, FPSTR(INTL_MEASUREMENT_INTERVAL), 5);
 	add_form_input(page_content, Config_time_for_wifi_config, FPSTR(INTL_DURATION_ROUTER_MODE), 5);
@@ -2674,7 +2721,7 @@ static void webserver_config_send_body_get(String &page_content)
 
 	server.sendContent(page_content);
 
-	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(3));
+	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(3));       // tab blad 3
 
 	add_form_checkbox_sensor(Config_sen5x_read, FPSTR(INTL_SEN5X));
 	page_content += FPSTR(WEB_NBSP_NBSP);
@@ -2701,6 +2748,7 @@ static void webserver_config_send_body_get(String &page_content)
 	// Paginate page after ~ 1500 Bytes
 	server.sendContent(page_content);
 	page_content = emptyString;
+
 	add_form_checkbox_sensor(Config_pms_read, FPSTR(INTL_PMS));
 	add_form_checkbox_sensor(Config_npm_read, FPSTR(INTL_NPM));
 	add_form_checkbox_sensor(Config_npm_fulltime, FPSTR(INTL_NPM_FULLTIME));
@@ -2741,53 +2789,55 @@ static void webserver_config_send_body_get(String &page_content)
 	add_form_checkbox_sensor(Config_htu21d_read, FPSTR(INTL_HTU21D));
 	add_form_checkbox_sensor(Config_sht3x_read, FPSTR(INTL_SHT3X));
 
-
 	// Paginate page after ~ 1500 Bytes
 	server.sendContent(page_content);
 
-	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(4));
+	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(4));           // tabblad 4
 
-	page_content += tmpl(FPSTR(INTL_SEND_TO), F("APIs"));
-	page_content += FPSTR(BR_TAG);
-	page_content += form_checkbox(Config_send2dusti, FPSTR(WEB_SENSORCOMMUNITY), false);
-	page_content += FPSTR(WEB_NBSP_NBSP_BRACE);
-	page_content += form_checkbox(Config_ssl_dusti, FPSTR(WEB_HTTPS), false);
-	page_content += FPSTR(WEB_BRACE_BR);
-	page_content += form_checkbox(Config_send2madavi, FPSTR(WEB_MADAVI), false);
-	page_content += FPSTR(WEB_NBSP_NBSP_BRACE);
-	page_content += form_checkbox(Config_ssl_madavi, FPSTR(WEB_HTTPS), false);
-	page_content += FPSTR(WEB_BRACE_BR);
-	add_form_checkbox(Config_send2csv, FPSTR(WEB_CSV));
-	add_form_checkbox(Config_send2fsapp, FPSTR(WEB_FEINSTAUB_APP));
-	add_form_checkbox(Config_send2aircms, FPSTR(WEB_AIRCMS));
-	add_form_checkbox(Config_send2sensemap, FPSTR(WEB_OPENSENSEMAP));
-	page_content += FPSTR(TABLE_TAG_OPEN);
-	add_form_input(page_content, Config_senseboxid, F("senseBox&nbsp;ID"), LEN_SENSEBOXID - 1);
+    if (!cfg::has_s7000)
+    {
+        page_content += tmpl(FPSTR(INTL_SEND_TO), F("APIs"));
+        page_content += FPSTR(BR_TAG);
+        page_content += form_checkbox(Config_send2dusti, FPSTR(WEB_SENSORCOMMUNITY), false);
+        page_content += FPSTR(WEB_NBSP_NBSP_BRACE);
+        page_content += form_checkbox(Config_ssl_dusti, FPSTR(WEB_HTTPS), false);
+        page_content += FPSTR(WEB_BRACE_BR);
+        page_content += form_checkbox(Config_send2madavi, FPSTR(WEB_MADAVI), false);
+        page_content += FPSTR(WEB_NBSP_NBSP_BRACE);
+        page_content += form_checkbox(Config_ssl_madavi, FPSTR(WEB_HTTPS), false);
+        page_content += FPSTR(WEB_BRACE_BR);
 
-	server.sendContent(page_content);
-	page_content = FPSTR(TABLE_TAG_CLOSE_BR);
-	page_content += FPSTR(BR_TAG);
-	page_content += F("<hr/>");
-	page_content += form_checkbox(Config_send2custom, FPSTR(INTL_SEND_TO_OWN_API), false);
-	page_content += FPSTR(WEB_NBSP_NBSP_BRACE);
-	page_content += form_checkbox(Config_ssl_custom, FPSTR(WEB_HTTPS), false);
-	page_content += FPSTR(WEB_BRACE_BR);
+        add_form_checkbox(Config_send2csv, FPSTR(WEB_CSV));
+        add_form_checkbox(Config_send2fsapp, FPSTR(WEB_FEINSTAUB_APP));
+        add_form_checkbox(Config_send2aircms, FPSTR(WEB_AIRCMS));
+        add_form_checkbox(Config_send2sensemap, FPSTR(WEB_OPENSENSEMAP));
+        page_content += FPSTR(TABLE_TAG_OPEN);
+        add_form_input(page_content, Config_senseboxid, F("senseBox&nbsp;ID"), LEN_SENSEBOXID - 1);
 
-	server.sendContent(page_content);
-	page_content = FPSTR(TABLE_TAG_OPEN);
-	add_form_input(page_content, Config_host_custom, FPSTR(INTL_SERVER), LEN_HOST_CUSTOM - 1);
-	add_form_input(page_content, Config_url_custom, FPSTR(INTL_PATH), LEN_URL_CUSTOM - 1);
-	add_form_input(page_content, Config_port_custom, FPSTR(INTL_PORT), MAX_PORT_DIGITS);
-	add_form_input(page_content, Config_user_custom, FPSTR(INTL_USER), LEN_USER_CUSTOM - 1);
-	add_form_input(page_content, Config_pwd_custom, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
-	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
-	//page_content += FPSTR(BR_TAG);
-	
-	server.sendContent(page_content);
+        server.sendContent(page_content);
+        page_content = FPSTR(TABLE_TAG_CLOSE_BR);
+        page_content += FPSTR(BR_TAG);
+        page_content += F("<hr/>");
+        page_content += form_checkbox(Config_send2custom, FPSTR(INTL_SEND_TO_OWN_API), false);
+        page_content += FPSTR(WEB_NBSP_NBSP_BRACE);
+        page_content += form_checkbox(Config_ssl_custom, FPSTR(WEB_HTTPS), false);
+        page_content += FPSTR(WEB_BRACE_BR);
 
-	// Add MQTT
-	// Test page_content = emptyString;
-	page_content = emptyString;
+        server.sendContent(page_content);
+        page_content = FPSTR(TABLE_TAG_OPEN);
+        add_form_input(page_content, Config_host_custom, FPSTR(INTL_SERVER), LEN_HOST_CUSTOM - 1);
+        add_form_input(page_content, Config_url_custom, FPSTR(INTL_PATH), LEN_URL_CUSTOM - 1);
+        add_form_input(page_content, Config_port_custom, FPSTR(INTL_PORT), MAX_PORT_DIGITS);
+        add_form_input(page_content, Config_user_custom, FPSTR(INTL_USER), LEN_USER_CUSTOM - 1);
+        add_form_input(page_content, Config_pwd_custom, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
+        page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+        // page_content += FPSTR(BR_TAG);
+
+        server.sendContent(page_content);
+        page_content = emptyString;	        // page_content = emptyString;
+    }
+
+    // Add MQTT
 	page_content += FPSTR(BR_TAG);
 	page_content += F("<hr/>");
 	page_content += form_checkbox(Config_send2mqtt, FPSTR(INTL_SEND_TO_MQTT), false);
@@ -2802,29 +2852,40 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	page_content += FPSTR(BR_TAG);
 	page_content += F("<hr/>");
+
 	server.sendContent(page_content);
 	// End MQTT
 
-	page_content = form_checkbox(Config_send2influx, tmpl(FPSTR(INTL_SEND_TO), F("InfluxDB")), false);
+    if (!cfg::has_s7000)
+    {
+        page_content = form_checkbox(Config_send2influx, tmpl(FPSTR(INTL_SEND_TO), F("InfluxDB")), false);
 
-	page_content += FPSTR(WEB_NBSP_NBSP_BRACE);
-	page_content += form_checkbox(Config_ssl_influx, FPSTR(WEB_HTTPS), false);
-	page_content += FPSTR(WEB_BRACE_BR);
-	page_content += FPSTR(TABLE_TAG_OPEN);
-	add_form_input(page_content, Config_host_influx, FPSTR(INTL_SERVER), LEN_HOST_INFLUX - 1);
-	add_form_input(page_content, Config_url_influx, FPSTR(INTL_PATH), LEN_URL_INFLUX - 1);
-	add_form_input(page_content, Config_port_influx, FPSTR(INTL_PORT), MAX_PORT_DIGITS);
-	add_form_input(page_content, Config_user_influx, FPSTR(INTL_USER), LEN_USER_INFLUX - 1);
-	add_form_input(page_content, Config_pwd_influx, FPSTR(INTL_PASSWORD), LEN_PASS_INFLUX - 1);
-	add_form_input(page_content, Config_measurement_name_influx, FPSTR(INTL_MEASUREMENT), LEN_MEASUREMENT_NAME_INFLUX - 1);
-	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
-	page_content += F("</div></div>");
-	page_content += form_submit(FPSTR(INTL_SAVE_AND_RESTART));
-	page_content += FPSTR(BR_TAG);
-	page_content += FPSTR(WEB_BR_FORM);
+        page_content += FPSTR(WEB_NBSP_NBSP_BRACE);
+        page_content += form_checkbox(Config_ssl_influx, FPSTR(WEB_HTTPS), false);
+        page_content += FPSTR(WEB_BRACE_BR);
+        page_content += FPSTR(TABLE_TAG_OPEN);
 
-	if (wificonfig_loop)
-	{ // scan for wlan ssids
+        add_form_input(page_content, Config_host_influx, FPSTR(INTL_SERVER), LEN_HOST_INFLUX - 1);
+        add_form_input(page_content, Config_url_influx, FPSTR(INTL_PATH), LEN_URL_INFLUX - 1);
+        add_form_input(page_content, Config_port_influx, FPSTR(INTL_PORT), MAX_PORT_DIGITS);
+        add_form_input(page_content, Config_user_influx, FPSTR(INTL_USER), LEN_USER_INFLUX - 1);
+        add_form_input(page_content, Config_pwd_influx, FPSTR(INTL_PASSWORD), LEN_PASS_INFLUX - 1);
+        add_form_input(page_content, Config_measurement_name_influx, FPSTR(INTL_MEASUREMENT), LEN_MEASUREMENT_NAME_INFLUX - 1);
+
+        page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+    }
+    else
+    {
+        page_content = emptyString; // page_content = emptyString;
+    }
+
+    page_content += F("</div></div>");
+    page_content += form_submit(FPSTR(INTL_SAVE_AND_RESTART));
+    page_content += FPSTR(BR_TAG);
+    page_content += FPSTR(WEB_BR_FORM);
+
+    if (wificonfig_loop)
+    { // scan for wlan ssids
 		page_content += F("<script>window.setTimeout(load_wifi_list,1000);</script>");
 	}
 
@@ -2889,47 +2950,35 @@ static void webserver_config_send_body_post(String &page_content)
 
 /*****************************************************************
  * Webserver sim70xx config: show sim70xx config page            *
+ * only if cfg::has_s7000 = true                                 *
  *****************************************************************/
 static void webserver_config_send_body_get7(String &page_content)
 {
-	// auto add_form_checkbox7 = [&page_content](const ConfigShape7Id cfgid, const String &info)
-	// {
-	// 	page_content += form_checkbox7(cfgid, info, true);
-	// };
-
-	// auto add_form_checkbox_sensor7 = [&add_form_checkbox7](const ConfigShape7Id cfgid, __const __FlashStringHelper *info)
-	// {
-	// 	add_form_checkbox7(cfgid, add_sensor_type(info));
-	// };
-
 	debug_outln_info(F("begin webserver_simm70xx_body_get ..."));
-	debug_outln_info(F("SIM70xx enable: "), cfg::has_s7000);
+	//debug_outln_verbose(F("SIM70xx enable: "), cfg::has_s7000 ? F("true") : F("false"));
 
 	page_content += F("<form method='POST' action='/s70xx' style='width:100%;'>\n");
-	page_content += FPSTR(WEB_BR_BR);
-	page_content += FPSTR(TABLE_TAG_OPEN);
 
 	add_form_input7(page_content, Config7000_gprsapn, FPSTR(INTL_SIM_APN), LEN_SIMM7000 - 1);
     add_form_input7(page_content, Config7000_gprsUser, FPSTR(INTL_SIM_USER), LEN_SIMM7000 - 1);
     add_form_input7(page_content, Config7000_gprsPass, FPSTR(INTL_SIM_PASS), LEN_SIMM7000 - 1);
 
-    // add_form_input7(page_content, Config7000_type, FPSTR(INTL_SIM_TYPE), LEN_SEN5X_SYM - 1);
-    // add_form_input7(page_content, Config7000_mode, FPSTR(INTL_SIM_MODE), LEN_SEN5X_SYM - 1);
     page_content += form_select_type7();
-    page_content += FPSTR(WEB_BR_BR);
 	page_content += form_select_mode7();
-	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+
 	page_content += FPSTR(WEB_BR_BR);
 	page_content += form_checkbox7(Config7000_has_gps, FPSTR(INTL_SIM_GPS), false);
 	page_content += F("</div></div>");
-	page_content += form_submit(FPSTR(INTL_SAVE_AND_RESTART));
-	page_content += FPSTR(WEB_BR_FORM);
 
-	debug_outln_info(F("End webserver_simm70xx ..."));
+	page_content += form_submit(FPSTR(INTL_SAVE_AND_RESTART));
+
+	page_content += FPSTR(WEB_BR_FORM);                             // close: </form>
 
 	server.sendContent(page_content);
 
 	page_content = emptyString;
+
+    debug_outln_info(F("End webserver_simm70xx ..."));
 }
 
 /*********************************************************************************************
@@ -3060,16 +3109,15 @@ static void webserver_config7()
 
 	start_html_page(page_content, FPSTR(INTL_CONFIGURATION));
 
-	if (wificonfig_loop)
-	{ // scan for wlan ssids
-		page_content += FPSTR(WEB_CONFIG_SCRIPT);
-	}
+	// if (wificonfig_loop)
+	// { // scan for wlan ssids
+	// 	page_content += FPSTR(WEB_CONFIG_SCRIPT);
+	// }
 
 	if (server.method() == HTTP_GET)
 	{
 		debug_outln_info(F("SIM70xx: HTTP_GET."));
 		webserver_config_send_body_get7(page_content);
-
 	}
 	else
 	{
@@ -3573,12 +3621,13 @@ static void webserver_status()
         }
     }
 
+    debug_outln_info(F("ws: status => create webpage ..."));
+
     RESERVE_STRING(page_content, XLARGE_STR);
 	start_html_page(page_content, FPSTR(INTL_DEVICE_STATUS));
 
-	debug_outln_info(F("ws: status => create webpage ..."));
-
 	server.sendContent(page_content);
+
 	page_content = F("<table cellspacing='0' cellpadding='5' class='v'>\n"
 					 "<thead><tr><th> " INTL_PARAMETER "</th><th>" INTL_VALUE "</th></tr></thead>");
 
@@ -3736,20 +3785,30 @@ static void webserver_status()
         page_content += FPSTR(EMPTY_ROW);
 
         add_table_row_from_value(page_content, FPSTR(GetSimDriverName().c_str()), emptyString);
-        add_table_row_from_value(page_content, F("Restart counter: "), String(GetLTE_RestartCounter()));
+        add_table_row_from_value(page_content, F("Restart counter"), String(GetLTE_RestartCounter()));
+
+        add_table_row_from_value(page_content, F("LTE signal"),  String(GetWiFi_RSSI()));
+        add_table_row_from_value(page_content, F("WiFi signal"), String(WiFi.RSSI() * -1));
+
+        page_content += FPSTR(EMPTY_ROW);
+        page_content += F("<tr><td colspan='2'><b>" INTL_ERROR "</b></td></tr>");
+
+        add_table_row_from_value(page_content, F("LTE network"), String(WiFi_error_count));
+    }
+    else
+    {
+        page_content += FPSTR(EMPTY_ROW);
+        page_content += F("<tr><td colspan='2'><b>" INTL_ERROR "</b></td></tr>");
+
+        String wifiStatus(WiFi_error_count);
+        wifiStatus += '/';
+        wifiStatus += String(last_signal_strength);
+        wifiStatus += '/';
+        wifiStatus += String(last_disconnect_reason);
+        add_table_row_from_value(page_content, F("WiFi"), wifiStatus);
     }
 
-    page_content += FPSTR(EMPTY_ROW);
-	page_content += F("<tr><td colspan='2'><b>" INTL_ERROR "</b></td></tr>");
-
-	String wifiStatus(WiFi_error_count);
-	wifiStatus += '/';
-	wifiStatus += String(last_signal_strength);
-	wifiStatus += '/';
-	wifiStatus += String(last_disconnect_reason);
-	add_table_row_from_value(page_content, F("WiFi"), wifiStatus);
-
-	if (last_update_returncode != 0)
+    if (last_update_returncode != 0)
 	{
 		add_table_row_from_value(page_content, F("OTA Return"),
 								 last_update_returncode > 0 ? String(last_update_returncode) : HTTPClient::errorToString(last_update_returncode));
@@ -4165,7 +4224,7 @@ static void setup_webserver()
 
 	server.onNotFound(webserver_not_found);
 
-	debug_outln_info(F("Station (STA) Mode: Starting Webserver... "), WiFi.localIP().toString());
+	debug_outln_info(F("Station (STA) Mode: Start Web-server... "), WiFi.localIP().toString());
 	debug_outln_info(F("Access Point (AP) Mode: Starting Webserver... "), WiFi.softAPIP().toString());
 
 	server.begin();
@@ -4287,7 +4346,7 @@ static void wifi_AP_Config()
 {
 	debug_outln_info(F("Starting WiFi-Server Manager."));
 	debug_outln_info(F("AP SSID: "), String(cfg::fs_ssid));
-	//debug_outln_info(F("Password: "), String(cfg::fs_pwd));
+	debug_outln_info(F("AP password: "), String(cfg::fs_pwd));
 
 	wificonfig_loop = true;
 
@@ -4353,19 +4412,12 @@ static void wifi_AP_Config()
 	WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
 	WiFi.softAP(cfg::fs_ssid, cfg::fs_pwd, selectChannelForAp());
 
-	// In case we create a unique password at first start
-	debug_outln_info(F("AP Password: "), cfg::fs_pwd);
-
     if (cfg::has_s7000) 
-    {// Wifi interface allways in AP mode in case of GSM mode.
+    {// Wifi interface allways in AP mode in case of LTE mode.
         // 10 minutes timeout for wifi config.
 	    last_page_load = millis();
 
         wificonfig_loop = false;
-
-        // This can be useful if ESPs are close enough so we don't need full output power.
-        // @param dBm max: +20.5dBm  min: 0dBm
-	    //WiFi.setOutputPower(5.0f);
 
         return;
     }
@@ -4651,6 +4703,7 @@ static void connectWifi()
 #endif
 
 	//debug_outln_info(FPSTR(DBG_TXT_CONNECTING_TO), cfg::wlanssid);
+    debug_outln_verbose(F("ESP-Server SSID: http://"), String(cfg::fs_ssid) + FPSTR(".local"));
 	debug_outln_info(FPSTR(DBG_TXT_CONNECTING_TO), WiFi.SSID());
 
 	if (WiFi.status() != WL_CONNECTED)
@@ -6788,7 +6841,7 @@ static __noinline void fetchSensorGPS(String &s)
     {
         if ( !cfg7::s7000_has_gps && gps.charsProcessed() < 10 )
         {
-            debug_outln_error(F("No GPS data received: check wiring"));
+            debug_outln_error(F("No GPS data received: check wiring!"));
             gps_init_failed = true;
         }
     }
@@ -7723,7 +7776,7 @@ static void display_values()
 
 	if (cfg::display_wifi_info)
 	{
-		screens[screen_count++] = 7; // Wifi info
+		screens[screen_count++] = 7;        // Wifi info
 	}
 	
 	if (cfg::display_device_info)
@@ -8826,12 +8879,12 @@ static unsigned long sendDataToOptionalApis(const String &data)
 		data_sensemap = data;
 
 		if (cfg::sen5x_read && !is_Sen5x_init_failed && memcmp(SEN5X_type, SENSOR_SEN55, 6) == 0)
-		{// Add 'TPS' and 'VOC' index to sensor MQTT send string.
+		{// Add 'VOC' index to sensor MQTT send string.
 			data_sensemap.remove(data_sensemap.length() - 2);	// remove "]}"
 			data_sensemap += ',';
 
-			add_Value2Json(data_sensemap, FPSTR((String(F("SEN5X_")) + F("VOC")).c_str()), F("\nVOC: "), last_value_SEN5X_VOC);
-            //add_Value2Json(data_sensemap, FPSTR((String(F("SEN5X_")) + F("TPS")).c_str()), F("TPS: "), last_value_SEN5X_TS);
+			add_Value2Json(data_sensemap, FPSTR((String(F("SEN5X_")) + F("VOC")).c_str()), String(last_value_SEN5X_VOC));
+            //add_Value2Json(data_sensemap, FPSTR((String(F("SEN5X_")) + F("VOC")).c_str()), F("\nVOC: "), last_value_SEN5X_VOC);
 
 			data_sensemap.remove(data_sensemap.length() - 1);	// remove ','
 			data_sensemap += "]}";								// set JSON end chars.
@@ -8952,22 +9005,23 @@ void setup(void)
         connectWifi();
     }
     else
-    { // Wifi mode allways in "AP" mode in case of GSM.
-      // Start Server Configuration website.
+    { // Wifi mode allways in "AP" mode in case of LTE-communication.
+       // Start AP-Host SSID Configuration website.
         wifi_AP_Config();
 
+        // This can be useful if a web-client close enough to ESP device, so we don't need full output power.
         // 13dBM == 20mW
         WiFi.setOutputPower(13.0f);
 
-		debug_outln_info(F("** Start BK-SIM70XX PCB communication... **"));
-		if( Sim7000_setup(SETUP_STATE::INIT))
-		{
-			debug_outln_info(F("** BK-") + GetSimDriverName() + F(" PCB connected. **"));
-		}
-		else
-		{
-			debug_outln_info(F("** BK-SIM70XX PCB \"NOT\" connected. **"));
-		}
+        debug_outln_info(F("** Start BK-SIM70XX PCB communication... **"));
+        if (Sim7000_setup(SETUP_STATE::INIT))
+        {
+            debug_outln_info(F("** BK-") + GetSimDriverName() + F(" PCB connected. **"));
+        }
+        else
+        {
+            debug_outln_info(F("** BK-SIM70XX PCB \"NOT\" connected. **"));
+        }
     }
 
     setup_webserver();
@@ -9000,7 +9054,7 @@ void setup(void)
 #endif
 
 		debug_outln_info(F("Read GPS..."));
-		disable_unneeded_nmea();
+		disable_unneeded_nmea();            // disable unneeded NMEA values.
 	}
 
 	powerOnTestSensors();
@@ -9180,7 +9234,7 @@ void loop(void)
 
     if ( (msSince(last_display_millis) > DISPLAY_UPDATE_INTERVAL_MS) &&
 		 (cfg::has_display || cfg::has_sh1106 || lcd_1602 || lcd_2004) )
-	{ // Update "OLED" Display lines.
+	{ // Update "OLED" Display line by line.
 		display_values();
 		last_display_millis = act_milli;
 	}
@@ -9259,7 +9313,7 @@ void loop(void)
 				// Get only temperature and humidity.
 				fetchSensorSEN5X_THN(resultTH, false, false);
 				resultTH.replace("SEN5X", SENSOR_SEN55); // set 'SEN55' type ID.
-				result += resultTH;
+				result += resultTH;                      // Set PM + Temperature + Humidity value.
 				pin = SEN5X_PM_API_PIN;
 			}
 			else
@@ -9535,8 +9589,9 @@ void loop(void)
 		delay(sleep);
 	}
 
-	if (sample_count % 500 == 0)
-	{
-		//Serial.println(ESP.getFreeHeap(),DEC);
-	}
+    // if (sample_count % 500 == 0)
+    // {
+    //     Serial.println(ESP.getFreeHeap(), DEC);
+    // }
+
 } // end loop
