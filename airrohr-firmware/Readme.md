@@ -157,9 +157,13 @@ VCC and GND can be provided by board (use 3.3v!)
 
 ### SIM70xx LTE PCB module 
 
+* SIM7000G does not support 4G network. Please ensure that the USIM card you use supports 2G(GSM)/NB-IOT access.
+* SIM7000G positioning and cellular cannot be used simultaneously. 
+*   - Please disconnect the network when positioning, and turn off GPS when connecting to the network
+
 * SIM7080G supports **NB-IoT** and **Cat-M** in global frequency bands, but does **not support 2G/3G/4G**. 
-* - Please confirm that the SIM card used supports **NB-IoT** or **Cat-M** before use.
-* - SIM7080G cannot connect to cellular "(LTE)" network and "GPS" positioning at the same time
+*   - Please confirm that the SIM card used supports **NB-IoT** or **Cat-M** before use.
+*   - SIM7080G cannot connect to cellular "(LTE)" network and "GPS" positioning at the same time
 * The SIM card must be inserted first before starting the SIM7080. If the SIM card is inserted after the SIM7080 is turned on, 
 * the modem will not be able to detect the SIM card.
 
