@@ -213,7 +213,10 @@ void Display_GPRSModemInfo()
 }
 
 /// @brief 
-/// @param  
+///         getSignalQuality(): Returns the RSSI value in dBm (decibels relative to 1 milliwatt).
+///             - Closer to 0: Stronger signal (e.g., -30 dBm is excellent).
+///             - Lower values: Weaker signal (e.g., -90 dBm is poor). 
+///
 /// @return : RSSI value.
 int32_t GetWiFi_RSSI( void)
 {
