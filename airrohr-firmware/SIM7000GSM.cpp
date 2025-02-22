@@ -533,7 +533,7 @@ bool Sim7000_setup( int state)
     {
         debug_outln_info(F("Failed error code: ") + String(epsStatus));
         lte_init_failed = true;
-        WiFi_error_count++;
+
         return false;
     }
 

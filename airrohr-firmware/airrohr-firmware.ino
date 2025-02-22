@@ -137,7 +137,7 @@
 // increment on change.
 #if defined(VS_DEBUG)
 // Debug / Beta version:
- #define SOFTWARE_VERSION_STR "FWL-2025-01-B6_2"
+ #define SOFTWARE_VERSION_STR "FWL-2025-01-B6_3"
 #else
 // Production version:
  #define SOFTWARE_VERSION_STR "FWL-2025-01-P7"
@@ -9257,6 +9257,8 @@ void loop(void)
             if(last_signal_strength == 0)
             {
                 //try to re-open the LTE modem network connection.
+                WiFi_error_count++;
+
                 RestartLTEModem();
             }
         }
