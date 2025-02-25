@@ -6,7 +6,7 @@
  *
  * Version: 1.0.13
  *
- * Copyright (C) 2024
+ * Copyright (C) 2024 ~ 2025
  * 
  * GPRS stands for General Packet Radio Service:
  *  - is a technology that enables mobile devices to access data services over a cellular network.
@@ -95,16 +95,22 @@ namespace cfg7
     // set GSM PIN, if any (#define GSM_PIN "")
     char gprsPIN[LEN_SEN5X_SYM];
 
-	/// @brief : sim_type:
-    ///                 0 = No type
-    ///                 1 = SIM7000_RXD5_TXD6,
-	///			        2 = SIM7000_RXD6_TXD5,
-	///			        3 = SIM7080_RXD5_TXD6,
-	///			        4 = SIM7080_RXD6_TXD5
-	unsigned sim_type = 0;
+    // 1 = SIM7000_RXD5_TXD6    (default)
+	// 2 = SIM7000_RXD6_TXD5
+	// 3 = SIM7080_RXD5_TXD6
+	// 4 = SIM7080_RXD6_TXD5
+	unsigned sim_type = 1;
 
-	unsigned mode_selection = 2;        // default 38
-    unsigned communication_type = 1;    // default 1
+    // 2  - Automatic
+    // 13 - GSM only
+    // 38 - LTE only            (default)
+    // 51 - GSM and LTE only
+	unsigned mode_selection = 38;        
+
+    // 1 - CAT-M                (default)
+    // 2 - NB-IoT
+    // 3 - CAT-M and NB-IoT
+    unsigned communication_type = 1;
 
     // init: set default values to options.
 	void initNonTrivials()

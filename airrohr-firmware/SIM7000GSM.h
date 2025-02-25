@@ -6,7 +6,7 @@
  *
  * Version: 1.0.14
  *
- * Copyright (C) 2024
+ * Copyright (C) 2024 ~ 2025
  *
  * 
  * https://www.w3.org/Protocols/rfc2616/rfc2616.html
