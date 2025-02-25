@@ -8,6 +8,7 @@
  *  airRohr firmware                                                    *
  *    Copyright (C) 2016-2021  Code for Stuttgart a.o.                  *
  *    Copyright (C) 2019-2020  Dirk Mueller                             *
+ *    Copyright (C) 2022-2025  R. Dieperink                             *
  *                                                                      *
  * This program is free software: you can redistribute it and/or modify *
  * it under the terms of the GNU General Public License as published by *
@@ -125,7 +126,7 @@
  *                                                                      *
  *  * latest build 2025-02-03  											*
  * RAM:     [=====     ]  46.9% (used 38448 bytes from 81920 bytes)     *
- * PROGRAM: [=======   ]  65.7% (used 686053 bytes from 1044464 bytes)  *
+ * PROGRAM: [=======   ]  65.7% (used 686045 bytes from 1044464 bytes)  *
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -2959,12 +2960,16 @@ static void webserver_config_send_body_get7(String &page_content)
 
 	page_content += F("<form method='POST' action='/s70xx' style='width:100%;'>\n");
 
+    page_content += FPSTR(TABLE_TAG_OPEN);
+
 	add_form_input7(page_content, Config7000_gprsapn, FPSTR(INTL_SIM_APN), LEN_SIMM7000 - 1);
     add_form_input7(page_content, Config7000_gprsUser, FPSTR(INTL_SIM_USER), LEN_SIMM7000 - 1);
     add_form_input7(page_content, Config7000_gprsPass, FPSTR(INTL_SIM_PASS), LEN_SIMM7000 - 1);
 
     page_content += form_select_type7();
 	page_content += form_select_mode7();
+
+    page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 
 	page_content += FPSTR(WEB_BR_BR);
 	page_content += form_checkbox7(Config7000_has_gps, FPSTR(INTL_SIM_GPS), false);
