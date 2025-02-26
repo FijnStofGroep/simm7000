@@ -4349,7 +4349,7 @@ static int selectChannelForAp()
 }
 
 /*****************************************************************
- * WifiConfig                                                    *
+ * Wifi AP-mode Config                                           *
  *****************************************************************/
 static void wifi_AP_Config()
 {
@@ -6858,7 +6858,7 @@ static __noinline void fetchSensorGPS(String &s)
 		add_Value2Json(s, F("GPS_height"), F("Altitude: "), last_value_GPS_alt);
 		add_Value2Json(s, F("GPS_timestamp"), last_value_GPS_timestamp);
 
-		debug_outln_info(FPSTR(DBG_TXT_SEP));
+		debug_outln_verbose(FPSTR(DBG_TXT_SEP));
 	}
 
     if (count_sends > 0)
