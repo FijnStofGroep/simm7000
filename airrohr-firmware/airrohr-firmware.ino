@@ -5036,6 +5036,21 @@ static void sendmqtt(const String &data)
                 payload_status += "\":\"";
                 payload_status += GetSimDriverName();
                 payload_status += "\",\"";
+
+                payload_status += F("Restart Counter");
+                payload_status += "\":\"";
+                payload_status += GetLTE_RestartCounter();
+                payload_status += "\",\"";
+
+                payload_status += F("LTE signal");
+                payload_status += "\":\"";
+                payload_status += last_signal_strength;
+                payload_status += "\",\"";
+
+                payload_status += F("LTE network error");
+                payload_status += "\":\"";
+                payload_status += WiFi_error_count;
+                payload_status += "\",\"";
             }
 
             payload_status += FPSTR(INTL_MQTT_STAT);
