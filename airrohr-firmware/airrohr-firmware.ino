@@ -1042,7 +1042,7 @@ static uint8_t NPM_get_state()
 
 	while (!serialNPM.available())
 	{
-		debug_outln("Wait for Serial...", DEBUG_MAX_INFO);
+		debug_outln(F("Wait for NPM Serial..."), DEBUG_MAX_INFO);
 	}
 
 	while (serialNPM.available() >= NPM_waiting_for_4)
@@ -1094,7 +1094,7 @@ static bool NPM_start_stop()
 
 	while (!serialNPM.available())
 	{
-		debug_outln("Wait for Serial...", DEBUG_MAX_INFO);
+		debug_outln(F("Wait for NPM Serial..."), DEBUG_MAX_INFO);
 	}
 
 	while (serialNPM.available() >= NPM_waiting_for_4)
@@ -1162,7 +1162,7 @@ static String NPM_version_date()
 
 	while (!serialNPM.available())
 	{
-		debug_outln("Wait for Serial...", DEBUG_MAX_INFO);
+		debug_outln(F("Wait for NPM Serial..."), DEBUG_MAX_INFO);
 	}
 
 	while (serialNPM.available() >= NPM_waiting_for_6)
@@ -1228,7 +1228,7 @@ static void NPM_fan_speed()
 
 	while (!serialNPM.available())
 	{
-		debug_outln("Wait for Serial...", DEBUG_MAX_INFO);
+		debug_outln(F("Wait for NPM Serial..."), DEBUG_MAX_INFO);
 	}
 
 	while (serialNPM.available() >= NPM_waiting_for_5)
@@ -1293,7 +1293,7 @@ static String NPM_temp_humi()
 
 	while (!serialNPM.available())
 	{
-		debug_outln("Wait for Serial...", DEBUG_MAX_INFO);
+		debug_outln(F("Wait for NPM Serial..."), DEBUG_MAX_INFO);
 	}
 
 	while (serialNPM.available() >= NPM_waiting_for_8)
@@ -1557,7 +1557,7 @@ static void readConfigBase(bool oldconfig)
 	if (cfg::debug == DEBUG_ENGINEER_INFO)
 	{
 		configFile.seek(0); // set file pointer back to begin file.
-		debug_outln_verbose(F("Read(): Config file content: ***\n"), configFile.readString() + String("\n***"));
+		debug_outln_verbose(F("Read(): Config file content: ***\n"), configFile.readString() + String(F("\n***")));
 		configFile.close();
 	}
 
@@ -1584,7 +1584,7 @@ static void readConfigBase(bool oldconfig)
 		if ( cfg::debug == DEBUG_ENGINEER_INFO)
 		{
 			serializeJsonPretty(json, Debug); // display all members + value of config file (send it to UART0 port).
-			debug_outln_info(F("Parsed json...\nJson memory size: "), String(json.memoryUsage()) + String(" chars."));
+			debug_outln_info(F("Parsed json...\nJson memory size: "), String(json.memoryUsage()) + String(F(" chars.")));
 		}
 
 #if defined(Password_Encryption)
@@ -1796,7 +1796,7 @@ static void readConfigS700xx(bool oldconfig)
 	if (cfg::debug == DEBUG_ENGINEER_INFO)
 	{
 		configFile.seek(0); // set file pointer back to begin file.
-		debug_outln_verbose(F("Read(): Config file content: ***\n"), configFile.readString() + String("\n***"));
+		debug_outln_verbose(F("Read(): Config file content: ***\n"), configFile.readString() + String(F("\n***")));
 		configFile.close();
 	}
 
@@ -1823,7 +1823,7 @@ static void readConfigS700xx(bool oldconfig)
 		if (cfg::debug == DEBUG_ENGINEER_INFO)
 		{
 			serializeJsonPretty(json, Debug); // display all members + value of config file.
-			debug_outln_info(F("Parsed json7...\nJson memory size: "), String(json.memoryUsage()) + String(" chars."));
+			debug_outln_info(F("Parsed json7...\nJson memory size: "), String(json.memoryUsage()) + String(F(" chars.")));
 		}
 
 // #if defined(Password_Encryption)
@@ -2033,7 +2033,7 @@ static bool writeConfigBase()
 	}
 
 	debug_outln_info(F("Write JSON format.....\nJson memory size: "), String(json.memoryUsage()) + 
-					 " | Elementen in array: " + String(json.size()) );
+					 F(" | Elementen in array: ") + String(json.size()) );
 
 	if (cfg::debug == DEBUG_ENGINEER_INFO)
 	{
@@ -2205,10 +2205,11 @@ static void createLoggerConfigs()
 static float dew_point(const float temperature, const float humidity)
 {
 	float dew_temp;
-	const float k2 = 17.62;
-	const float k3 = 243.12;
+	const float k2 = 17.62f;
+	const float k3 = 243.12f;
+    const float k4 = 100.0f;
 
-	dew_temp = k3 * (((k2 * temperature) / (k3 + temperature)) + log(humidity / 100.0f)) / (((k2 * k3) / (k3 + temperature)) - log(humidity / 100.0f));
+	dew_temp = k3 * (((k2 * temperature) / (k3 + temperature)) + log(humidity / k4)) / (((k2 * k3) / (k3 + temperature)) - log(humidity / k4));
 
 	return dew_temp;
 }
@@ -2219,8 +2220,11 @@ static float dew_point(const float temperature, const float humidity)
 static float pressure_at_sealevel(const float temperature, const float pressure)
 {
 	float pressure_at_sealevel;
+    const float k1 = 273.15f;
+    const float k2 = 0.0065f;
+    const float k3 = -5.255f;
 
-	pressure_at_sealevel = pressure * pow(((temperature + 273.15f) / (temperature + 273.15f + (0.0065f * readCorrectionOffset(cfg::height_above_sealevel)))), -5.255f);
+	pressure_at_sealevel = pressure * pow(((temperature + k1) / (temperature + k1 + (k2 * readCorrectionOffset(cfg::height_above_sealevel)))), k3);
 
 	return pressure_at_sealevel;
 }
