@@ -228,7 +228,7 @@ int32_t GetWiFi_RSSI( void)
 {
     if (lte_init_failed)
     {
-        debug_outln_verbose(F("RSSI: LTE module (GPRS) \"NOT\" connected.. "));
+        debug_outln_verbose(F("RSSI: LTE module (GPRS) \"NOT\" connected.."));
         return 0;
     }
 
@@ -236,7 +236,7 @@ int32_t GetWiFi_RSSI( void)
     int8 rssi = 0; 
     LTEmodem->getSignalQuality(&csq, &rssi);
 
-    debug_outln_verbose( F("Wifi signal strength: ") + String(rssi) + F("dBM") + F(", Signal quality: ") + String(csq) + F("%"));
+    debug_outln_verbose( F("LTE signal strength: ") + String(rssi) + F("dBM") + F(", Signal quality: ") + String(csq) + F("%"));
 
     return rssi;
 }
@@ -247,7 +247,7 @@ String GetLTELocalIP(void)
 {
     if (lte_init_failed)
     {
-        debug_outln_info(F("IP: LTE module (GPRS) \"NOT\" connected.. "));
+        debug_outln_info(F("IP: LTE module (GPRS) \"NOT\" connected.."));
         return String("0.0.0.0");
     }
 
@@ -633,7 +633,7 @@ boolean GetGPSLocation(float *latitude, float *longitude, float *altitude, Strin
 {
     if (lte_init_failed)
     {
-        debug_outln_info(F("GPS module \"NOT\" connected.. "));
+        debug_outln_info(F("GPS module \"NOT\" connected.."));
         return false;
     }
 
@@ -694,6 +694,12 @@ boolean GetGPSLocation(float *latitude, float *longitude, float *altitude, Strin
             gpsOke = true;
             
             break;
+        }
+
+        if( cnt == 1)
+        {// last try.
+            debug_outln_info(F("Could NOT locked a GPS satellite...."));
+            continue;
         }
 
         delay(2000);
