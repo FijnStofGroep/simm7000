@@ -124,9 +124,9 @@
  * RAM:     [=====     ]  49.0% (used 40112 bytes from 81920 bytes)     *
  * PROGRAM: [=======   ]  65.5% (used 684009 bytes from 1044464 bytes)  *
  *                                                                      *
- *  * latest build 2025-02-03  											*
- * RAM:     [=====     ]  46.9% (used 38448 bytes from 81920 bytes)     *
- * PROGRAM: [=======   ]  65.7% (used 686045 bytes from 1044464 bytes)  *
+ * latest build 2025-02-26  											*
+ * RAM:     [=====     ]  46.9% (used 38400 bytes from 81920 bytes)     *
+ * PROGRAM: [=======   ]  65.7% (used 686393 bytes from 1044464 bytes)  *
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -3593,7 +3593,7 @@ static void webserver_values()
 		page_content += FPSTR(EMPTY_ROW);
 	}
 
-	if (cfg::gps_read)
+	if (cfg::gps_read || (cfg::has_s7000 && cfg7::s7000_has_gps))
 	{
 		add_table_value(FPSTR(WEB_GPS), FPSTR(INTL_LATITUDE), check_display_value(last_value_GPS_lat, -200.0, 6, 0), unit_Deg);
 		add_table_value(FPSTR(WEB_GPS), FPSTR(INTL_LONGITUDE), check_display_value(last_value_GPS_lon, -200.0, 6, 0), unit_Deg);
@@ -5037,7 +5037,7 @@ static void sendmqtt(const String &data)
                 payload_status += GetSimDriverName();
                 payload_status += "\",\"";
 
-                payload_status += F("Restart Counter");
+                payload_status += F("Restart counter");
                 payload_status += "\":\"";
                 payload_status += GetLTE_RestartCounter();
                 payload_status += "\",\"";
@@ -5047,7 +5047,7 @@ static void sendmqtt(const String &data)
                 payload_status += last_signal_strength;
                 payload_status += "\",\"";
 
-                payload_status += F("LTE network error");
+                payload_status += F("LTE network error cnt");
                 payload_status += "\":\"";
                 payload_status += WiFi_error_count;
                 payload_status += "\",\"";
@@ -6831,7 +6831,7 @@ static __noinline void fetchSensorGPS(String &s)
         if( !GetGPSLocation(&latitude, &longitude, &altitude, gps_datetime) )
         {
             gps_init_failed = true;
-            return;
+            goto finally;
         }
         else
         {
@@ -6870,7 +6870,10 @@ static __noinline void fetchSensorGPS(String &s)
         }
     }
 
-    debug_outln_verbose(FPSTR(DBG_TXT_END_READING), "GPS");
+    finally:
+    {
+        debug_outln_verbose(FPSTR(DBG_TXT_END_READING), "GPS");
+    }
 }
 
 /*****************************************************************
@@ -9029,7 +9032,7 @@ void setup(void)
         connectWifi();
     }
     else
-    { // Wifi mode allways in "AP" mode in case of LTE-communication.
+    {  // ESP8266 Wifi allways in "AP" mode in case of LTE-communication.
        // Start AP-Host SSID Configuration website.
         wifi_AP_Config();
 
