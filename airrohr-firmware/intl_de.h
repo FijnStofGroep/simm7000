@@ -7,14 +7,16 @@
  *	Texts should be as short as possible
  */
 
+#include "./airrohr-logo-common.h"
+
 #define INTL_LANG "DE"
 #define INTL_PM_SENSOR "Feinstaubsensor"
-const char INTL_CONFIGURATION[] PROGMEM = "Konfiguration";
-const char INTL_SIM7000[] PROGMEM = "Sim7000 LTE";
-const char INTL_SIM7000_DIS[] PROGMEM = "Disable";
+
 #define INTL_WIFI_SETTINGS "WLAN Daten"
 #define INTL_WIFI_NETWORKS "Lade WLAN Netzwerke ..."
 #define INTL_LANGUAGE "Sprache"
+
+const char INTL_CONFIGURATION[] PROGMEM = "Konfiguration";
 const char INTL_NO_NETWORKS[] PROGMEM =  "Keine Netzwerke gefunden";
 const char INTL_NETWORKS_FOUND[] PROGMEM = "Netzwerke gefunden: ";
 const char INTL_AB_HIER_NUR_ANDERN[] PROGMEM = "Ab hier nur ändern, wenn Sie wirklich wissen, was Sie tun";
@@ -150,12 +152,24 @@ const char INTL_SIGNAL_QUALITY[] PROGMEM = "Qualität";
 #define INTL_PARAMETER "Parameter"
 #define INTL_VALUE "Wert"
 
-#include "./airrohr-logo-common.h"
+const char INTL_SEN5X_ON[] PROGMEM = "Fan allways on";
+const char INTL_SEN5X_PIN16[] PROGMEM = "On = PIN 16 (SEN5X), Off = PIN 1 (SPS30)";
+const char INTL_SENSORCOMMUNITY[] PROGMEM = "Sensor Community:";
+
+#define INTL_ENABLE_MOREWIFI      "Enable more Wifi SSID (enable after reboot)"
+#define INTL_MORE_TEMP_SENSORS    "Temperature Sensors"
+#define INTL_UPDATE_FIRMWARE      "Update Firmware"
+#define INTL_SEN5X_EMP_PM         "Emulate PM SEN5X"
+#define INTL_SEN5X_EMP_TH         "Emulate TH SEN5X"
+#define INTL_SEN5X_NOT_CONNECTED  "Sensor Hardware NOT connected...Check connection."
+
+#define INTL_ENABLE_S7000 "Enable S7000 LTE"
+
 const char INTL_SIM7000_CONFIGURATION[] PROGMEM = "Sim7000 LTE";
 const char INTL_SIM7000_DIS[] PROGMEM = "Disable";
 const char INTL_SIM_APN[] PROGMEM = "APN";
-const char INTL_GPRS_USER[] PROGMEM = "User";
-const char INTL_GPRS_PASS[] PROGMEM = "Password";
+const char INTL_SIM_USER[] PROGMEM = "User";
+const char INTL_SIM_PASS[] PROGMEM = "Password";
 const char INTL_SIM_GPS[] PROGMEM = "GPS";
 const char INTL_SIM_TYPE[] PROGMEM = "Type";
 const char INTL_SIM_MODE[] PROGMEM = "Mode";

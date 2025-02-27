@@ -149,15 +149,24 @@ const char INTL_SIGNAL_QUALITY[] PROGMEM = "Signaalkwaliteit";
 #define INTL_PARAMETER "Parameter"
 #define INTL_VALUE "Waarde"
 
+const char INTL_SEN5X_ON[] PROGMEM = "Fan altijd aan";
+const char INTL_SEN5X_PIN16[] PROGMEM = "On = PIN 16 (SEN5X), Off = PIN 1 (SPS30)";
+const char INTL_SENSORCOMMUNITY[] PROGMEM = "Sensor Community:";
+
+#define INTL_ENABLE_MOREWIFI      "meer Wifi SSID router (actief na reboot)"
+#define INTL_MORE_TEMP_SENSORS    "Temperatuur Sensors"
+#define INTL_UPDATE_FIRMWARE      "Update Firmware"
+#define INTL_SEN5X_EMP_PM         "Emulate PM SEN5X"
+#define INTL_SEN5X_EMP_TH         "Emulate TH SEN5X"
+#define INTL_SEN5X_NOT_CONNECTED  "Sensor Hardware NIET aangesloten...Check connecties."
+
 #define INTL_ENABLE_S7000 "Enable S7000 LTE"
 
-const char INTL_SIM7000[] PROGMEM = "Sim7000 LTE";
 const char INTL_SIM7000_CONFIGURATION[] PROGMEM = "Sim7000 LTE";
 const char INTL_SIM7000_DIS[] PROGMEM = "Disable";
-
 const char INTL_SIM_APN[] PROGMEM = "APN";
-const char INTL_GPRS_USER[] PROGMEM = "User";
-const char INTL_GPRS_PASS[] PROGMEM = "Password";
+const char INTL_SIM_USER[] PROGMEM = "User";
+const char INTL_SIM_PASS[] PROGMEM = "Paswoord";
 const char INTL_SIM_GPS[] PROGMEM = "GPS";
 const char INTL_SIM_TYPE[] PROGMEM = "Type";
 const char INTL_SIM_MODE[] PROGMEM = "Mode";
