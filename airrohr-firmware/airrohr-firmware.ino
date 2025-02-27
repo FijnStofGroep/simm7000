@@ -222,7 +222,7 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include "./SIM7000GSM.h"
 #include "./airrohr-cfg7000.h"
 #include "./sim7000_html.h"
-g
+
 #if defined(Password_Encryption)
 #include <ESP8266_base64.h>
 #endif
