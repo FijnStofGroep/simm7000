@@ -218,7 +218,11 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include "html-content.h"
 
 #if defined(ESP8266)
-
+// BK-SIM70XX source code + header files located in ".\lib" folder.
+#include "./SIM7000GSM.h"
+#include "./airrohr-cfg7000.h"
+#include "./sim7000_html.h"
+g
 #if defined(Password_Encryption)
 #include <ESP8266_base64.h>
 #endif
