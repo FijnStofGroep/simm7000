@@ -216,6 +216,7 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include "./utils.h"
 #include "ext_def.h"
 #include "html-content.h"
+#include "select_lang_html.h"
 
 #if defined(ESP8266)
 // BK-SIM70XX source code + header files located in ".\lib" folder.
@@ -2360,70 +2361,6 @@ static String form_checkbox(const ConfigShapeId cfgid, const String &info, const
 
 	return s;
 }
-
-
-/*
-  Input:
-		value => pointer to HTTP webpage memory.
-*/
-static String form_submit(const String &value)
-{
-	String s = F("<tr>"
-				 "<td>&nbsp;</td>"
-				 "<td>"
-				 "<input type='submit' name='submit' value='{v}' />"
-				 "</td>"
-				 "</tr>");
-
-	s.replace("{v}", value);
-	
-	return s;
-}
-
-// Disable Firmware opties (FvD)
-
-static String form_select_lang()
-{
-	String s_select = F(" selected='selected'");
-	String s = F("<tr>"
-				 "<td>" INTL_LANGUAGE ":&nbsp;</td>"
-				 "<td>"
-				 "<select id='current_lang' name='current_lang'>"
-				//  "<option value='BG'>Bulgarian (BG)</option>"
-				//  "<option value='CN'>中文 (CN)</option>"
-				//  "<option value='CZ'>Český (CZ)</option>"
-				    "<option value='DE'>Deutsch (DE)</option>"
-				//  "<option value='DK'>Dansk (DK)</option>"
-				//  "<option value='EE'>Eesti keel (EE)</option>"
-					"<option value='EN'>English (EN)</option>"
-				//  "<option value='ES'>Español (ES)</option>"
-				    "<option value='FR'>Français (FR)</option>"
-				//  "<option value='GR'>Ελληνικά (GR)</option>"
-				//  "<option value='IT'>Italiano (IT)</option>"
-				//  "<option value='JP'>日本語 (JP)</option>"
-				//  "<option value='LT'>Lietuvių kalba (LT)</option>"
-				//  "<option value='LU'>Lëtzebuergesch (LU)</option>"
-				//  "<option value='LV'>Latviešu valoda (LV)</option>"
-				    "<option value='NL'>Nederlands (NL)</option>"
-				//  "<option value='HU'>Magyar (HU)</option>"
-				//  "<option value='PL'>Polski (PL)</option>"
-				//  "<option value='PT'>Português (PT)</option>"
-				//  "<option value='RO'>Română (RO)</option>"
-				//  "<option value='RS'>Srpski (RS)</option>"
-				//  "<option value='RU'>Русский (RU)</option>"
-				//  "<option value='SI'>Slovenščina (SI)</option>"
-				//  "<option value='SK'>Slovák (SK)</option>"
-				//  "<option value='SE'>Svenska (SE)</option>"
-				//  "<option value='TR'>Türkçe (TR)</option>"
-				//  "<option value='UA'>український (UA)</option>"
-				 "</select>"
-				 "</td>"
-				 "</tr>");
-
-	s.replace("'" + String(cfg::current_lang) + "'>", "'" + String(cfg::current_lang) + "'" + s_select + ">");
-	return s;
-}
-
 
 /*
   Input:
