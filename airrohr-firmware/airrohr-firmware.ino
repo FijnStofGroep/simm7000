@@ -3578,6 +3578,8 @@ static void webserver_status()
 					 "<thead><tr><th> " INTL_PARAMETER "</th><th>" INTL_VALUE "</th></tr></thead>");
 
 	String versionHtml(SOFTWARE_VERSION);
+    versionHtml.reserve(XLARGE_STR * 3);                    // reserve 3k heap memory space.
+
 	versionHtml += F("/ST:");
 	versionHtml += String(!airrohr_selftest_failed);
 	versionHtml += '/';
@@ -3589,40 +3591,45 @@ static void webserver_status()
 	versionHtml.replace("/", FPSTR(BR_TAG));
 
 	add_table_row_from_value(page_content, FPSTR(INTL_FIRMWARE), versionHtml);
-	add_table_row_from_value(page_content, F("Free Memory"), String(ESP.getFreeHeap()));
-	add_table_row_from_value(page_content, F("Used json.config (used/max)"), String(json_config_memory_used) + String(" / ") + String(JSON_BUFFER_SIZE)+ String("  char") );
-	add_table_row_from_value(page_content, F("Used Simm7000.config (used/max)"), String(json_config7000_memory_used) + String(" / ") + String(JSON_BUFFER_SIZE_SIMM7000) + String("  char") );
-	
+
 #if defined(ESP8266)
+	add_table_row_from_value(page_content, F("Free Memory"), String(ESP.getFreeHeap()));
 	add_table_row_from_value(page_content, F("Heap Fragmentation"), String(ESP.getHeapFragmentation()), "%");
 #endif
 
+	add_table_row_from_value(page_content, F("Used json.config (used/max)"), String(json_config_memory_used) + String(" / ") + String(JSON_BUFFER_SIZE)+ String("  char") );
+	add_table_row_from_value(page_content, F("Used Simm7000.config (used/max)"), String(json_config7000_memory_used) + String(" / ") + String(JSON_BUFFER_SIZE_SIMM7000) + String("  char") );
+	
 	if (cfg::auto_update)
 	{
 		add_table_row_from_value(page_content, F("Last OTA"), delayToString(millis() - last_update_attempt));
 	}
 
 #if defined(ESP8266)
-	add_table_row_from_value(page_content, F("NTP Sync"), String(sntp_time_set));
-	StreamString ntpinfo;
 
-	for (unsigned i = 0; i < SNTP_MAX_SERVERS; i++)
-	{
-		const ip_addr_t *sntp = sntp_getserver(i);
-		if (sntp && !ip_addr_isany(sntp))
-		{
-			const char *name = sntp_getservername(i);
-			if (!ntpinfo.isEmpty())
-			{
-				ntpinfo.print(FPSTR(BR_TAG));
-			}
+    if (!cfg::has_s7000)
+    {
+        add_table_row_from_value(page_content, F("NTP Sync"), String(sntp_time_set));
+        StreamString ntpinfo;
 
-			ntpinfo.printf_P(PSTR("%s (%s)"), IPAddress(*sntp).toString().c_str(), name ? name : "?");
-			ntpinfo.printf_P(PSTR(" reachable: %s"), sntp_getreachability(i) ? "Yes" : "No");
-		}
-	}
+        for (unsigned i = 0; i < SNTP_MAX_SERVERS; i++)
+        {
+            const ip_addr_t *sntp = sntp_getserver(i);
+            if (sntp && !ip_addr_isany(sntp))
+            {
+                const char *name = sntp_getservername(i);
+                if (!ntpinfo.isEmpty())
+                {
+                    ntpinfo.print(FPSTR(BR_TAG));
+                }
 
-	add_table_row_from_value(page_content, F("NTP Info"), ntpinfo);
+                ntpinfo.printf_P(PSTR("%s (%s)"), IPAddress(*sntp).toString().c_str(), name ? name : "?");
+                ntpinfo.printf_P(PSTR(" reachable: %s"), sntp_getreachability(i) ? "Yes" : "No");
+            }
+        }
+
+        add_table_row_from_value(page_content, F("NTP Info"), ntpinfo);
+    }
 
 #endif
 

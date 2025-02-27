@@ -316,9 +316,13 @@ inline boolean GPRSConnect()
         {
             debug_outln_info(F("Failed to connect to LTE network: restart connection with SIM70xx module..."));
 
-            if ( retry < -1 || !RestartLTEModem())
+            if( GetWiFi_RSSI() == 0)
             {
                 WiFi_error_count++;
+            }
+
+            if ( retry < -1 || !RestartLTEModem())
+            {
                 return false;
             }
 
