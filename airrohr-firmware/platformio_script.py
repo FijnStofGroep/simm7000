@@ -17,7 +17,7 @@ def after_build(source, target, env):
     lang = env.GetProjectOption('lang')
     target_name = lang.lower()
 
-    print("\n**** After build \"airrohr-firmware => SEN5X sensor\" **** ")
+    print("\n**** After build \"airrohr-firmware => SEN5X-, NextPM sensor, Sim70xx LTE module\" **** ")
  
     with open(f"builds/latest_{target_name}.bin.md5", "w") as md5:
         print(_file_md5_hexdigest(target[0].path), file = md5)
