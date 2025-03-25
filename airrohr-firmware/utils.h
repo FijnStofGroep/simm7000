@@ -178,14 +178,6 @@ extern bool SDS_send_cmd(PmSensorCmd cmd);
 extern bool PMS_send_cmd(PmSensorCmd cmd);
 extern bool HPM_send_cmd(PmSensorCmd cmd);
 extern void IPS_send_cmd(PmSensorCmd3 cmd);
-extern void NPM_send_cmd(PmSensorCmd2 cmd);
-extern bool NPM_checksum_valid_4(const uint8_t (&data)[4]);
-extern bool NPM_checksum_valid_5(const uint8_t (&data)[5]);
-extern bool NPM_checksum_valid_6(const uint8_t (&data)[6]);
-extern bool NPM_checksum_valid_8(const uint8_t (&data)[8]);
-extern bool NPM_checksum_valid_16(const uint8_t (&data)[16]);
-extern void NPM_data_reader(uint8_t data[], size_t size);
-extern String NPM_state(uint8_t bytedata);
 
 extern bool isNumeric(const String& str);
 
