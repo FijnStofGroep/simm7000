@@ -166,7 +166,7 @@ bool NextPM::Get_State(uint8_t *status)
 ///     The bit 1 is set to 1 each time a minor error is detected, the sensor part (bit3 till bit7) in error
 ///     is set to 1 in the state code, the NextPM can still send data but with less accuracy.
 ///
-/// @param *status =s NPM tate value.
+/// @param *status = NPM state value.
 /// @return : true = Okay, false = Not Okay.
 bool NextPM::Parser_StateValue(uint8_t *status)
 {
