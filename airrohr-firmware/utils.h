@@ -99,19 +99,11 @@ extern SoftwareSerial serialIPS;
 #define serialIPS (Serial1)
 #endif
 
+#pragma region "Definitions of PmSensorCmd"
 enum class PmSensorCmd { // regular PM sensors
 	Start,
 	Stop,
 	ContinuousMode
-};
-
-enum class PmSensorCmd2 { // for NPM
-	State,
-	Change,
-	Concentration,
-	Version,
-	Speed,
-	Temphumi
 };
 
 enum class PmSensorCmd3 { // for IPS7100
@@ -131,6 +123,8 @@ enum class PmSensorCmd3 { // for IPS7100
 	Lowdata,
 	Baud
 };
+
+#pragma endregion
 
 /*****************************************************************
  * Debug output                                                  *
