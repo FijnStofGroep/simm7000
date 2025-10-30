@@ -4,10 +4,31 @@
  *	Copyright  : © 2024 ~ 2025	Rolenco Leusden
  *  Created on : 14 nov, 2024
  *      Author : Roel Dieperink
+ * 
+ * 
+ * 2025-10-24
+ *  Add: - Heater mode function to set internal heater "OFF" or "ON".
+ *       - Set internal heater "OFF" or "ON" depends of "measured relative humidity" < 60 or > 65 %RH (threshold).
  */
 
 #include <NextPM.h>
 
+//  Declarations
+bool Is_Heater_ModeOn = false;
+float m_humidity_threshold = 0.0;
+const float OffsetHumidity = 5.0;   // -5 %RH offset.
+
+#pragma region "Definition of enums "
+
+/// @brief 
+enum class PmSensorCmd2 {
+	State,
+	Change,
+	Concentration,
+	Version,
+	Speed,
+	Temphumi
+};
 
 // To read NPM responses
 enum NPM_WAITING_16
@@ -51,8 +72,10 @@ enum NPM_WAITING_8
 
 // NPM_WAITING_8 NPM_waiting_for_8;
 
+#pragma endregion
+
 /// @brief
-/// @tparam T
+/// @tparam const T
 /// @tparam N
 /// @param
 /// @return
@@ -62,7 +85,7 @@ constexpr std::size_t array_num_elements(const T (&)[N])
     return N;
 }
 
-/// @brief : consructor
+/// @brief : Default constructor 
 /// @param : pointer to SoftwareSerial serial_instance.
 NextPM::NextPM(SoftwareSerial &serial)
 {
@@ -81,9 +104,12 @@ NextPM::~NextPM()
  * read Next PM sensor serial and firmware date                  *
  *****************************************************************/
 /// @brief : Init communication port with TERA NextPM sensor hardware.
-void NextPM::begin()
+/// @param humidity_threshold 
+void NextPM::begin( float humidity_threshold)
 {
     debug_outln_verbose(F("NPM configured...."));
+
+    m_humidity_threshold = humidity_threshold;
 
 #if defined(ESP8266)
     hstream->begin(NEXTPM_BAUD, SWSERIAL_8E1, PM_SERIAL_RX, PM_SERIAL_TX);
@@ -765,7 +791,7 @@ bool NextPM::ReadMeasuredTmp_HumValues(uint16_t *temp, uint16_t *humi)
     input air and the particles.
     The heater is enabled from 60 %RH threshold and the heat generated is dependent on the measured
     relative humidity and so, the NextPM current consumption also (the additional current due to the
-    heater can reach 140mA).
+    heater can reach 140mA ~ 210mA).
 
         Cmd code | Description
         --------------------------------------
@@ -776,53 +802,59 @@ bool NextPM::ReadMeasuredTmp_HumValues(uint16_t *temp, uint16_t *humi)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch" // ignored:  warning: enumeration value 'NPM_HEAT_MODE::none' not handled in switch
 
-void NextPM::Set_Heater_Mode(NPM_HEAT_MODE mode)
+/// @brief 
+/// @param heaterMode 
+/// @return Sensor status: 
+/// @retval        00 = OK
+uint NextPM::Set_Heater_Mode( NPM_HEATER_MODE heaterMode)
 {
-    static uint8_t heater_off_cmd[] PROGMEM = {
-        0x81, 0x41, 0x3E};
+    static uint8_t heater_off_cmd[] PROGMEM = { 0x81, 0x41, 0x3E };
 
-    static uint8_t heater_on_cmd[] PROGMEM = {
-        0x81, 0x42, 0x3D};
+    static uint8_t heater_on_cmd[] PROGMEM = { 0x81, 0x42, 0x3D };
 
-    static uint8_t heater_auto_cmd[] PROGMEM = {
-        0x81, 0x43, 0x3C};
+    static uint8_t heater_auto_cmd[] PROGMEM = { 0x81, 0x43, 0x3C };
 
     uint8_t cmd_len = sizeof(heater_off_cmd);
     uint8_t sndbuf[cmd_len];
 
-    switch (mode)
+    switch (heaterMode)
     {
-    case NPM_HEAT_MODE::none:
-        // do nothink
-        return;
-
-    case NPM_HEAT_MODE::stopped:
+    case NPM_HEATER_MODE::OFF:
         memcpy_P(sndbuf, heater_off_cmd, cmd_len);
         break;
 
-    case NPM_HEAT_MODE::full:
+    case NPM_HEATER_MODE::ON:
         memcpy_P(sndbuf, heater_on_cmd, cmd_len);
         break;
 
-    case NPM_HEAT_MODE::auto_regulated:
+    case NPM_HEATER_MODE::AUTO_REGULATED:
         memcpy_P(sndbuf, heater_auto_cmd, cmd_len);
         break;
+
+    //case NPM_HEATER_MODE::NONE:
+    //case NPM_HEATER_MODE::REGULATE_HEATER:
+    default:
+        // do nothink
+        return 0x00;
     }
 
     hstream->write(sndbuf, cmd_len);
 
+#if defined(VS_DEBUG)
     Log_data_reader(sndbuf, cmd_len, false);
+#endif
 
     int reply = 5;
     int len = 0;
 
-    while (!(len = hstream->available() >= 3))
-    { // wait till receive response from Tera sensor.
-        debug_outln(F("Wait for NPM Heater_Mode Response..."), DEBUG_MAX_INFO);
+    debug_outln(F("Wait for NPM Heater_Mode Response..."), DEBUG_MAX_INFO);
 
-        if (--reply == 0)
+    while (!(len = hstream->available() >= 3))
+    { // wait till receive response from Tera NextPM sensor.
+         if (--reply == 0)
         {
-            return;
+			debug_outln(F("NPM sensor Time-Out."), DEBUG_MAX_INFO);
+            return 0x010;
         }
 
         delay(NEXT_PM_COMMAND_DELAY);
@@ -831,8 +863,10 @@ void NextPM::Set_Heater_Mode(NPM_HEAT_MODE mode)
     uint8_t response[len];
     hstream->readBytes(response, len);
 
-    debug_outln(F("NPM_Heater_Mode response: "), DEBUG_MAX_INFO);
+    //debug_outln(F("NPM_Heater_Mode response: "), DEBUG_MAX_INFO);
     Log_data_reader(response, len);
+
+    return response[2];		// return Heater status.
 }
 
 #pragma GCC diagnostic pop
@@ -887,6 +921,27 @@ void NextPM::Display_State_Error(uint8_t test_state)
     if (bitRead(test_state, 7) == 1)
     {
         debug_outln_info(F("Laser error"));
+    }
+}
+
+/// @brief : The heater is enabled from 65 %RH threshold and the
+///          heat generated is dependent on the "measured relative humidity".
+/// @param hum_value
+void NextPM::Check_Heater_Regulate(float relative_humidity)
+{
+    if ( !Is_Heater_ModeOn && (relative_humidity > m_humidity_threshold) )
+    {
+        Set_Heater_Mode(NPM_HEATER_MODE::ON);
+        Is_Heater_ModeOn = true;
+
+        debug_outln(F("NPM_Heater_Mode: ON | humidity > ") + String(m_humidity_threshold) + F("%RH"), DEBUG_MAX_INFO);
+    }
+    else if ( Is_Heater_ModeOn && (relative_humidity < (m_humidity_threshold - OffsetHumidity)) )
+    {// offset of -5%
+        Set_Heater_Mode(NPM_HEATER_MODE::OFF);
+        Is_Heater_ModeOn = false;
+
+        debug_outln(F("NPM_Heater_Mode: OFF | humidity < 60%RH"), DEBUG_MAX_INFO);
     }
 }
 
@@ -987,26 +1042,30 @@ uint8_t NextPM::Calculate_Checksum(const uint8_t *data, uint8_t len)
 void NextPM::Send_Cmd(PmSensorCmd2 cmd)
 {
     static constexpr uint8_t state_cmd[] PROGMEM = {// read the current state
-                                                    0x81, 0x16, 0x69};
+                                                       0x81, 0x16, 0x69
+                                                   };
 
     static constexpr uint8_t change_cmd[] PROGMEM = {// change the sate alternatively start/stop
-                                                     0x81, 0x15, 0x6A};
+                                                       0x81, 0x15, 0x6A
+                                                    };
 
-    static constexpr uint8_t concentration_cmd[] PROGMEM = {
-        // No continous mode => repeat call
-                                        0x81, 0x11, 0x6E // Concentrations reading’s averaged over 10 seconds and updated every 1 second
-                                        };
+    static constexpr uint8_t concentration_cmd[] PROGMEM = { // No continous mode => repeat call
+                                                        // Concentrations reading’s averaged over 10 seconds and updated every 1 second.
+                                                        0x81, 0x11, 0x6E 
+                                                     };
 
     static constexpr uint8_t version_cmd[] PROGMEM = {
-                                                        0x81, 0x17, 0x68};
+                                                        0x81, 0x17, 0x68
+                                                     };
 
     static constexpr uint8_t speed_cmd[] PROGMEM = {
-        // 0x81, 0x21, 0x00, 0x5E    //0% to get current value
+                                                     // 0x81, 0x21, 0x00, 0x5E //  0% to get current value.
                                                         0x81, 0x21, 0x32, 0x2C // 50%
                                                     };
 
     static constexpr uint8_t temphumi_cmd[] PROGMEM = {
-                                                        0x81, 0x14, 0x6B};
+                                                        0x81, 0x14, 0x6B
+                                                    };
 
     // CRC: 0x81 + 0x21 + 0x55 + 0x09 = 0x100
 

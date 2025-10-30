@@ -20,12 +20,20 @@
 #define NEXTPM_BAUD 115200
 #define NEXT_PM_COMMAND_DELAY 500
 
-enum NPM_HEAT_MODE
+
+/// @brief : define extern enum type.
+enum class PmSensorCmd2;
+
+/// @brief 
+enum NPM_HEATER_MODE
 {
-	none = 0,
-	stopped = 1,
-	full = 2,
-	auto_regulated = 3,
+	NONE = 0,
+	OFF = 1,
+	ON = 2,
+	AUTO_REGULATED = 3,
+	REGULATE_HEATER = 4,		// if hum > 65% then Heater ON else Heater OFF. (F.F.U)
+	
+	Count 						// always last => constant such as `Count` the number of enum entries. 
 };
 
 //--------------------------------------------------------------------------------------------------------
@@ -34,6 +42,8 @@ enum NPM_HEAT_MODE
 
 //--------------------------------------------------------------------------------------------------------
 
+/// @brief 
+/// @author: R.Dieperink
 
 class NextPM
 {
@@ -42,7 +52,7 @@ public:
 	NextPM(SoftwareSerial &serial);
 	virtual ~NextPM();
 
-	void begin();
+	void begin( float humidity_threshold = 65.0);
 	void end();
 	void perform_work();
 
@@ -51,7 +61,8 @@ public:
 	String Firmware_version();
 	// void 	Fan_speed();
 
-	void Set_Heater_Mode(NPM_HEAT_MODE mode);
+	uint Set_Heater_Mode(NPM_HEATER_MODE heaterMode);
+	void Check_Heater_Regulate(float hum_value);
 	void Display_State_Error(uint8_t test_state);
 	String Get_Last_Device_State();
 
