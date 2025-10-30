@@ -100,12 +100,15 @@ extern SoftwareSerial serialIPS;
 #endif
 
 #pragma region "Definitions of PmSensorCmd"
+
+/// @brief 
 enum class PmSensorCmd { // regular PM sensors
 	Start,
 	Stop,
 	ContinuousMode
 };
 
+/// @brief 
 enum class PmSensorCmd3 { // for IPS7100
 	Factory,
 	Manual,
