@@ -8086,7 +8086,17 @@ static void initNEXTPM()
 
         if( (NPM_HEATER_MODE)cfg::npm_heater_mode > NPM_HEATER_MODE::NONE)
         {
-            uint res = NPMDevice->Set_Heater_Mode( (NPM_HEATER_MODE)cfg::npm_heater_mode );
+			uint res;
+
+			if ((NPM_HEATER_MODE)cfg::npm_heater_mode == NPM_HEATER_MODE::HEATING_CONTROL)
+			{
+				res = NPMDevice->Set_Heater_Mode(NPM_HEATER_MODE::OFF);
+			}
+			else
+			{
+				res = NPMDevice->Set_Heater_Mode((NPM_HEATER_MODE)cfg::npm_heater_mode);
+			}
+
 			debug_outln_info( F("NPM Heater status = "), res == 0 ? F("Ok") : String(res));
         }
 
