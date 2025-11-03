@@ -31,7 +31,7 @@ enum NPM_HEATER_MODE
 	OFF = 1,
 	ON = 2,
 	AUTO_REGULATED = 3,
-	REGULATE_HEATER = 4,		// if hum > 65% then Heater ON else Heater OFF. (F.F.U)
+	HEATING_CONTROL = 4,		// if hum > 65%RH then Heater ON, hum < 60%RH Heater OFF.
 	
 	Count 						// always last => constant such as `Count` the number of enum entries. 
 };
@@ -62,7 +62,7 @@ public:
 	// void 	Fan_speed();
 
 	uint Set_Heater_Mode(NPM_HEATER_MODE heaterMode);
-	void Check_Heater_Regulate(float hum_value);
+	void Heating_Control(float hum_value);
 	void Display_State_Error(uint8_t test_state);
 	String Get_Last_Device_State();
 

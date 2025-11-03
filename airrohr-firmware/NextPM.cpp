@@ -832,12 +832,13 @@ uint NextPM::Set_Heater_Mode( NPM_HEATER_MODE heaterMode)
         break;
 
     //case NPM_HEATER_MODE::NONE:
-    //case NPM_HEATER_MODE::REGULATE_HEATER:
+    //case NPM_HEATER_MODE::HEATING_CONTROL:
     default:
         // do nothink
         return 0x00;
     }
 
+    // send Heater-command to NextPM sensor firmware.
     hstream->write(sndbuf, cmd_len);
 
 #if defined(VS_DEBUG)
@@ -927,7 +928,7 @@ void NextPM::Display_State_Error(uint8_t test_state)
 /// @brief : The heater is enabled from 65 %RH threshold and the
 ///          heat generated is dependent on the "measured relative humidity".
 /// @param hum_value
-void NextPM::Check_Heater_Regulate(float relative_humidity)
+void NextPM::Heating_Control(float relative_humidity)
 {
     if ( !Is_Heater_ModeOn && (relative_humidity > m_humidity_threshold) )
     {

@@ -5,7 +5,7 @@
  *                                                                      *
  ************************************************************************
  *                                                                      *
- *  airRohr firmware                                                    *
+ *  airRohr firmware:                                                   *
  *    Copyright (C) 2016-2021  Code for Stuttgart a.o.                  *
  *    Copyright (C) 2019-2020  Dirk Mueller                             *
  *    Copyright (C) 2022-2025  R. Dieperink                             *
@@ -90,6 +90,16 @@
  * 																		*
  * 2025-03-22															*
  * Fixed Tera NextPM sensor RS232 driver problems.                      *
+ * 																		*
+ * 2025-10-24															*
+ * - Add: NextPM Heater mode option: (NONE, OFF, ON, AUTO-REGULATED)	* 
+ *    The NextPM has the ability to automatically trigger (or manual)	*
+ *    regulate its internal heater in case of high relative humidity.	* 
+ *    This provides a better measurement accuracy in those specific		* 
+ *    environmental conditions by drying the input air and the particles*
+ * - Add: Heater is enabled higher than 65%RH threshold and the heat    *
+ *    generated is dependent on the "measured Relative Humidity".       *
+ *    Heater is disabled below 60%RH.                                   *
  *                                                                      *
  * Soft WDT exception:                                                  *
  * By Wifi connection or LTE modem connection to a provider             *
@@ -105,31 +115,37 @@
  *https://arduino-esp8266.readthedocs.io/en/latest/exception_causes.html*
  ************************************************************************
  * 																		*
- * latest build using lib 3.1.0											*
+ * build using lib 3.1.0												*
  * DATA:    [====      ]  41.5% (used 34000 bytes from 81920 bytes)		*
  * PROGRAM: [======    ]  58.0% (used 605529 bytes from 1044464 bytes)	*
  * 																		*
- * latest build using lib 3.1.0 / 2023-06-11							*
+ * build using lib 3.1.0 / 2023-06-11									*
  * RAM:     [====      ]  44.7% (used 36648 bytes from 81920 bytes)		*
  * PROGRAM: [======    ]  60.5% (used 631589 bytes from 1044464 bytes)	*
  * 																		*
- * latest build using lib 3.1.0 / 2023-11-13							*
+ * build using lib 3.1.0 / 2023-11-13									*
  * RAM:     [=====     ]  46.0% (used 37696 bytes from 81920 bytes)		*
  * PROGRAM: [======    ]  61.6% (used 643167 bytes from 1044464 bytes)	*
  * 																		*
- * latest build 2024-05-01												*
+ * build 2024-05-01														*
  * PLATFORM: Espressif 8266 (3.1.0) > NodeMCU 1.0 (ESP-12E Module)		*
  * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
  * RAM:     [=====     ]  47.9% (used 39264 bytes from 81920 bytes)		*
  * PROGRAM: [======    ]  64.4% (used 672501 bytes from 1044464 bytes)	*
  *                                                                      *
- * latest build 2024-08-28  											*
+ * build 2024-08-28  													*
  * RAM:     [=====     ]  49.0% (used 40112 bytes from 81920 bytes)     *
  * PROGRAM: [=======   ]  65.5% (used 684009 bytes from 1044464 bytes)  *
  *                                                                      *
- * latest build 2025-02-26  											*
+ * build 2025-02-26  											        *
  * RAM:     [=====     ]  46.9% (used 38400 bytes from 81920 bytes)     *
  * PROGRAM: [=======   ]  65.7% (used 686393 bytes from 1044464 bytes)  *
+ *                                                                      *
+ * latest build 2025-10-28											*
+ * PLATFORM: Espressif 8266 (3.0.1) > NodeMCU 1.0 (ESP-12E Module)		*
+ * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
+ * RAM:     [=====     ]  47.0% (used 38468 bytes from 81920 bytes)		*
+ * PROGRAM: [======    ]  66.2% (used 690981 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -141,10 +157,10 @@
 // increment on change.
 #if defined(VS_DEBUG)
 // Debug / Beta version:
- #define SOFTWARE_VERSION_STR "FWL-2025-01-B6_4"
+ #define SOFTWARE_VERSION_STR "FWL-2025-01-B6_5"
 #else
 // Production version:
- #define SOFTWARE_VERSION_STR "FWL-2025-01-P8"
+ #define SOFTWARE_VERSION_STR "FWL-2025-01-P9"
 #endif
 
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
@@ -246,6 +262,8 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
  * Note that the names of these variables can't be easily changed *
  * as they are part of the json format used to persist the data.  *
  ******************************************************************/
+#pragma region "namespace cfg"
+
 namespace cfg
 {
 	unsigned debug = DEBUG;
@@ -288,6 +306,7 @@ namespace cfg
 	bool hpm_read = HPM_READ;
 	bool npm_read = NPM_READ;
 	bool npm_fulltime = NPM_FULLTIME;
+	unsigned npm_heater_mode = NPM_HEATER_MODE::NONE;
 	bool ips_read = IPS_READ;
 	bool sen5x_read = SEN5X_READ;
 	bool sen5x_on = SEN5X_ON;
@@ -392,7 +411,7 @@ namespace cfg
 		strcpy_P(cfg::static_gateway, STATIC_GATEWAY);
 		strcpy_P(cfg::static_dns, STATIC_DNS);
 
-		if (!*cfg::fs_ssid)
+		if ( !*cfg::fs_ssid )
 		{
 			strcpy(cfg::fs_ssid, SSID_BASENAME);
 			strcat(cfg::fs_ssid, id);				// chipid
@@ -401,6 +420,7 @@ namespace cfg
 
 } // namespace cfg
 
+#pragma endregion
 
 //*************************************************************************************************************************************************
 
@@ -481,6 +501,11 @@ const uint8_t lcd_2004_columns = 20;
 const uint8_t lcd_2004_rows = 4;
 
 /*****************************************************************
+ * Sensor Declarations:                                          *
+ *****************************************************************/
+#pragma region "Sensor Declarations."
+
+/*****************************************************************
  * Serial declarations                                           *
  *****************************************************************/
 #if defined(ESP8266)
@@ -546,6 +571,14 @@ unsigned char SEN5X_type[6];
 SensirionI2CSen5x sen5x;
 
 /*****************************************************************
+ * Tera NextPM declaration                                       *
+ *****************************************************************/
+//NPM_HEATER_MODE NPM_Heater_Mode;	=> 	NPM_Heater_Mode = NPM_HEATER_MODE::ON;
+
+//  Get enum "NPM_HEATER_MODE" name:
+String NPM_HEATER_MODE_NAME[NPM_HEATER_MODE::Count] = { "None", "Off", "On", "Auto", "Control" };
+
+/*****************************************************************
  * SCD30 declaration                                             *
  *****************************************************************/
 SCD30 scd30;
@@ -555,10 +588,14 @@ SCD30 scd30;
  *****************************************************************/
 TinyGPSPlus gps;
 
+#pragma endregion
+
+
 /*****************************************************************
  * Variable Definitions for PPD24NS                              *
  * P1 for PM10 & P2 for PM25                                     *
  *****************************************************************/
+ #pragma region "Variable Definitions for all Sensor values."
 
 boolean trigP1 = false;
 boolean trigP2 = false;
@@ -589,16 +626,16 @@ enum SDS_WAITING
 {
 	SDS_REPLY_HDR = 10,
 	SDS_REPLY_BODY = 8
-} SDS_waiting_for; 	//for header/body
+} SDS_waiting_for; 				//for header/body
 
 //ENUM POUR IPS??
 
-String current_th_npm;			// kwep last temp. and hum. value.
+String current_th_npm;			// keep last temp. and hum. value.
 
 bool is_PMS_running = true;
 bool is_HPM_running = true;
 bool is_NPM_running = false;
-bool is_IPS_running;
+bool is_IPS_running = false;
 
 unsigned long sending_time = 0;
 unsigned long last_update_attempt;
@@ -870,6 +907,9 @@ IPAddress addr_static_dns;
 
 const char data_first_part[] PROGMEM = "{\"software_version\": \"" SOFTWARE_VERSION_STR "\", \"sensordatavalues\":[";
 const char JSON_SENSOR_DATA_VALUES[] PROGMEM = "sensordatavalues";
+
+#pragma endregion
+
 
 /*****************************************************************
  * Display values for debugging.                                 *
@@ -1899,13 +1939,13 @@ static float pressure_at_sealevel(const float temperature, const float pressure)
  ************************************************************************/
 float real_temperature(const float temperature)
 {
-	float real_temperature = (0.9754f * temperature) - 4.2488f;
+	float _real_temperature = (0.9754f * temperature) - 4.2488f;
 
     // 24.66666 * 100 = 2466.66
     // 2466.66 + 0.5 = 2467.16 for rounding off value.
     // then type cast to int so value is 2467
     // then divided by 100 so the value converted into 24.67
-    float value = (int)((real_temperature * 100) + 0.5f);
+    float value = (int)((_real_temperature * 100) + 0.5f);
     return (float)value / 100;
 }
 
@@ -1921,8 +1961,8 @@ float real_temperature(const float temperature)
  ************************************************************************/
 float real_humidity( const float humidity)
 {
-	float real_humidity = (1.1768f * humidity) - 4.727f;
-    float value = (int)((real_humidity * 100) + 0.5f);
+	float _real_humidity = (1.1768f * humidity) - 4.727f;
+    float value = (int)((_real_humidity * 100) + 0.5f);
     return (float)value / 100;
 }
 
@@ -2389,7 +2429,12 @@ static void webserver_config_send_body_get(String &page_content)
 
 	add_form_checkbox_sensor(Config_pms_read, FPSTR(INTL_PMS));
 	add_form_checkbox_sensor(Config_npm_read, FPSTR(INTL_NPM));
+	page_content += FPSTR(WEB_NBSP_NBSP);
 	add_form_checkbox_sensor(Config_npm_fulltime, FPSTR(INTL_NPM_FULLTIME));
+	page_content += FPSTR(WEB_NBSP_NBSP);
+	page_content += form_select_NextPM_Heater_Mode();
+	page_content += FPSTR(WEB_BR_LF);
+
 	add_form_checkbox_sensor(Config_ips_read, FPSTR(INTL_IPS));
 	page_content += FPSTR(WEB_BR_LF);
 	page_content += F("<hr/>");
@@ -3358,7 +3403,8 @@ static void webserver_status()
 		page_content += FPSTR(EMPTY_ROW);
 		add_table_row_from_value(page_content, FPSTR(SENSORS_NPM), last_value_NPM_version);
 		add_table_row_from_value(page_content, F("Temperature offset: "), String(cfg::scd30_temp_correction) + String("°C"));
-        add_table_row_from_value(page_content, FPSTR(INTL_NPM_FULLTIME), cfg::npm_fulltime == true ? F("enabled") : F("disabled"));
+        add_table_row_from_value(page_content, FPSTR(INTL_NPM_FULLTIME), cfg::npm_fulltime == true ? F("Enabled") : F("Disabled"));
+		add_table_row_from_value(page_content, FPSTR(INTL_NPM_HEATER_MODE), NPM_HEATER_MODE_NAME[cfg::npm_heater_mode]);
 	}
 
 	if (cfg::scd30_read)
@@ -3374,7 +3420,7 @@ static void webserver_status()
 		versionHtml = F("Firmware Version:   V ") + String( ((float)settingVal) / 100);
 		versionHtml += String( BR_TAG);
 		versionHtml += F("Auto Calibration = ");
-		versionHtml += scd30.getAutoSelfCalibration() == true ? F("enabled") : F("disabled");
+		versionHtml += scd30.getAutoSelfCalibration() == true ? F("Enabled") : F("Disabled");
 		versionHtml += String( BR_TAG);
 		scd30.getMeasurementInterval(&settingVal);
 		versionHtml += F("Measurement interval =  ") + String( settingVal) + String("s");
@@ -3392,9 +3438,9 @@ static void webserver_status()
 		//add_table_row_from_value(page_content, F("Firmware Version"), String( ((float)settingVal) / 100));
 
 		// if (scd30.getAutoSelfCalibration() == true)
-		// 	add_table_row_from_value(page_content, F("Auto Calibration"), "enabled");
+		// 	add_table_row_from_value(page_content, F("Auto Calibration"), "Enabled");
 		// else
-		// 	add_table_row_from_value(page_content, F("Auto Calibration"), "disabled");
+		// 	add_table_row_from_value(page_content, F("Auto Calibration"), "Disabled");
 			
 		//scd30.getMeasurementInterval(&settingVal);
 		//add_table_row_from_value(page_content, F("Measurement interval"), String( settingVal));
@@ -3429,7 +3475,7 @@ static void webserver_status()
 			versionHtml += String(offsetTemp, 1) + String("°C");
 			versionHtml += String(BR_TAG);
 			versionHtml += FPSTR(INTL_SEN5X_ON);
-			versionHtml += cfg::sen5x_on == true ? F(": enabled") : F(": disabled");
+			versionHtml += cfg::sen5x_on == true ? F(": Enabled") : F(": Disabled");
 			// versionHtml += String( BR_TAG);
 
 			add_table_row_from_value( page_content, FPSTR(emptyString.c_str()), versionHtml);
@@ -8036,9 +8082,12 @@ static void initNEXTPM()
             delay(15000);        // wait a bit to be sure Tera Next PM is ready to receive instructions.
         }
 
-        if( false)  // cfg::npm_heat_mode = off
+		debug_outln_info( F("NPM Heater Mode setting: "), NPM_HEATER_MODE_NAME[cfg::npm_heater_mode]);
+
+        if( (NPM_HEATER_MODE)cfg::npm_heater_mode > NPM_HEATER_MODE::NONE)
         {
-            NPMDevice->Set_Heater_Mode(NPM_HEAT_MODE::auto_regulated);
+            uint res = NPMDevice->Set_Heater_Mode( (NPM_HEATER_MODE)cfg::npm_heater_mode );
+			debug_outln_info( F("NPM Heater status = "), res == 0 ? F("Ok") : String(res));
         }
 
 		last_value_NPM_version = NPMDevice->Firmware_version();
@@ -8606,7 +8655,7 @@ void setup(void)
 
 	if (cfg::npm_read)
 	{
-		NPMDevice = new NextPM(serialNPM);	// create instance to NextPM class.
+		NPMDevice = new NextPM(serialNPM);	// create instance of NextPM class.
 		NPMDevice->begin();
 	}
 	else if (cfg::ips_read)
@@ -8821,6 +8870,11 @@ void loop(void)
 		{
 			starttime_NPM = act_milli;
 			fetchSensorNPM(result_NPM);
+
+			if ( send_now && cfg::npm_fulltime && (NPM_HEATER_MODE)cfg::npm_heater_mode == NPM_HEATER_MODE::HEATING_CONTROL)
+			{
+				NPMDevice->Heating_Control( last_value_NPM_H );
+			}
 		}
 	}
 	else if (cfg::ips_read)
