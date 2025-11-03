@@ -141,11 +141,11 @@
  * RAM:     [=====     ]  46.9% (used 38400 bytes from 81920 bytes)     *
  * PROGRAM: [=======   ]  65.7% (used 686393 bytes from 1044464 bytes)  *
  *                                                                      *
- * latest build 2025-10-28											*
+ * latest build 2025-11-03											    *
  * PLATFORM: Espressif 8266 (3.0.1) > NodeMCU 1.0 (ESP-12E Module)		*
  * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
  * RAM:     [=====     ]  47.0% (used 38468 bytes from 81920 bytes)		*
- * PROGRAM: [======    ]  66.2% (used 690981 bytes from 1044464 bytes)	*
+ * PROGRAM: [======    ]  66.2% (used 691213 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -8082,7 +8082,7 @@ static void initNEXTPM()
             delay(15000);        // wait a bit to be sure Tera Next PM is ready to receive instructions.
         }
 
-		debug_outln_info( F("NPM Heater Mode setting: "), NPM_HEATER_MODE_NAME[cfg::npm_heater_mode]);
+		debug_outln_info( F("NPM Heater Mode setting: "), F("\"") + NPM_HEATER_MODE_NAME[cfg::npm_heater_mode] + F("\""));
 
         if( (NPM_HEATER_MODE)cfg::npm_heater_mode > NPM_HEATER_MODE::NONE)
         {
