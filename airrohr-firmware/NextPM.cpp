@@ -850,7 +850,7 @@ uint NextPM::Set_Heater_Mode( NPM_HEATER_MODE heaterMode)
 
     debug_outln(F("Wait for NPM Heater_Mode Response..."), DEBUG_MAX_INFO);
 
-    while (!(len = hstream->available() >= 3))
+	while ( (len = serialNPM.available()) < 3 )
     { // wait till receive response from Tera NextPM sensor.
          if (--reply == 0)
         {

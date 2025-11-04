@@ -145,7 +145,7 @@
  * PLATFORM: Espressif 8266 (3.0.1) > NodeMCU 1.0 (ESP-12E Module)		*
  * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
  * RAM:     [=====     ]  47.0% (used 38468 bytes from 81920 bytes)		*
- * PROGRAM: [======    ]  66.2% (used 691213 bytes from 1044464 bytes)	*
+ * PROGRAM: [======    ]  66.2% (used 691229 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -8097,7 +8097,7 @@ static void initNEXTPM()
 				res = NPMDevice->Set_Heater_Mode((NPM_HEATER_MODE)cfg::npm_heater_mode);
 			}
 
-			debug_outln_info( F("NPM Heater status = "), res == 0 ? F("Ok") : String(res));
+			debug_outln_info( F("NPM Heater status = "), res == 0 ? F("Ok") : String(res, BIN));
         }
 
 		last_value_NPM_version = NPMDevice->Firmware_version();
