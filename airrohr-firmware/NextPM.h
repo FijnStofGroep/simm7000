@@ -59,7 +59,7 @@ public:
 	bool Get_State(uint8_t *status);
 	bool Start_stop(uint8_t *status);
 	String Firmware_version();
-	// void 	Fan_speed();
+	//void Fan_speed();
 
 	uint Set_Heater_Mode(NPM_HEATER_MODE heaterMode);
 	void Heating_Control(float hum_value);
@@ -71,6 +71,8 @@ public:
 
 	bool ReadMeasuredTmp_HumValues(uint16_t *temp, uint16_t *humi);
 
+	// Declarations.
+	bool Is_Heater_ModeOn = false;
 
 private:
 	SoftwareSerial *hstream = NULL; // communication port to Tera NextPM sensor hardware.

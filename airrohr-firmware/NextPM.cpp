@@ -14,7 +14,6 @@
 #include <NextPM.h>
 
 //  Declarations
-bool Is_Heater_ModeOn = false;
 float m_humidity_threshold = 0.0;
 const float OffsetHumidity = 5.0;   // -5 %RH offset.
 
