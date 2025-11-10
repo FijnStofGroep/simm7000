@@ -3386,6 +3386,7 @@ static void webserver_status()
 	//time_t now = time(nullptr);
 	//add_table_row_from_value(page_content, FPSTR(INTL_TIME_UTC), ctime(&now));
     add_table_row_from_value(page_content, FPSTR(INTL_TIME_UTC), getDateTime(false));
+	//add_table_row_from_value(page_content, FPSTR(INTL_TIME_GMT), getDateTime(true));
 	add_table_row_from_value(page_content, F("Uptime"), delayToString(millis() - time_point_device_start_ms));
 
 #if defined(ESP8266)

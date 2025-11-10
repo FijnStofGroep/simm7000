@@ -1246,9 +1246,9 @@ boolean BK_modem::getTime(char *buff, uint16_t maxlen)
         return false;
     }
 
-    char *p = m_replybuffer + 7;
-    uint16_t lentocopy = min(maxlen - 1, (int)strlen(p));
-    strncpy(buff, p, lentocopy + 1);
+    char *bufptr = m_replybuffer + 7;
+    uint16_t lentocopy = min(maxlen - 1, (int)strlen(bufptr));
+    strncpy(buff, bufptr, lentocopy + 1);
     buff[lentocopy] = 0;
 
     readline();                 // eat OK

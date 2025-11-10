@@ -1011,28 +1011,30 @@ void setNTPTimeSync(void)
     tmStruct.tm_min = atoi(&timeBuffer[13]);       // = 21 minutes
     tmStruct.tm_sec = atoi(&timeBuffer[16]);       // = 26 secs
 
-    if (tmStruct.tm_mon > 3 && tmStruct.tm_mon < 11)
-    {// Day light Saving Time On, April to October are in
-        tmStruct.tm_isdst = 1;                         // Tells mktime() the input date is in day light saving time.
-        setTZ(MY_TZ);
+    if (tmStruct.tm_mon > 2 && tmStruct.tm_mon < 10)
+    {// Day light Saving Time On, from April till October
+        tmStruct.tm_isdst = 1;                     // Tells mktime() the input date is in day light saving time.
     }
     else
-    {// Day light Saving Time Off, January, February, March and December are out.
-        tmStruct.tm_isdst = 0;                         // Tells mktime() the input date is NOT in day light saving time.
-        setTZ("");
+    {// Day light Saving Time Off, January, February, March and November, December are out.
+        tmStruct.tm_isdst = 0;                     // Tells mktime() the input date is NOT in day light saving time.
     }
 
-    // char tmBuffer[90];
-    // sprintf_P(tmBuffer, PSTR("%d-%d-%d %d:%d:%d+%d"), 
-    //                                                 tmStruct.tm_year,
-    //                                                 tmStruct.tm_mon,
-    //                                                 tmStruct.tm_mday,
-    //                                                 tmStruct.tm_hour,
-    //                                                 tmStruct.tm_min,
-    //                                                 tmStruct.tm_sec,
-    //                                                 tmStruct.tm_isdst);
-    // debug_outln_info(F("tmStruct: ") + String(tmBuffer));
- 
+    setTZ(MY_TZ);                                  // set Timezone: Europe/Amsterdam.
+
+#if defined(VS_DEBUG)
+    char tmBuffer[90];
+    sprintf_P(tmBuffer, PSTR("%d-%d-%d %d:%d:%d+%d"), 
+                                                    tmStruct.tm_year - 100,
+                                                    tmStruct.tm_mon,
+                                                    tmStruct.tm_mday,
+                                                    tmStruct.tm_hour,
+                                                    tmStruct.tm_min,
+                                                    tmStruct.tm_sec,
+                                                    tmStruct.tm_isdst);
+    debug_outln_info(F("tmStruct: ") + String(tmBuffer));
+ #endif
+
     // function to parse a date to ticker value. (1724850620 => Wed Aug 28 15:10:20 2024)
     time_t parsedTime = mktime(&tmStruct);
     
