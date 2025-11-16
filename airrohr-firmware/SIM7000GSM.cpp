@@ -1004,14 +1004,14 @@ void setNTPTimeSync(void)
     timeBuffer[18] = 0x00;
 
     struct tm tmStruct;
-    tmStruct.tm_year = atoi(&timeBuffer[1]) + 100; // = year 2024 (base 1900)
-    tmStruct.tm_mon = atoi(&timeBuffer[4]) - 1;    // = 08th month (base = 0)
+    tmStruct.tm_year = atoi(&timeBuffer[1]) + 100; // = year 2024  (base 1900)
+    tmStruct.tm_mon = atoi(&timeBuffer[4]);        // = month
     tmStruct.tm_mday = atoi(&timeBuffer[7]);       // = 28th day
     tmStruct.tm_hour = atoi(&timeBuffer[10]);      // = 11 hours
     tmStruct.tm_min = atoi(&timeBuffer[13]);       // = 21 minutes
     tmStruct.tm_sec = atoi(&timeBuffer[16]);       // = 26 secs
 
-    if (tmStruct.tm_mon > 2 && tmStruct.tm_mon < 10)
+    if (tmStruct.tm_mon > 2 && tmStruct.tm_mon < 11)
     {// Day light Saving Time On, from April till October
         tmStruct.tm_isdst = 1;                     // Tells mktime() the input date is in day light saving time.
     }
@@ -1024,7 +1024,7 @@ void setNTPTimeSync(void)
 
 #if defined(VS_DEBUG)
     char tmBuffer[90];
-    sprintf_P(tmBuffer, PSTR("%d-%d-%d %d:%d:%d+%d"), 
+    sprintf_P(tmBuffer, PSTR("%d-%d-%d %d:%d:%d+dl%d"), 
                                                     tmStruct.tm_year - 100,
                                                     tmStruct.tm_mon,
                                                     tmStruct.tm_mday,
@@ -1035,7 +1035,8 @@ void setNTPTimeSync(void)
     debug_outln_info(F("tmStruct: ") + String(tmBuffer));
  #endif
 
-    // function to parse a date to ticker value. (1724850620 => Wed Aug 28 15:10:20 2024)
+    // function to parse a datetime to ticker value. (1724850620 => Wed Aug 28 15:10:20 2024)
+    tmStruct.tm_mon -= 1;                           // = month-1 (jan = 0)
     time_t parsedTime = mktime(&tmStruct);
     
     //debug_outln_info(F("NTP ticker value: ") + String(parsedTime));
