@@ -52,7 +52,7 @@ public:
 	NextPM(SoftwareSerial &serial);
 	virtual ~NextPM();
 
-	void begin( float humidity_threshold = 65.0);
+	void begin( float humidity_threshold = 85.0);
 	void end();
 	void perform_work();
 

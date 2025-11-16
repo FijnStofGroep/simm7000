@@ -924,7 +924,7 @@ void NextPM::Display_State_Error(uint8_t test_state)
     }
 }
 
-/// @brief : The heater is enabled from 65 %RH threshold and the
+/// @brief : The heater is enabled from 85 %RH threshold and the
 ///          heat generated is dependent on the "measured relative humidity".
 /// @param hum_value
 void NextPM::Heating_Control(float relative_humidity)
