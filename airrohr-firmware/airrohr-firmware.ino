@@ -8843,7 +8843,7 @@ void setup(void)
 			{
 				m_sendSensorValue.setAll(1); // set all bits.
 
-				uint32_t number = ((uint32)readCorrectionOffset(cfg::scd30_temp_correction)); 
+				uint32_t number = ((uint32)readCorrectionOffset(cfg::dnms_correction)); 
 
 				if (number > 0)
 				{
@@ -8866,7 +8866,10 @@ void setup(void)
 				// m_sendSensorValue.set(0, 0);		// reset bit0
 				// m_sendSensorValue.set(11, 0);	// reset bit11
 				// m_sendSensorValue.set(23, 0);	// reset bit23
-				// debug_outln_info(F("ByteArray[") + String(m_sendSensorValue.memory()) + F("] ,Bits: ") + String(m_sendSensorValue.bits()));
+				
+#if VS_DEBUG
+				debug_outln_info(F("ByteArray[") + String(m_sendSensorValue.memory()) + F("] ,Bits: ") + String(m_sendSensorValue.bits()));
+#endif
 
 				debug_out(F("BitArray[]: "), DEBUG_MAX_INFO);
 				for (int i = 0; i < BITS; i++)
