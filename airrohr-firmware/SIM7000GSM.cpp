@@ -740,8 +740,8 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
         {
             ptr = strstr(topic, "/status");
             if (ptr > 0)
-            {// send "status" one time/hour
-                if ((act_milli - last_status_attempt) < 60000 * 60)
+            {// send "status" one time/8-hours.
+                if ((act_milli - last_status_attempt) < ONE_DAY_IN_MS / 3 ) // 60000 * 60
                 {
                     return true;
                 }

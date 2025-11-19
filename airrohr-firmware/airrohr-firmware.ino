@@ -237,6 +237,7 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include "html-content.h"
 #include "select_lang_html.h"
 #include "./NextPM.h"
+#include "BitArray.h"
 
 #if defined(ESP8266)
 // BK-SIM70XX source code + header files located in ".\lib" folder.
@@ -588,6 +589,23 @@ SCD30 scd30;
  *****************************************************************/
 TinyGPSPlus gps;
 
+/*****************************************************************
+ * BitArray declaration:   LTE communication                     *
+ *---------------------------------------------------------------*
+ * Bitarray format:  bit23 ---> bit0                             *
+ *---------------------------------------------------------------*
+ *Bit: | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |  *
+ *Flag:|N05|NC1|N25|NC4|N10|TPS|NOX|VOC|lon|lat|hght|time|Wifi|  *
+ *                                       |---- GPS ----|         *
+ *---------------------------------------------------------------*
+ *Bit: | 13| 14| 15| 16| 17| 18 | 19 | 20 | 21 | 22 | 23 |       *
+ *Flag:|   |   |*1 |PM0|PM4|    |    |    |    |    |    |       *
+ *---------------------------------------------------------------*
+ * Note: *1: min_micro,max_micro,interval,samples,etc..          *
+ *****************************************************************/
+#define BITS	24				// create a bitArray[3] => 24-bits lenght.
+BitArray m_sendSensorValue;		// bit23 ---> bit0
+ 
 #pragma endregion
 
 
@@ -2872,6 +2890,11 @@ static void sensor_restart()
 		serialSDS.end();
 	}
 
+	if (cfg::gps_read)
+	{
+		delete serialGPS;
+	}
+
 	debug_outln_info(F("Restart."));
 	delay(500);
 
@@ -4656,6 +4679,11 @@ static void sendmqtt(const String &data)
 					key.replace(F("_co2_ppm"), F("_NOx"));
 				}
 
+				if( !IsSensorSendDataType(key) )
+				{
+					continue;
+				}
+
 				int spc = val.indexOf(' ');
 
 				if (spc >= 0)
@@ -4804,6 +4832,79 @@ static void sendmqtt(const String &data)
 	}
 
 #endif
+}
+
+/// @brief IsSensorSendDataType
+/// @param key => SEN55_P0,....
+///
+/// @return  true => bit = 1
+///         false => bit = 0
+static bool IsSensorSendDataType(String key)
+{
+	if( !(m_sendSensorValue.memory() > 0))
+	{// No memory allocated.
+		return true;
+	}
+	
+	uint16_t index;
+
+	//debug_outln_info(F("Input key = "), key);
+
+	int idx = key.indexOf("_");
+	key = key.substring( idx + 1, key.length());
+
+	//debug_outln_info(F("New key = "), key);
+
+	if (key.startsWith(F("N05")))
+		index = 0;
+	else if (key.startsWith(F("N1")))
+		index = 1;
+	else if (key.startsWith(F("N25")))
+		index = 2;
+	else if (key.startsWith(F("N4")))
+		index = 3;
+	else if (key.startsWith(F("N10")))
+		index = 4;
+	else if (key.startsWith(F("TPS")))
+		index = 5;
+	else if (key.startsWith(F("NOX")))
+		index = 6;
+	else if (key.startsWith(F("VOC")))
+		index = 7;
+	else if (key.startsWith(F("lon"))) 			// GPS
+		index = 8;
+	else if (key.startsWith(F("lat"))) 			// GPS
+		index = 9;
+	else if (key.startsWith(F("height")))		// GPS
+		index = 10;
+	else if (key.startsWith(F("timestamp")))	// GPS
+		index = 11;
+	else if (key.startsWith(F("signal")))		// Wifi signal.
+		index = 12;
+	else if (key.startsWith(F("P0")))
+		index = 16;
+	else if (key.startsWith(F("P4")))
+		index = 17;
+	else if (key.startsWith(F("P2"))   || 		// PM2.5
+			 key.startsWith(F("P1"))   || 		// PM10
+			 key.startsWith(F("temp")) ||
+			 key.startsWith(F("hum"))  ||
+			 key.startsWith(F("pres"))) 		// pressure
+			 {
+#if VS_DEBUG
+				 debug_outln_info(F("Input key = "), key);
+#endif
+				 return true; // always send to data server
+			 }
+	else
+	{// samples, micro, interval, etc..
+		index = 15;
+	}
+
+#if VS_DEBUG
+	debug_outln_info(key + F(" => Flag ") + String(index) + F(" => ") + String(m_sendSensorValue.get(index)));
+#endif
+	return m_sendSensorValue.get(index) == 1;
 }
 
 /*****************************************************************
@@ -8710,31 +8811,71 @@ void setup(void)
 	init_display();
 	setupNetworkTime();			// set Callback function ptr into NTPSERVER function callback table.
 
-    if (!cfg::has_s7000)
-    { 
-        connectWifi();
-    }
-    else
-    {  // ESP8266 Wifi allways in "AP" mode in case of LTE-communication.
-       // Start AP-Host SSID Configuration website.
-        wifi_AP_Config();
+	if (!cfg::has_s7000)
+	{
+		connectWifi();
+	}
+	else
+	{ // ESP8266 Wifi allways in "AP" mode in case of LTE-communication.
+	  // Start AP-Host SSID Configuration website.
+		wifi_AP_Config();
 
-        // This can be useful if a web-client close enough to ESP device, so we don't need full output power.
-        // 13dBM == 20mW
-        WiFi.setOutputPower(13.0f);
+		// This can be useful if a web-client close enough to ESP device, so we don't need full output power.
+		// 13dBM == 20mW
+		WiFi.setOutputPower(13.0f);
 
-        debug_outln_info(F("** Start BK-SIM70XX PCB communication... **"));
-        if (Sim7000_setup(SETUP_STATE::INIT))
-        {
-            debug_outln_info(F("** BK-") + GetSimDriverName() + F(" PCB connected. **"));
-        }
-        else
-        {
-            debug_outln_info(F("** BK-SIM70XX PCB \"NOT\" connected. **"));
-        }
-    }
+		debug_outln_info(F("** Start BK-SIM70XX PCB communication... **"));
+		if (!Sim7000_setup(SETUP_STATE::INIT))
+		{
+			debug_outln_info(F("** BK-SIM70XX PCB \"NOT\" connected. **"));
+		}
+		else
+		{
+			debug_outln_info(F("** BK-") + GetSimDriverName() + F(" PCB connected. **"));
 
-    setup_webserver();
+			// create a bitArray[24] => byteArray[3] of 24-bits lenght.
+			int x = m_sendSensorValue.begin(1, BITS);
+			if (x == BA_NO_MEMORY_ERR)
+			{
+				debug_outln_info(F("BitArray: no memory."));
+			}
+			else
+			{
+				m_sendSensorValue.setAll(1); 					// set all bits.
+
+				uint32_t number = ((uint32)readCorrectionOffset(cfg::scd30_temp_correction)) ^ 0xffffff; // Binary bitwise XOR. ex. 7936 to 57599
+				int bitIdx = 0;																			 // Bit Idx for binary array. => 0 0 0 0 0 0 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0
+
+				while (number > 0)
+				{
+					if (bitIdx < BITS && ((number & 1) > 0))
+					{
+						// debug_outln_info(F("bitIdx = ") + String(bitIdx));
+						m_sendSensorValue.set(bitIdx, 0); // reset bitx
+					}
+
+					bitIdx++;						// next pos.
+					number = (number >> 1); 		// next bit.
+				}
+
+#if VS_DEBUG
+				// m_sendSensorValue.set(0, 0);		// reset bit0
+				// m_sendSensorValue.set(11, 0);	// reset bit11
+				// m_sendSensorValue.set(23, 0);	// reset bit23
+				//debug_outln_info(F("ByteArray[") + String(m_sendSensorValue.memory()) + F("] ,Bits: ") + String(m_sendSensorValue.bits()));
+
+				debug_out(F("BitArray[]: "), DEBUG_MIN_INFO);
+				for (int i = 0; i < BITS; i++)
+				{
+					debug_out(String(m_sendSensorValue.get(i), DEC) + F(" "), DEBUG_MIN_INFO);
+				}
+				debug_outln_info(F(""));
+#endif
+			}
+		}
+	}
+
+	setup_webserver();
 	createLoggerConfigs();
 
 	debug_outln_info(F("\nChipId: "), esp_chipid);
