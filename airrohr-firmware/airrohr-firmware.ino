@@ -8841,36 +8841,39 @@ void setup(void)
 			}
 			else
 			{
-				m_sendSensorValue.setAll(1); 					// set all bits.
+				m_sendSensorValue.setAll(1); // set all bits.
 
-				uint32_t number = ((uint32)readCorrectionOffset(cfg::scd30_temp_correction)) ^ 0xffffff; // Binary bitwise XOR. ex. 7936 to 57599
-				int bitIdx = 0;																			 // Bit Idx for binary array. => 0 0 0 0 0 0 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0
+				uint32_t number = ((uint32)readCorrectionOffset(cfg::scd30_temp_correction)); 
 
-				while (number > 0)
+				if (number > 0)
 				{
-					if (bitIdx < BITS && ((number & 1) > 0))
+					number = number ^ 0xffffff;			// Binary bitwise XOR. ex. 7936 to 57599
+					int bitIdx = 0; 					// Bit Idx for binary array. => 0000 0000 1111 1000 0000 0000
+
+					while (number > 0)
 					{
-						// debug_outln_info(F("bitIdx = ") + String(bitIdx));
-						m_sendSensorValue.set(bitIdx, 0); // reset bitx
+						if (bitIdx < BITS && ((number & 1) > 0))
+						{
+							// debug_outln_info(F("bitIdx = ") + String(bitIdx));
+							m_sendSensorValue.set(bitIdx, 0); // reset bitx
+						}
+
+						bitIdx++;				// next pos.
+						number = (number >> 1); // next bit.
 					}
-
-					bitIdx++;						// next pos.
-					number = (number >> 1); 		// next bit.
 				}
-
-#if VS_DEBUG
+				
 				// m_sendSensorValue.set(0, 0);		// reset bit0
 				// m_sendSensorValue.set(11, 0);	// reset bit11
 				// m_sendSensorValue.set(23, 0);	// reset bit23
-				//debug_outln_info(F("ByteArray[") + String(m_sendSensorValue.memory()) + F("] ,Bits: ") + String(m_sendSensorValue.bits()));
+				// debug_outln_info(F("ByteArray[") + String(m_sendSensorValue.memory()) + F("] ,Bits: ") + String(m_sendSensorValue.bits()));
 
-				debug_out(F("BitArray[]: "), DEBUG_MIN_INFO);
+				debug_out(F("BitArray[]: "), DEBUG_MAX_INFO);
 				for (int i = 0; i < BITS; i++)
 				{
-					debug_out(String(m_sendSensorValue.get(i), DEC) + F(" "), DEBUG_MIN_INFO);
+					debug_out(String(m_sendSensorValue.get(i), DEC) + F(" "), DEBUG_MAX_INFO);
 				}
 				debug_outln_info(F(""));
-#endif
 			}
 		}
 	}
