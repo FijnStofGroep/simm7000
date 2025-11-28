@@ -8,7 +8,6 @@ The maintained main firmware for the Luftdaten.Info Sensor.
 
 ## SIMM70xx driver for
 * BK-SIM7000 PCB module
-* BK-SIM7080 PCB module
 
 * Power solar panel:
 *	For powering air quality and sound sensors with 4G/LTE in a food forest, a small solar setup works well: most sensors use under 0.5 W, 
