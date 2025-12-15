@@ -57,6 +57,8 @@ int m_CID_CA = 0;
 char *m_rootCA;
 #endif
 
+#pragma region "BK_MODEM"
+
 //********************************* BK_modem *********************************************************************************** */
 /* 
   constructor class 'BK_modem'
@@ -117,7 +119,7 @@ void BK_modem::init(BK_SIM7000_StreamType &comPort, HardwareSerial &debugPort, u
 /// @return
 boolean BK_modem::begin()
 {
-    BK_DEBUG_PRINTLN(F("BK_modem::Begin() start..."));
+    //BK_DEBUG_PRINTLN(F("BK_modem::Begin() start..."));
 
     if (SerialSIM == NULL)
     {
@@ -137,20 +139,8 @@ boolean BK_modem::begin()
     // turn on error result codes.
     setMobileEquipmentError(1);
 
-    //Default: SIM70XXG will do: nothing when the 'DTR' pin is pulling up.
+    //Default: SIM7XXXG will do: nothing when the 'DTR' pin is pulling up.
     enableSleepMode(0);       
-
-    /*  When "get local timestamp" function is enabled, the following URC may be
-        reported if network sends the message to the MS to provide the MS with
-        subscriber specific information.
-
-        Enable Local Time Stamp for getting network time.
-    */
-    if ( !enableNetworkTimeSync(false) )
-    {
-        BK_DEBUG_PRINTLN(F("### Enable Local Time Stamp for getting network time faild. **"));
-        //return false;
-    }
 
     // if the sim isn't ready and a pin has been provided, try to unlock the sim
     int8_t ret = getPINStatus();
@@ -166,11 +156,7 @@ boolean BK_modem::begin()
         // return (ret == SIM_READY || ret == SIM_PUK);
     }
 
-    // Set the network status green LED blinking pattern while connected to a network.
-    setNetLED(true, 2,  500, 3000);     // Connected to network: on/off, mode, timer_on, timer_off
-    setNetLED(true, 3, 1000, 5000);     // Data connection enabled: on/off, mode, timer_on, timer_off  (default: 64, 300)
-
-    BK_DEBUG_PRINTLN(F("BK_modem::Begin() End..."));
+    //BK_DEBUG_PRINTLN(F("BK_modem::Begin() End..."));
     return true;
 }
 
@@ -732,7 +718,7 @@ bool BK_modem::setNetworkStatus(uint8_t option)
 ///     rssi:
 ///             0       -115 dBm or less
 ///             1       -111 dBm
-///             2...30  -109... -53 dBm
+///             2...30  -109 ... -53 dBm
 ///             31      -54 dBm or greater
 ///             99      not known or not detectable
 ///
@@ -1069,6 +1055,25 @@ boolean BK_modem::sendUSSD(char *ussdmsg, char *ussdbuff, uint16_t maxlen, uint1
 /// @return : true = OK
 boolean BK_modem::enableNetworkTimeSync(boolean onoff)
 {
+    //std::is_base_of<Base, Derived>::value → true if Base is a base class of Derived (or the same type), otherwise false.
+    //if constexpr (std::is_base_of<BK_modem, BK_modem_7600>::value)
+    // if (m_Sim_Type == SIM_TYPE::SIM7600)
+    // {
+    //     BK_DEBUG_PRINTLN(F("*** enableNetworkTimeSync : SIM-7600 ***"));
+    //     return true;
+    // }
+
+// dit werkt, set ; Enable RTTI
+//   if (typeid(this) == typeid(BK_modem_7600))
+//  or 
+//   if (dynamic_cast<BK_modem_7600*>(this) != nullptr)
+//   {
+//     //BK_DEBUG_PRINT(F("1: "));
+//     BK_DEBUG_PRINTLN(F("*** enableNetworkTimeSync : SIM-7600 ***"));
+//     return true;
+//   }
+
+
   if (onoff) 
   {
     if (! sendCheckReply(F("AT+CLTS=1"), m_ok_reply))
@@ -1351,49 +1356,6 @@ boolean BK_modem::enableGPS(boolean onoff)
     return true;
 }
 
-/*
- +CGNSINF: 1,1,20240807084634.000,52.121586,5.405644,9.300,0.00,324.5,1,,0.7,1.0,0.7,,21,9,3,,37,,
-*/
-int8_t BK_modem::GPSstatus(void)
-{
-
-    getReply(F("AT+CGNSINF"));
-
-    char *ptr = prog_char_strstr(m_replybuffer, (prog_char *)F("+CGNSINF: "));
-
-    BK_DEBUG_PRINT(F("1: "));
-    BK_DEBUG_PRINTLN(m_replybuffer);
-
-    if (ptr == 0)
-    {
-        return -1;
-    }
-
-    ptr += 10;
-
-    if (ptr[0] == '0')
-    {
-        return 0; // GPS is not even on!
-    }
-
-    ptr += 2; // Skip to second value, fix status.
-
-    char infchr = ptr[0];
-
-    readline(); // eat 'OK'
-
-    BK_DEBUG_PRINT(F("2: "));
-    BK_DEBUG_PRINTLN(m_replybuffer);
-    BK_DEBUG_PRINTLN(F("chr: ") + String(infchr));
-
-    // DEBUG_PRINTLN(p);
-    //  Assume if the fix status is '1' then we have a 3D fix, otherwise no fix.
-    if (infchr == '1')
-        return 3;
-    else
-        return 1;
-}
-
 /// @brief GNSS Navigation Information Parsed From NMEA Sentences
 /// @param arg
 /// @param buffer
@@ -1439,8 +1401,10 @@ uint8_t BK_modem::getGPS_Navigation_Information(uint8_t arg, char *buffer, uint8
 /// @param min
 /// @param sec
 /// @return
-boolean BK_modem::getGPS(float *lat, float *lon, float *speed_kph, float *heading, float *altitude,
-                         uint16_t *year, uint8_t *month, uint8_t *day, uint8_t *hour, uint8_t *min, uint8_t *sec)
+boolean BK_modem::getGPS(float *lat, float *lon, 
+                         float *speed_kph, float *heading, float *altitude,
+                         uint16_t *year, uint8_t *month, uint8_t *day, 
+                         uint8_t *hour, uint8_t *min, uint8_t *sec)
 {
     char *ptrtoken;             // token pointer.
     char gpsbuffer[120];
@@ -1543,7 +1507,9 @@ boolean BK_modem::getGPS(float *lat, float *lon, float *speed_kph, float *headin
         // grab altitude
         char *altp = strtok(NULL, ",");
         if (!altp)
+        {
             return false;
+        }
 
         *altitude = atof(altp);
     }
@@ -1586,7 +1552,7 @@ boolean BK_modem::getGPS(float *lat, float *lon, float *speed_kph, float *headin
 boolean BK_modem::enableGPSNMEA(uint8_t input)
 {
     if( input )
-    {
+    {                                                   // AT+CGPSNMEA? => 7600
         sendCheckReply(F("AT+CGNSCFG=1"), m_ok_reply);          // Turn on GNSS NMEA Data Output to USB port.
         sendCheckReply(F("AT+CGNSTST=1"), m_ok_reply);          // Turn on GNSS NMEA Data Output to AT port.
 
@@ -1598,13 +1564,20 @@ boolean BK_modem::enableGPSNMEA(uint8_t input)
     }
 }
 
+/// @brief 
+/// @param voltage_mv => default 2800mV
+void BK_modem::getGPSAntennaVoltage(uint16_t* voltage_mv)
+{
+    *voltage_mv = 2800;
+}
+
 /********* GPRS **********************************************************/
 
 /// @brief : Request Manufacturer Identification
 /// @return
 String BK_modem::getManufacturer_Identification()
 {
-    int8_t len = getReply(F("GMI"), uint16_t(5000), true);
+    int16_t len = getReply(F("GMI"), uint16_t(5000), true);
 
     String res = F("**** SIMCOM_Ltd **** ");
 
@@ -1623,12 +1596,11 @@ String BK_modem::getManufacturer_Identification()
     return res;
 }
 
-/// @brief : ATI = Display Product Identification Information
-///          GMM = Request Modem(TA) Model Identiofication.
+/// @brief : GMM = Request Modem(TA) Model Identiofication.
 /// @return
 String BK_modem::getModemName()
 {
-    int8_t len = getReply(F("AT+GMM"), uint16_t(5000));
+    int16_t len = getReply(F("AT+GMM"), uint16_t(5000));
 
     String name = F("**** SIMCom SIM7000 ****");
 
@@ -1657,7 +1629,7 @@ String BK_modem::getModemName()
 /// @return
 String BK_modem::getModemInfo()
 {
-    int8_t len = getReply(F("ATI"), uint16_t(5000), true);
+    uint16_t len = getReply(F("ATI"), uint16_t(5000), true);
 
     String res = F("****SIMCom SIM7000 INFO****: ") + String(len);
 
@@ -1665,13 +1637,12 @@ String BK_modem::getModemInfo()
     {
         res = String(m_replybuffer);
 
-        // Do the replaces twice so we cover both \r and \r\n type endings
-        // res.replace("\r\nOK\r\n", "");
-        // res.replace("\rOK\r", "");
-        // res.replace("\r\n", "");
-        res.replace("OK", "");
-        res.replace("\r", "");
-        res.replace("\n", "");
+        // Delete these characters from string.
+        res.replace(F("+GCAP: +CGSM"), "");
+        res.replace(F("\n\nOK\n"), "");
+        //res.replace("\r", "xA");
+        //res.replace("\n", "xD");
+
         res.trim();
     }
 
@@ -1700,7 +1671,7 @@ String BK_modem::getModemSoftware_Revision()
 // 9 LTE NB
 // You can pass a string of sufficient length to receive a text copy as well
 // NOTE: Only tested on SIM7000E
-int8_t BK_modem::getNetworkSystemMode(char *typeStringBuffer)
+uint8_t BK_modem::getNetworkSystemMode(char *typeStringBuffer)
 {
     uint16_t stat;
 
@@ -1719,11 +1690,17 @@ int8_t BK_modem::getNetworkSystemMode(char *typeStringBuffer)
         case 1:
             strcpy_P(typeStringBuffer, (prog_char *)F("GSM"));
             break;
+        case 2:
+            strcpy_P(typeStringBuffer, (prog_char *)F("GPRS"));
+            break;
         case 3:
             strcpy_P(typeStringBuffer, (prog_char *)F("EGPRS"));
             break;
         case 7:
             strcpy_P(typeStringBuffer, (prog_char *)F("LTE M1"));
+            break;
+        case 8:
+            strcpy_P(typeStringBuffer, (prog_char *)F("LTE"));
             break;
         case 9:
             strcpy_P(typeStringBuffer, (prog_char *)F("LTE NB"));
@@ -1826,24 +1803,24 @@ String BK_modem::getOperator(void)
 /// @return : data.
 String BK_modem::getSIMCOMATI(void)
 {
-    int8_t len = getReply(F("AT+SIMCOMATI"), uint16_t(5000), true); // timeout mx. 5 sec.
+    int16_t len = getReply(F("AT+SIMCOMATI"), uint16_t(5000), true); // wait max. 5 sec.
+
+    //BK_DEBUG_PRINTLN(F("***SIMCOMATI*** ") + String(m_replybuffer));
 
     if (len > 0)
     {
         RESERVE_STRING(res, len + 2);
 
         res = String(m_replybuffer);
-        res.replace("\r\nOK\r\n", "");
-        res.replace("\nOK\n", "");
-        res.remove((res.length() - 1), 1);
-
-        // Eat 'OK'
-        // readline();
+        res.replace(F("+GCAP: +CGSM"),"");
+        res.replace(F("\n\nOK\n"), "");
+        res.replace(F("\n\n"), "\n");
+        res.trim();
 
         return res;
     }
 
-    return "";
+    return F("No Information available.");
 }
 
 /// @brief
@@ -1881,7 +1858,7 @@ int8_t BK_modem::GPRSstate(void)
 {
     uint16_t state;
 
-    int len = getReply(F("AT+CGATT?"), uint16_t(75000)); // timeout mx. 75 sec.
+    uint16_t len = getReply(F("AT+CGATT?"), uint16_t(75000)); // timeout mx. 75 sec.
 
     //  parse it out...
     // BK_DEBUG_PRINTLN(m_replybuffer);
@@ -2134,7 +2111,7 @@ boolean BK_modem::postData(const char *request_type, const char *URL, const char
 
     do
     {
-        uint32_t len = readline(timeout); // Get Responce body: ........
+        uint16_t len = readline(timeout); // Get Responce body: ........
 
         if (len > 0)
         {
@@ -3825,13 +3802,20 @@ uint16_t BK_modem::readRaw(char *rspbuffer, uint16_t cnt)
     return len;
 }
 
-/*
-    '\r\n' chars skip from responce.
-    Receive buffer lenght max. 512 => replyidx >= 512
-*/
+/// @brief Read lines from COM port (USB<->RS232)
+///
+///    Receive buffer lenght max. 512 => index >= 512
+///    '\r\n' chars skip from responce.
+///
+///    \r is carriage return (CR(13))
+///    \n is line feed (LF(10)).
+///
+/// @param timeout 
+/// @param multiline 
+/// @return 
 uint16_t BK_modem::readline(uint16_t timeout, boolean multiline)
 {
-    uint32_t replyidx = 0;
+    uint32_t index = 0;
     uint8_t ready = false;
     uint8_t svtimeout = timeout;
 
@@ -3843,7 +3827,7 @@ uint16_t BK_modem::readline(uint16_t timeout, boolean multiline)
 
     while (timeout--)
     {
-        if (replyidx >= RECEIVE_BUFFER_LENGHT_MAX - 1)
+        if (index >= RECEIVE_BUFFER_LENGHT_MAX - 1)
         {
             // BK_DEBUG_PRINTLN(F("SPACE"));
             ready = true;
@@ -3867,50 +3851,49 @@ uint16_t BK_modem::readline(uint16_t timeout, boolean multiline)
             else
             {
                 // BK_DEBUG_PRINT(chr, HEX);     // display Hex value char.
-                BK_DEBUG_PRINT(chr); // display ASCII char.
+                BK_DEBUG_PRINT(chr);             // display ASCII char.
             }
 #endif
 
             if (chr == '\r')
-            { // 0x0D char.
+            { // Ignore Carriage Return. (0x0D char.)
                 if (multiline)
                 {
-                    timeout = 100; // next 0x0A char. must reveived in 100mse. then time-out end.
+                    timeout = 100;   // next char. must reveived in 100mse else time-out end.
                 }
 
                 continue;
             }
 
-            if (chr == '\n') // new line 0xA
-            {
-                if (replyidx == 0) // the first 0x0A is ignored
+            if (chr == '\n')
+            { // End of line Line Feed (new line) (0x0A char.)
+                if (index == 0)
                 {
-                    continue;
+                    continue;       // the first 0x0A is ignored
                 }
 
                 if (!multiline)
                 {
-                    timeout = 0; // the second 0x0A is the end of the line
+                    timeout = 0;    // the second 0x0A is the end of the line.
                     break;
                 }
             }
             else
             {
-                if (multiline && svtimeout > 100)
+                if (multiline && svtimeout > 90)
                 {
                     timeout = svtimeout;
                 }
             }
 
-            m_replybuffer[replyidx] = chr;
+            m_replybuffer[index] = chr;
             // BK_DEBUG_PRINT(chr, HEX);
-            // BK_DEBUG_PRINT("#");
+            // BK_DEBUG_PRINT(" => #");
             // BK_DEBUG_PRINTLN(chr);
 
-            // increment "replyidx".
-            if (++replyidx >= RECEIVE_BUFFER_LENGHT_MAX - 1)
+            // increment "index" ctr.
+            if (++index >= RECEIVE_BUFFER_LENGHT_MAX - 1)
             {
-                ready = true;
                 break;
             }
 
@@ -3924,37 +3907,39 @@ uint16_t BK_modem::readline(uint16_t timeout, boolean multiline)
 
         delay(1);
 
-        if ((timeout % 5000) == 0)
-        {            // timeout value dividing by 5000 results in integer value, with a remainder of 0.
-            yield(); // give waiting thread(s) CPU time, every 5 sec.
+        if ((timeout % 1000) == 0)
+        {                    // Yield to other tasks
+                             // timeout value dividing by 1000 results in integer value, with a remainder of 0.
+            //yield();       // Delete: Sometime MCU in panic mode.
+            LTE_GSM_YIELD(); // Soluction: give waiting thread(s) CPU time, every 1 sec.
         }
 
-    } // while timeout
+    } // while timeout [process]
 
 #ifdef BK_MODEM_HEXDEBUG
     BK_DEBUG_PRINTLN(F(">"));
 #endif
 
-    m_replybuffer[replyidx] = 0x00; // set null terminator.
+    m_replybuffer[index] = 0x00; // set null terminator.
 
-    return ready ? replyidx : 0;
+    return ready ? index : 0;
 }
 
 /// @brief
 /// @param send
 /// @param timeout
 /// @return
-uint8_t BK_modem::getReply(const char *send, uint16_t timeout, boolean multiline)
+uint16_t BK_modem::getReply(const char *send, uint16_t timeout, boolean multiline)
 {
     flushInput();
 
     BK_DEBUG_PRINT(F("\tS1---> "));
     BK_DEBUG_PRINTLN(send);
 
-    SerialSIM->println(send);
+    SerialSIM->println(send);       // include send '\r' => <CR>.
     // SerialSIM->write(send, strlen(send));
 
-    uint8_t len = readline(timeout, multiline);
+    uint16_t len = readline(timeout, multiline);
 
     BK_DEBUG_PRINT(F("\tR1<--- "));
     BK_DEBUG_PRINTLN(m_replybuffer);
@@ -3969,7 +3954,7 @@ uint8_t BK_modem::getReply(const char *send, uint16_t timeout, boolean multiline
 /// @param timeout
 /// @param multiline
 /// @return
-uint8_t BK_modem::getReply(FStringPtr send, uint16_t timeout, boolean multiline)
+uint16_t BK_modem::getReply(FStringPtr send, uint16_t timeout, boolean multiline)
 {
     flushInput();
 
@@ -3978,7 +3963,7 @@ uint8_t BK_modem::getReply(FStringPtr send, uint16_t timeout, boolean multiline)
 
     SerialSIM->println(send);
 
-    uint8_t len = readline(timeout, multiline);
+    uint16_t len = readline(timeout, multiline);
 
     BK_DEBUG_PRINT(F("\tR2:<--- "));
     if( len != 0)
@@ -3994,7 +3979,7 @@ uint8_t BK_modem::getReply(FStringPtr send, uint16_t timeout, boolean multiline)
 }
 
 // Send prefix, suffix[], and newline. Return response (and also set m_replybuffer with response).
-uint8_t BK_modem::getReply(FStringPtr prefix, char *suffix, uint16_t timeout)
+uint16_t BK_modem::getReply(FStringPtr prefix, char *suffix, uint16_t timeout)
 {
     flushInput();
 
@@ -4005,7 +3990,7 @@ uint8_t BK_modem::getReply(FStringPtr prefix, char *suffix, uint16_t timeout)
     SerialSIM->print(prefix);
     SerialSIM->println(suffix);
 
-    uint8_t l = readline(timeout);
+    uint16_t l = readline(timeout);
 
     BK_DEBUG_PRINT(F("\tR3:<--- "));
     BK_DEBUG_PRINTLN(m_replybuffer);
@@ -4016,7 +4001,7 @@ uint8_t BK_modem::getReply(FStringPtr prefix, char *suffix, uint16_t timeout)
 }
 
 // Send prefix, int suffix, and newline. Return response (and also set m_replybuffer with response).
-uint8_t BK_modem::getReply(FStringPtr prefix, int32_t suffix, uint16_t timeout, boolean multiline)
+uint16_t BK_modem::getReply(FStringPtr prefix, int32_t suffix, uint16_t timeout, boolean multiline)
 {
     flushInput();
 
@@ -4027,7 +4012,7 @@ uint8_t BK_modem::getReply(FStringPtr prefix, int32_t suffix, uint16_t timeout, 
     SerialSIM->print(prefix);
     SerialSIM->println(suffix, DEC);
 
-    uint8_t len = readline(timeout, multiline);
+    uint16_t len = readline(timeout, multiline);
 
     BK_DEBUG_PRINT(F("\tR4:<--- "));
     BK_DEBUG_PRINTLN(m_replybuffer);
@@ -4036,7 +4021,7 @@ uint8_t BK_modem::getReply(FStringPtr prefix, int32_t suffix, uint16_t timeout, 
 }
 
 // Send prefix, int suffix, int suffix2, and newline. Return response (and also set m_replybuffer with response).
-uint8_t BK_modem::getReply(FStringPtr prefix, int32_t suffix1, int32_t suffix2, uint16_t timeout)
+uint16_t BK_modem::getReply(FStringPtr prefix, int32_t suffix1, int32_t suffix2, uint16_t timeout)
 {
     // to besure SerialSIM receive buffer is empty.
     flushInput();
@@ -4052,7 +4037,7 @@ uint8_t BK_modem::getReply(FStringPtr prefix, int32_t suffix1, int32_t suffix2, 
     SerialSIM->print(',');
     SerialSIM->println(suffix2, DEC);
 
-    uint8_t l = readline(timeout);
+    uint16_t l = readline(timeout);
 
     BK_DEBUG_PRINT(F("\tR6<--- "));
     BK_DEBUG_PRINTLN(m_replybuffer);
@@ -4061,7 +4046,7 @@ uint8_t BK_modem::getReply(FStringPtr prefix, int32_t suffix1, int32_t suffix2, 
 }
 
 // Send prefix, ", suffix, ", and newline. Return response (and also set m_replybuffer with response).
-uint8_t BK_modem::getReplyQuoted(FStringPtr prefix, FStringPtr suffix, uint16_t timeout)
+uint16_t BK_modem::getReplyQuoted(FStringPtr prefix, FStringPtr suffix, uint16_t timeout)
 {
     flushInput();
 
@@ -4076,7 +4061,7 @@ uint8_t BK_modem::getReplyQuoted(FStringPtr prefix, FStringPtr suffix, uint16_t 
     SerialSIM->print(suffix);
     SerialSIM->println('"'); // and newline
 
-    uint8_t l = readline(timeout);
+    uint16_t l = readline(timeout);
 
     BK_DEBUG_PRINT(F("\tR7<--- "));
     BK_DEBUG_PRINTLN(m_replybuffer);
@@ -4398,7 +4383,7 @@ boolean BK_modem::sendParseReply(FStringPtr tosend,
         return false;
     }
 
-    readline(); // eat 'OK'
+    readline();                 // eat 'OK'
 
     return true;
 }
@@ -4460,7 +4445,7 @@ boolean BK_modem::sendParseReplyFloat(FStringPtr tosend,
         return false;
     }
 
-    readline(); // eat 'OK'
+    readline();                 // eat 'OK'
 
     return true;
 }
@@ -4595,7 +4580,7 @@ String BK_modem::getOperatingBand()
     //      +CBANDCFG: "CAT-M",1,2,3,4,5,8,12,13,14,18,19,20,25,26,27,28,66,85
     String res = String(m_replybuffer);
 
-    readline(); // eat 'OK'
+    readline();         // eat 'OK'
 
     String tmpstr = res.substring(10, res.length());    // input: (CAT-M,NB-IOT),(1,2,3,4,5,8,12,13,14,18,19,20,25,26,27,28,66,71,85)
     return tmpstr;                                      //tmpstr.substring(1, tmpstr.length()-1);      // skip '"' chars
@@ -4755,18 +4740,18 @@ String BK_modem::MQTT_getParameters(void)
 }
 
 /// @brief : Connect or Disconnect to MQTT Broker Server.
-/// @param : yesno => true = connect, false = disconnect.
+/// @param : timeout
 /// @return : true = connected, false = not connected
-boolean BK_modem::MQTT_connect(bool yesno, uint16_t timeout)
+boolean BK_modem::MQTT_connect( uint16_t timeout)
 {
-    if (yesno)
-    {
-        return sendCheckReply(F("AT+SMCONN"), m_ok_reply, timeout);
-    }
-    else
-    {
-        return sendCheckReply(F("AT+SMDISC"), m_ok_reply);
-    }
+    return sendCheckReply(F("AT+SMCONN"), m_ok_reply, timeout);
+}
+
+/// @brief 
+/// @param  
+void BK_modem::MQTT_disconnect(void)
+{
+    sendCheckReply(F("AT+SMDISC"), m_ok_reply);
 }
 
 /// @brief : Query MQTT connection status
@@ -5020,9 +5005,9 @@ boolean BK_modem::HTTP_GET(const char *URI)
     // Read server response
     getReply(F("AT+SHREAD=0,"), datalen, 10000);
 
-    readline(); // Eat 'OK'
+    readline();                 // Eat 'OK'
 
-    readline();
+    readline();                 // read incomming HTTP messages
 
     BK_DEBUG_PRINT(F("\t<--- "));
     BK_DEBUG_PRINTLN(m_replybuffer); // +SHREAD: <datalen>
@@ -5050,7 +5035,7 @@ boolean BK_modem::HTTP_POST(const char *URI, const char *body, uint8_t bodylen, 
     uint8_t reply = 10;
 
     sprintf(cmdBuff, "AT+SHBOD=%i, 10000", bodylen);
-    getReply(cmdBuff, 10000);
+    getReply(cmdBuff, (uint16_t)10000);
 
     while (reply--)
     {
@@ -5064,12 +5049,12 @@ boolean BK_modem::HTTP_POST(const char *URI, const char *body, uint8_t bodylen, 
         delay(200);
     }
 
-    sendCheckReply(body, m_ok_reply, 2000);         // Now send the JSON body
+    sendCheckReply(body, m_ok_reply, (uint16_t)2000);         // Now send the JSON body
 
     memset(cmdBuff, 0, sizeof(cmdBuff));            // Clear URI char array
     sprintf(cmdBuff, "AT+SHREQ=\"%s\",3", URI);
 
-    if (!sendCheckReply(cmdBuff, m_ok_reply, 10000))
+    if (!sendCheckReply(cmdBuff, m_ok_reply, (uint16_t)10000))
     {
         return false;
     }
@@ -5099,7 +5084,7 @@ boolean BK_modem::HTTP_POST(const char *URI, const char *body, uint8_t bodylen, 
     }
 
     // Read server response
-    getReply(F("AT+SHREAD=0,"), *datalen, 10000);
+    getReply(F("AT+SHREAD=0,"), *datalen, 10000U);
     readline();
 
     BK_DEBUG_PRINT(F("\t<--- "));
@@ -5113,19 +5098,53 @@ boolean BK_modem::HTTP_POST(const char *URI, const char *body, uint8_t bodylen, 
     BK_DEBUG_PRINT(F("\t<--- "));
     BK_DEBUG_PRINTLN(m_replybuffer); // Print out server reply
 
-    sendCheckReply(F("AT+SHDISC"), m_ok_reply, 10000); // Disconnect HTTP
+    sendCheckReply(F("AT+SHDISC"), m_ok_reply, (uint16_t)10000); // Disconnect HTTP
 
     return true;
 }
 
+#pragma endregion
 
-/*-------------------------------- SIM-7000 ---------------------------------------------------------------------*/
+/*-------------------------------- SIM7000E ---------------------------------------------------------------------*/
+#pragma region "SIM7000E"
 /*
   Destructor: clean-up all resource of this class.
 */
 // BK_modem_7000::~BK_modem_7000()
 // {
 // }
+
+/// @brief 
+/// @return 
+boolean BK_modem_7000::begin()
+{
+    BK_DEBUG_PRINTLN(F("BK_modem_7000::Begin() start..."));
+
+    bool result = BK_modem::begin();
+
+    if (result)
+    {
+        /* When "get local timestamp" function is enabled, the following URC may be
+           reported if network sends the message to the MS to provide the MS with
+           subscriber specific information.
+
+           Enable Local Time Stamp for getting network time.
+        */
+        if (!enableNetworkTimeSync(false))
+        {
+            BK_DEBUG_PRINTLN(F("### Enable Local Time Stamp for getting network time faild. **"));
+            // return false;
+        }
+
+        // Set the network status green LED blinking pattern while connected to a network.
+        setNetLED(true, 2, 500, 3000);  // Connected to network: on/off, mode, timer_on, timer_off
+        setNetLED(true, 3, 1000, 5000); // Data connection enabled: on/off, mode, timer_on, timer_off  (default: 64, 300)
+    }
+
+    BK_DEBUG_PRINTLN( F("BK_modem_7000::Begin() End...") + String(result ? F("OK") : F("FAILED")));
+
+    return result;
+}
 
 /// @brief 
 /// @return SIM-7000 PCB name.
@@ -5175,7 +5194,7 @@ boolean BK_modem_7000::enableGPRS(boolean onoff)
         delay(100);
 
         // set bearer profile! connection type GPRS
-        if (!sendCheckReply(F("AT+SAPBR=3,1,\"CONTYPE\",\"GPRS\""), m_ok_reply, 10000))
+        if (!sendCheckReply(F("AT+SAPBR=3,1,\"CONTYPE\",\"GPRS\""), m_ok_reply, (uint16_t)10000))
         {
             return false;
         }
@@ -5186,7 +5205,7 @@ boolean BK_modem_7000::enableGPRS(boolean onoff)
         if (m_apn)
         {// Configure bearer profile 1
             // Send command AT+SAPBR=3,1,"APN","<apn value>" where <apn value> is the configured APN value.
-            if (!sendCheckReplyQuoted(F("AT+SAPBR=3,1,\"APN\","), m_apn, m_ok_reply, 10000))
+            if (!sendCheckReplyQuoted(F("AT+SAPBR=3,1,\"APN\","), m_apn, m_ok_reply, (uint16_t)10000))
             {
                 return false;
             }
@@ -5195,7 +5214,7 @@ boolean BK_modem_7000::enableGPRS(boolean onoff)
             if (m_apnusername /*&& strlen_P((const char *)m_apnusername) > 0*/)
             {
                 // Send command AT+SAPBR=3,1,"USER","<user>" where <user> is the configured APN username.
-                if (!sendCheckReplyQuoted(F("AT+SAPBR=3,1,\"USER\","), m_apnusername, m_ok_reply, 10000))
+                if (!sendCheckReplyQuoted(F("AT+SAPBR=3,1,\"USER\","), m_apnusername, m_ok_reply, (uint16_t)10000))
                 {
                     return false;
                 }
@@ -5204,7 +5223,7 @@ boolean BK_modem_7000::enableGPRS(boolean onoff)
             if (m_apnpassword /*&& strlen_P((const char *)m_apnpassword) > 0*/)
             {
                 // Send command AT+SAPBR=3,1,"PWD","<password>" where <password> is the configured APN password.
-                if (!sendCheckReplyQuoted(F("AT+SAPBR=3,1,\"PWD\","), m_apnpassword, m_ok_reply, 10000))
+                if (!sendCheckReplyQuoted(F("AT+SAPBR=3,1,\"PWD\","), m_apnpassword, m_ok_reply, (uint16_t)10000))
                 {
                     return false;
                 }
@@ -5280,7 +5299,7 @@ boolean BK_modem_7000::enableGPRS(boolean onoff)
         // }
 
         // Bring up the TCP application toolkit wireless connection with GPRS or CSD.
-        if (!sendCheckReply(F("AT+CIICR"), m_ok_reply, 10000))
+        if (!sendCheckReply(F("AT+CIICR"), m_ok_reply, (uint16_t)10000))
         {
             return false;
         }
@@ -5297,7 +5316,7 @@ boolean BK_modem_7000::enableGPRS(boolean onoff)
         delay(100);
 
         // close bearer
-        if (!sendCheckReply(F("AT+SAPBR=0,1"), m_ok_reply, 10000L))
+        if (!sendCheckReply(F("AT+SAPBR=0,1"), m_ok_reply, (uint16_t)10000))
         {
             if( getCME_ErrorCode() != 3)
             {
@@ -5308,7 +5327,7 @@ boolean BK_modem_7000::enableGPRS(boolean onoff)
         delay(200);
  
         //Detach from GPRS Service
-        if (!sendCheckReply(F("AT+CGATT=0"), m_ok_reply, 10000))
+        if (!sendCheckReply(F("AT+CGATT=0"), m_ok_reply, (uint16_t)10000))
         {
             return false;
         }
@@ -5339,7 +5358,7 @@ boolean BK_modem_7000::openWirelessConnection(bool onoff)
         char buff[strlen_P((prog_char *)m_apn) + 16];
         sprintf(buff, "AT+CNACT=0,\"%s\"", (prog_char *)m_apn);
 
-        if (!sendCheckReply(buff, m_ok_reply, 10000))
+        if (!sendCheckReply(buff, m_ok_reply, (uint16_t)10000))
         {
             return false;
         }
@@ -5395,16 +5414,21 @@ boolean BK_modem_7000::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, ui
     return BK_modem::enableNTPTimeSync( onoff,  ntpserver,  timeZone, 7000);
 }
 
-/*-------------------------------- SIM-7080 --------------------------------------------------------------------*/
+#pragma endregion
 
-/// @brief : default constructor
+/*-------------------------------- SIM7080E --------------------------------------------------------------------*/
+#pragma region "Skip_SIM7080E"
+#if Skip_SIM7080
+// 20-11-2025, Replaced for SIM7600.
+
+/// @brief : base constructor
 BK_modem_7080::BK_modem_7080() : BK_modem()
 {
     this->mux = 0;
     this->pdpidx = 0;
 }
 
-/// @brief : overload constructor: call first default contructor.
+/// @brief : overload constructor: call first base contructor.
 /// @param mux => open connections that can run in the same time.
 BK_modem_7080::BK_modem_7080(uint8_t mux) : BK_modem_7080()
 {
@@ -5477,7 +5501,7 @@ void BK_modem_7080::AT_powerDown(void)
 //     {
 //         char buff[16];
 //         sprintf(buff, "AT+CNACT=%d,1", pdpidx);
-//         if (!sendCheckReply(buff, m_ok_reply, 10000))
+//         if (!sendCheckReply(buff, m_ok_reply, (uint16_t)10000))
 //         {
 //             return 0;
 //         }
@@ -5540,10 +5564,10 @@ boolean BK_modem_7080::enableGPRS(boolean onoff)
         // disconnect all sockets and close bearer and detach from GPRS Service.
         // Shut down the general application TCP/IP connection
         // CNACT will close *all* open application TCP/UDP connections
-        sendCheckReply(F("AT+CNACT=0,0"), m_ok_reply, 60000L);
+        sendCheckReply(F("AT+CNACT=0,0"), m_ok_reply, (uint16_t)60000);
 
         // Detach from GPRS Service
-        if (!sendCheckReply(F("AT+CGATT=0"), m_ok_reply, 60000L))
+        if (!sendCheckReply(F("AT+CGATT=0"), m_ok_reply, (uint16_t)60000))
         {
             return false;
         }
@@ -5552,13 +5576,13 @@ boolean BK_modem_7080::enableGPRS(boolean onoff)
         char buff[strlen_P( (prog_char *)m_apn) + 16];
         sprintf(buff, "AT+CGDCONT=1,\"IP\",\"%s\"", (prog_char *)m_apn);
 
-        if (!sendCheckReply(buff, m_ok_reply, 10000))
+        if (!sendCheckReply(buff, m_ok_reply, (uint16_t)10000))
         {
             return false;
         }
 
         // Attach to GPRS Service
-        if (!sendCheckReply(F("AT+CGATT=1"), m_ok_reply, 60000L))
+        if (!sendCheckReply(F("AT+CGATT=1"), m_ok_reply, (uint16_t)60000))
         {
             return false;
         }
@@ -5571,7 +5595,7 @@ boolean BK_modem_7080::enableGPRS(boolean onoff)
 
         // Check the APN returned by the server
         // Get Network APN in CAT-M or NB-IOT => "+CGNAPN: <valid>,<Network_APN>"
-        if (!sendCheckReply(F("AT+CGNAPN"), m_ok_reply, 10000L, true))
+        if (!sendCheckReply(F("AT+CGNAPN"), m_ok_reply, (uint16_t)0000L, true))
         {
             // TO DO: Lof line.
             // return false;
@@ -5612,7 +5636,7 @@ boolean BK_modem_7080::enableGPRS(boolean onoff)
 
         sendBuffer += (F("\"")); // set end char.
 
-        if (!sendCheckReply(FPSTR(sendBuffer.c_str()), m_ok_reply, 60000))
+        if (!sendCheckReply(FPSTR(sendBuffer.c_str()), m_ok_reply, (uint16_t)60000))
         {
             // TODO: ??
         }
@@ -5634,13 +5658,13 @@ boolean BK_modem_7080::enableGPRS(boolean onoff)
     {
         // disconnect all sockets.
 
-        if (sendCheckReply(F("AT+CNACT=0,0"), m_ok_reply, 60000L))
+        if (sendCheckReply(F("AT+CNACT=0,0"), m_ok_reply, (uint16_t)60000L))
         {
             delay(200);
         }
 
         // Detach from GPRS Service
-        if (!sendCheckReply(F("AT+CGATT=0"), m_ok_reply, 10000))
+        if (!sendCheckReply(F("AT+CGATT=0"), m_ok_reply, (uint16_t)10000))
         {
             return false;
         }
@@ -5703,7 +5727,7 @@ inline boolean BK_modem_7080::openWirelessConnection(bool onoff)
     else
     { // Disconnect wireless.
         // CNACT will close *all* open application connections.
-        if (!sendCheckReply(F("AT+CNACT=0,0"), m_ok_reply, 60000))
+        if (!sendCheckReply(F("AT+CNACT=0,0"), m_ok_reply, (uint16_t)60000))
         {
             return false;
         }
@@ -5721,7 +5745,7 @@ inline boolean BK_modem_7080::openWirelessConnection(bool onoff)
         //     }
         // }
 
-        if (!sendCheckReply(F("AT+CGATT=0"), m_ok_reply, 60000L)) // Deactivate the bearer context
+        if (!sendCheckReply(F("AT+CGATT=0"), m_ok_reply, (uint16_t)60000)) // Deactivate the bearer context
         {
             return false;
         }
@@ -5742,5 +5766,724 @@ boolean BK_modem_7080::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, ui
 {
     return BK_modem::enableNTPTimeSync( onoff,  ntpserver,  timeZone, pdpidx);
 }
+#endif
+#pragma endregion
+
+/*-------------------------------- SIM7600E --------------------------------------------------------------------*/
+#pragma region "SIM7600E"
+
+/// @brief base constructor
+BK_modem_7600::BK_modem_7600() : BK_modem()
+{
+    this->mux = 0;
+    this->pdpidx = 0;
+    this->client_index = 0;             // identifies a client '0'
+    this->setWillOnlyOnce = false;
+}
+
+/// @brief : overload constructor: call first base contructor.
+/// @param mux => open connections that can run in the same time.
+BK_modem_7600::BK_modem_7600(uint8_t mux) : BK_modem_7600()
+{
+    this->mux = (mux < 0 || mux > GSM_MUX_COUNT) ? 0 : mux;
+}
+
+/*
+  Destructor: clean-up all resource of this class and base class.
+  destructors are called automatically in the reverse order of construction. 
+  (Base classes last).
+*/
+BK_modem_7600::~BK_modem_7600()
+{
+    // Call base destrcutor.
+    //BK_modem::~BK_modem()
+}
+
+/// @brief 
+/// @return 
+boolean BK_modem_7600::begin()
+{
+    BK_DEBUG_PRINTLN(F("BK_modem_7600::Begin() start..."));
+
+    bool result = BK_modem::begin();        //call base class.
+
+    if(result)
+    {
+        // Disable time and time zone URC's.
+        sendCheckReply(F("AT+CTZR="), 0, m_ok_reply, (uint16_t)10000);
+
+        // Enable automatic time zome update.
+        sendCheckReply(F("AT+CTZU="), 1, m_ok_reply, (uint16_t)10000);
+
+        stop( BK_SIM7000_TIMEOUT_1500MS);
+    }
+
+    BK_DEBUG_PRINTLN(F("BK_modem_7600::Begin() End... Status: ") + String(result ? F("OK") : F("FAILED"))); 
+    
+    return result;
+}
+
+/// @brief 
+/// @return : SIM-7600 PCB name
+String BK_modem_7600::Name()
+{
+    return String(F("SIM-7600E-LTE"));
+}
+
+/// @brief 
+/// @return : SIM7600E
+SIMTYPE BK_modem_7600::Sim_Type()  
+{ 
+    return SIMTYPE::SIM7600E; 
+}
+
+//**************************************************************************************************************
+/// @brief 
+/// @param maxWaitMs 
+/*protected*/void BK_modem_7600::stop(uint32_t maxWaitMs)
+{
+    getReply(F("AT+NETCLOSE"), (uint16_t)maxWaitMs);
+    delay(20);
+    getReply(F("AT+CNETSTOP"), (uint16_t)maxWaitMs, true);
+}
+
+/// @brief
+/// @param onoff
+/// @return
+boolean BK_modem_7600::enableGPRS(boolean onoff)
+{
+    return true;
+}
+
+/// @brief 
+/// @param onoff 
+/// @return
+inline boolean BK_modem_7600::openWirelessConnection(bool onoff)
+{
+    // // Enable full functionality
+    BK_modem::setFunctionality(1);
+
+    // Attach to network
+    if (!sendCheckReply(F("AT+CGATT=1"), m_ok_reply, (uint16_t)10000))
+    {
+        return false;
+    }
+
+    if (!sendCheckReply(F("AT+CNETSTART"), F("+CNETSTART: 2"), (uint16_t)10000))
+    {// Open network => TODO error afhandeling (Not +CNETSTART: 2 then wait and check again)
+        // response = "OK"
+        for (int ctr = 5; ctr > 0; ctr--)
+        {
+            if (wirelessConnStatus())
+            {
+                break;
+            }
+
+            delay(1000);
+
+            if (ctr == 1)
+            {
+                BK_DEBUG_PRINT(F("** NETSTART TimeOut ERROR **"));
+                return false;
+            }
+        }
+    }
+
+    getReply(F("AT+NETOPEN?"), (uint16_t)12000);
+    if (strstr(m_replybuffer, "+NETOPEN: 1") == NULL)
+    { // TCPIP service deactivated => network close
+      // Start data connection.
+      // Format of response: +CNETSTART: <net_stat>
+        if (!sendCheckReply(F("AT+NETOPEN"), F("+NETOPEN"), (uint16_t)5000))
+        {// response = "OK"
+            uint16_t len = readline( (uint16_t)SIM7600_TCP_MAX_RESPONSE_TIME_MS); // wait for +NETOPEN: 0
+            BK_DEBUG_PRINTLN(F("\tRx<--- ") + String(m_replybuffer));
+
+            if (len == 0 || m_replybuffer[10] != '0')
+            {
+                BK_DEBUG_PRINTLN(F("** NETOPEN ERROR **"));
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+/*
+    Open network connection status
+    +CNETSTART: <net_stat> 
+                    0 – network close (deactivated)
+                    1 – network is opening
+                    2 – network open(activated)
+                    3 – network is closing
+*/
+boolean BK_modem_7600::wirelessConnStatus(void)
+{
+    bool _okay = true;
+
+    getReply(F("AT+CNETSTART?"), (uint16_t)12000);
+    // Format of response: +CNETSTART: <net_stat>
+    if ( strstr(m_replybuffer, "+CNETSTART: 2") == NULL )
+    {
+        _okay = false;
+    }
+
+    //readline();                 // eat "OK"
+
+    return _okay;
+}
+
+/// @brief : override base stop() function.
+void BK_modem_7600::stop()
+{
+    stop(5000L);
+}
+
+/********* GPS **********************************************************/
+/// @brief 
+/// @param onoff 
+/// @return 
+boolean BK_modem_7600::enableGPS(boolean onoff)
+{
+    uint16_t state;
+
+    // First check if its already on or off.
+    if (!sendParseReply(F("AT+CGPS?"), F("+CGPS:"), &state))
+    {
+        return false;
+    }
+
+    if (onoff && !state)
+    {
+        if (!sendCheckReply(F("AT+CGPS=1,1"), m_ok_reply, true))
+        {
+            return false;
+        }
+    }
+    else if (!onoff && state)
+    {
+        if (!sendCheckReply(F("AT+CGPS=0,1"), m_ok_reply, true))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/// @brief Get GNSS fixed position information, get current position related information.
+/// @param arg
+/// @param buffer
+///               Format: +CGNSSINFO:[<mode>],[<GPS-SVs>],[<GLONASS-SVs>],[<BEIDOU-SVs>],
+///                                  [<lat>],[<N/S>],[<log>],[<E/W>],[<date>],[<UTC-time>],[<alt>],
+///                                  [<speed>],[<course>],[<PDOP>],[HDOP],[VDOP]
+/// @param maxbuff
+/// @return
+uint8_t BK_modem_7600::getGPS_Navigation_Information(uint8_t arg, char *buffer, uint8_t maxbuff)
+{
+    getReply(F("AT+CGNSSINFO"));
+
+    char *ptr = prog_char_strstr(m_replybuffer, (prog_char *)F("+CGNSSINFO:"));
+
+    if (ptr == 0)
+    {
+        buffer[0] = 0;
+        return 0;
+    }
+
+    ptr += 12;
+
+    uint8_t len = max(maxbuff - 1, (int)strlen(ptr));
+    strncpy(buffer, ptr, len);
+    buffer[len] = 0;
+
+    readline();                     // eat 'OK'
+
+    BK_DEBUG_PRINTLN(F("\tGPS-Buffer: ") + String(buffer) + F("\n\tBuffer lenght: ") + String(len));
+
+    return len;
+}
+
+/// @brief 
+/// @param lat 
+/// @param lon 
+/// @param speed_kph 
+/// @param heading 
+/// @param altitude 
+/// @param year 
+/// @param month 
+/// @param day 
+/// @param hour 
+/// @param min 
+/// @param sec 
+/// @return 
+boolean BK_modem_7600::getGPS(float *latitude, float *longitude, 
+                              float *speed_kph, float *heading, float *altitude,
+                              uint16_t *year, uint8_t *month, uint8_t *day, 
+                              uint8_t *hour, uint8_t *min, uint8_t *sec)
+{
+    char n_s = 'N';
+    char e_w = 'E';
+    char *ptrtoken;             // token pointer.
+    char gpsbuffer[150];
+
+    // grab the mode 2^5 gps csv from the sim808
+    uint8_t res_len = getGPS_Navigation_Information(32, gpsbuffer, sizeof(gpsbuffer));
+
+    //BK_DEBUG_PRINTLN(F("getGP receive GPS data buffer size: ") + String(res_len));
+
+    // make sure we have a response
+    if (res_len == 0)
+    {
+        return false;
+    }
+
+    // skip mode
+    ptrtoken = strtok(gpsbuffer, ",");      // set strtok pointer to gpsbuffer[0].
+    if (!ptrtoken)
+    {
+        return false;
+    }
+
+    //BK_DEBUG_PRINTLN(F("ptrtoken_1: ") + String(ptrtoken));
+
+    // skip GPS satellite valid numbers
+    ptrtoken = strtok(NULL, ",");
+    if (!ptrtoken)
+    {
+        return false;
+    }
+
+    // skip GLONASS satellite valid numbers
+    ptrtoken = strtok(NULL, ",");
+    if (!ptrtoken)
+    {
+        return false;
+    }
+
+    // skip BEIDOU satellite valid numbers
+    ptrtoken = strtok(NULL, ",");
+    if (!ptrtoken)
+    {
+        return false;
+    }
+
+    // grab Latitude of current position.
+    char *ptrLatitude = strtok(NULL, ",");
+    if (!ptrLatitude)
+    {
+        return false;
+    }
+
+    // N/S Indicator, N=north or S=south
+    ptrtoken = strtok(NULL, ",");
+    if (!ptrtoken)
+    {
+        return false;
+    }
+    n_s = ptrtoken[0];
+
+    // grab Longitude of current position.
+    char *ptrLongitude = strtok(NULL, ",");
+    if (!ptrLongitude)
+    {
+        return false;
+    }
+
+    // E/W Indicator, E=east or W=west
+    ptrtoken = strtok(NULL, ",");
+    if (!ptrtoken)
+    {
+        return false;
+    }
+    e_w = ptrtoken[0];
+
+    //BK_DEBUG_PRINTLN(F("ptrtoken_8: ") + String(ptrtoken));
+
+    // only grab date and time if needed
+    if ((year != NULL) && (month != NULL) && (day != NULL) && (hour != NULL) && (min != NULL) && (sec != NULL))
+    {
+        char *dateTime = strtok(NULL, ",");
+        if (!dateTime)
+        {
+            return false;
+        }
+
+        //BK_DEBUG_PRINTLN(F("Date: ") + String(dateTime));   
+
+        // Date value : 121225
+        // Year
+        char *ptr = dateTime + 4;
+        *year = 2000 + atoi(ptr);       // add eeuw.
+
+        // Month
+        ptr[0] = 0;
+        ptr = dateTime + 2;
+        *month = atoi(ptr);
+
+        // Day
+        ptr[0] = 0;
+        ptr = dateTime;
+        *day = atoi(ptr);
+
+        // Time value : 191237.0
+        dateTime = strtok(NULL, ",");
+        if (!dateTime)
+        {
+            return false;
+        }
+
+        //BK_DEBUG_PRINTLN(F("Time: ") + String(dateTime));
+
+        // Seconds
+        ptr = dateTime + 4;
+        ptr[2] = 0;
+        *sec = atof(ptr);
+
+        // Minutes
+        ptr[0] = 0;
+        ptr = dateTime + 2;
+        *min = atoi(ptr);
+
+        // Hours
+        ptr[0] = 0;
+        ptr = dateTime;
+        *hour = atoi(ptr);
+
+        //BK_DEBUG_PRINTLN(F("*** END DateTime set ****")); 
+    }
+    else
+    {
+        // skip date
+        ptrtoken = strtok(NULL, ",");
+        if (!ptrtoken)
+        {
+            return false;
+        }
+    }
+
+    // Convert latitude and longitude from degrees (DMM) to decimal (DD).
+    double dblatatitude  = atof(ptrLatitude);
+    double dblonongitude = atof(ptrLongitude);
+    /*
+        Formule: convert GPS coordination format DMM to DD:
+            ex:  5207.297464,N
+                                52 + (07.297464 / 60) = 52 + 0.121624 = 52.121624
+    */
+    *latitude  = ((((uint)dblatatitude)  / 100) + (fmod(dblatatitude, 100)  / 60)) * (n_s == 'N' ? 1 : -1);
+    *longitude = ((((uint)dblonongitude) / 100) + (fmod(dblonongitude, 100) / 60)) * (e_w == 'E' ? 1 : -1);
+
+    // only grab altitude if needed
+    if (altitude != NULL)
+    {
+        // grab altitude
+        char *altp = strtok(NULL, ",");
+        if (!altp)
+        {
+            return false;
+        }
+
+        *altitude = atof(altp);
+    }
+
+    // only grab speed if needed
+    if (speed_kph != NULL)
+    {
+        // grab the speed in km/h
+        char *speedp = strtok(NULL, ",");
+        if (!speedp)
+        {
+            return false;
+        }
+
+        *speed_kph = atof(speedp);
+    }
+
+    // only grab Course. Degrees. if needed
+    if (heading != NULL)
+    {
+
+        // grab the speed in knots
+        char *coursep = strtok(NULL, ",");
+        if (!coursep)
+        {
+            return false;
+        }
+
+        *heading = atof(coursep);
+    }
+
+    (void)ptrtoken;
+    
+    //BK_DEBUG_PRINTLN(F("**** getGPS END ****"));
+
+    return true;
+}
+
+/// @brief 
+/// @param voltage_mv =
+/// @return 
+void BK_modem_7600::getGPSAntennaVoltage(uint16_t * voltage_mv)
+{
+    *voltage_mv = 0;
+    sendParseReply(F("AT+CVAUXV?"), F("+CVAUXV:"), voltage_mv, ',', 0, true);   // include wait for "OK"
+    //readline();             // eat OK
+}
+/********* END-GPS **********************************************************/
+
+/// @brief 
+/// @param onoff 
+/// @param ntpserver 
+/// @param timeZone 
+/// @return 
+boolean BK_modem_7600::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, uint16 timeZone)
+{
+     char _sendbuffer[64] = {0};
+
+    // Set NTP server and timezone
+    sprintf(_sendbuffer, PSTR("AT+CNTP=\"%s\",%0d"), ntpserver, timeZone * 4); // time zone = 0 (time zone value multiplay by 4.)
+    sendCheckReply(_sendbuffer, m_ok_reply, (uint16_t)BK_SIM7000_TIMEOUT_1500MS);
+
+    // Sync time command.
+    sendCheckReply(F("AT+CNTP"), m_ok_reply, (uint16_t)BK_SIM7000_TIMEOUT_1500MS*2);
+
+    // Wait for sync result.
+    //delay(3000);
+    sendCheckReply(F("AT+CNTP?"), F("+CNTP:"), (uint16_t)BK_SIM7000_TIMEOUT_1500MS * 3);
+
+    return true;
+}
+
+/// @brief Get IP address of LTE module
+/// @param  
+/// @return IP address
+String BK_modem_7600::getGPRSIP(void)
+{
+    if (!getReply(F("AT+CNETIPADDR?"))) 
+    {   // or "AT+IPADDR?" Get IP address of PDP context
+        if (!getReply(F("AT+IPADDR?")))
+        {
+            return "0.0.0.0";
+        }
+    }
+
+    // Response:
+    //          +CNETIPADDR: <ip_address> || +IPADDR: <ip_address>
+    String res = String(m_replybuffer);
+    int len = res.indexOf(':');
+    String tmpstr = res.substring(len+1, res.length());    // input: "10.36.213.2"
+
+    readline();                                             // eat OK
+
+    return tmpstr.substring(1, tmpstr.length());            // skip '"' chars
+}
+
+/// @brief : "CMQTTSTART" is used to start MQTT service by activating PDP context.
+/// @param mqtt_server 
+/// @param mqtt_port 
+/// @param mqtt_user 
+/// @param mqtt_psw 
+/// @param keepAlive 
+/// @param onoff    : on = connect, off = disconnect
+/// @param timeout 
+/// @return
+boolean BK_modem_7600::MQTT_connect(const char *mqtt_server, uint mqtt_port,
+                                    const char *mqtt_user, const char *mqtt_psw,
+                                    uint16_t keepAlive, uint16_t timeout)
+{
+    bool _result = false;
+
+    for (int reply = 3; reply > 0; reply--)
+    {
+        sendCheckReply(F("AT+CMQTTSTART"), F("+CMQTTSTART:"), timeout, true);
+        char *p = prog_char_strstr(m_replybuffer, PSTR("+CMQTTSTART:"));
+        int error_code = atoi((p + 13));
+        //Error code:
+        //           00 - Okay
+        //           23 – network is opened.
+        if (p != 0 && (error_code == 0 || error_code == 23) )
+        {
+            _result = true;
+            break;
+        }
+
+        if( error_code == 21)
+        {//21 – client not release.
+            MQTT_disconnect();                  // Stop MQTT server connection.
+        }
+        
+        delay(100);
+    }
+
+    if (_result)
+    {
+        _result = false;
+        char _sendbuffer[256] = {0};
+
+        // Configure client id =>           <clientId>
+        sprintf(_sendbuffer, PSTR("AT+CMQTTACCQ=%d,\"airRohr_001\",0,3"), client_index);     // Length of the topic string
+        sendCheckReply( _sendbuffer, m_ok_reply, (uint16_t)BK_SIM7000_TIMEOUT_1500MS);
+
+        //Set will topic and message. (F.F.U)
+        //SetWillTopicAndMessage("Leusden_Sim7000/airRohr-7406283/LWT","Online");
+
+        // Connect to MQTT server.
+        //                         AT+CMQTTCONNECT=0,"tcp://fijnstofleusden.nl:48612",90,0,"volt","hYn16_7bESTmQt"
+        sprintf(_sendbuffer, PSTR("AT+CMQTTCONNECT=%d,\"tcp://%s:%0d\",%d,0,\"%s\",\"%s\""), client_index, mqtt_server, mqtt_port, keepAlive, mqtt_user, mqtt_psw);
+        if (sendCheckReply(_sendbuffer, m_ok_reply, (uint16_t)BK_SIM7000_TIMEOUT_1500MS))
+        {
+            readline( (uint16_t)BK_SIM7000_TIMEOUT_1500MS * 10);                  // wait on response msg.
+            BK_DEBUG_PRINTLN(F("\tRx<--- ") + String(m_replybuffer));
+
+            char *p = prog_char_strstr(m_replybuffer, PSTR("+CMQTTCONNECT:"));
+            if (p != 0 && *(p + 17) == '0')
+            {
+                _result = true;
+            }
+        }
+        else
+        {
+            // send LWT= Offline
+            BK_DEBUG_PRINT(F("ERROR= "));
+            BK_DEBUG_PRINTLN(m_replybuffer);
+        }
+    }
+    else
+    {
+         BK_DEBUG_PRINTLN(F("CMQTTSTART Error:Rx<--- ") + String(m_replybuffer));
+    }
+
+    return _result;
+}
+
+/// @brief
+void BK_modem_7600::MQTT_disconnect()
+{
+    char _sendbuffer[128] = {0};
+
+    sprintf(_sendbuffer, PSTR("AT+CMQTTDISC=%d,60"), client_index);               //
+    sendCheckReply(_sendbuffer, m_ok_reply, (uint16_t)BK_SIM7000_TIMEOUT_1500MS); // Disconnect Server
+    //readline((uint16_t)BK_SIM7000_TIMEOUT_1500MS * 10);                         // wait on response msg.
+    //BK_DEBUG_PRINTLN(F("\tRx<--- ") + String(m_replybuffer));
+
+    sprintf(_sendbuffer, PSTR("AT+CMQTTREL=%d"), client_index);
+    sendCheckReply(_sendbuffer, m_ok_reply, (uint16_t)BK_SIM7000_TIMEOUT_1500MS); // Release Client
+
+    // getReply(F("AT+CMQTTSTOP"));           // Stop MQTT 4G connection.
+    sendCheckReply(F("AT+CMQTTSTOP"), m_ok_reply, (uint16_t)BK_SIM7000_TIMEOUT_1500MS);
+}
+
+/// @brief MQTT publish sensor data to Broker.
+/// @param topic 
+/// @param payload 
+/// @return 0 = Ok
+///         1 = not Ok
+///         2 = socket is closed passively.
+int8_t BK_modem_7600::MQTT_publish(const char *topic, const char *payload)
+{
+    char cmdStr[128] = {0};
+    sprintf(cmdStr, PSTR("AT+CMQTTTOPIC=%d,%i"), client_index, strlen(topic));     // Length of the topic string
+    getReply(cmdStr, (uint16_t)BK_SIM7000_DEFAULT_TIMEOUT_MS, true);               // send "command" and wait ">" char.
+
+    // Wait for ">" to send topic message.
+    if (strstr(m_replybuffer, ">") == NULL)
+    {
+        return 1;
+    }
+
+    if (!sendCheckReply(topic, m_ok_reply, (uint16_t)15000))
+    {// Error: no connection.
+        BK_DEBUG_PRINTLN(F("\tRx<--- ") + String(m_replybuffer));
+
+        char *p1 = prog_char_strstr(m_replybuffer, PSTR("+CMQTTCONNLOST:"));
+        char *p2 = prog_char_strstr(m_replybuffer, PSTR("+CMQTTTOPIC: 0,11"));
+        if (p1 != 0  || p2 != 0)
+        {// When client disconnect passively, URC “+CMQTTCONNLOST” will be reported, then user need to connect MQTT server again.
+         // socket is closed passively => first close current MQTT connection.
+            MQTT_disconnect();
+            return 2;
+        }
+
+        return 1;
+    }
+
+    delay(20);
+
+    sprintf(cmdStr, PSTR("AT+CMQTTPAYLOAD=%d,%i\r"), client_index, strlen(payload));    // Length of the payload
+    getReply(cmdStr, (uint16_t)BK_SIM7000_DEFAULT_TIMEOUT_MS, true);                    // send "command" and wait for ">" char.
+
+    // Wait for ">" to send payload message.
+    if (strstr(m_replybuffer, ">") == NULL)
+    {
+        return 1;
+    }
+
+    // Send payload message.
+    if (!sendCheckReply(payload, m_ok_reply, (uint16_t)15000U))
+    {// Error: no connection.
+        BK_DEBUG_PRINTLN(F("\tRx<--- ") + String(m_replybuffer));
+
+        char *p = prog_char_strstr(m_replybuffer, PSTR("+CMQTTPAYLOAD: 0,11"));
+        if (p != 0 )
+        {// no connection, then user need to connect MQTT server again.
+         // first close current MQTT connection.
+            MQTT_disconnect();
+            return 2;
+        }
+
+        return 1;
+    }
+
+    delay(20);
+
+                                   //[client_index],<qos>,<pub_timeout>[, <ratained>
+    sprintf(cmdStr, PSTR("AT+CMQTTPUB=%d,1,120"), client_index);                 //
+    if (sendCheckReply(cmdStr, m_ok_reply, (uint16_t)BK_SIM7000_TIMEOUT_1500MS)) // Publish to the MQTT Broker server
+    {
+        readline((uint16_t)120500U);                                             // wait on response msg.
+        BK_DEBUG_PRINTLN(F("\tRx<--- ") + String(m_replybuffer));
+
+        char *p = prog_char_strstr(m_replybuffer, PSTR("+CMQTTPUB:"));
+        if (p != 0 && *(p + 13) == '0')
+        {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+/// @brief : Send Will Topic and -Message only once to MQTT Broker.
+/// @param willtopic 
+/// @param willmessage 
+/// @param qos => (default AtLeastOnce = 1)
+/*protected*/void BK_modem_7600::SetWillTopicAndMessage(const char *willTopic, const char *willMessage, const uint8_t qos)
+{
+    if (!setWillOnlyOnce)
+    {
+        char cmdStr[128] = {0};
+        sprintf(cmdStr, PSTR("AT+CMQTTWILLTOPIC=%u,%u"), client_index, strlen(willTopic)); // Length of the topic string
+        getReply(cmdStr, (uint16_t)BK_SIM7000_DEFAULT_TIMEOUT_MS, true );                  // send "command" and wait for ">" char.
+
+        // Wait for ">" to send topic message.
+        if (strstr(m_replybuffer, ">") != NULL)
+        {// Send data after '>' prompt 
+            sendCheckReply(willTopic, m_ok_reply, (uint16_t)15000);
+        }
+
+        sprintf(cmdStr, PSTR("AT+CMQTTWILLMSG=%u,%u,%u"), client_index, strlen(willMessage), qos); // Length of the topic string
+        getReply(cmdStr, (uint16_t)BK_SIM7000_DEFAULT_TIMEOUT_MS, true);                     // send "command" and wait for ">" char.
+
+        // Wait for ">" to send topic message.
+        if (strstr(m_replybuffer, ">") != NULL)
+        {// Send data after '>' prompt 
+            sendCheckReply(willMessage, m_ok_reply, (uint16_t)15000);
+        }
+
+        setWillOnlyOnce = true;
+    }
+}
+#pragma endregion
 
 #pragma GCC diagnostic pop

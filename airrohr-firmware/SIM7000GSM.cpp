@@ -167,10 +167,10 @@ void Display_GPRSModemInfo()
     debug_outln_verbose(F("Software ") + LTEmodem->getModemSoftware_Revision());
 
     imode = LTEmodem->getNetworkMode();
-    debug_outln_verbose(F("Network Modes: \"2 Automatic , 13 GSM only , 38 LTE only , 51 GSM and LTE only\".\n\t\tNetwork Mode => "), String(imode));
+    debug_outln_verbose(F("Network Modes: \"2 Automatic , 13 GSM only , 38 LTE only , 51 GSM and LTE only\".\n\t- Network Mode => "), String(imode));
 
     uint8_t epsStatus = LTEmodem->getNetworkStatus();
-    debug_out(F("\t\tNetwork status code: ") + String(epsStatus) + F(" => "), DEBUG_MED_INFO);
+    debug_out(F("\t- Network status code: ") + String(epsStatus) + F(" => "), DEBUG_MED_INFO);
 
     if (epsStatus == 0) 
         debug_outln_verbose(F("Not registered"));
@@ -187,33 +187,37 @@ void Display_GPRSModemInfo()
 
     char status[13];
     imode = LTEmodem->getNetworkSystemMode(status);
-    debug_outln_verbose(F("\t\tNetwork System Mode: "), String(imode) + F(" => ") + String(status));
+    debug_outln_verbose(F("\t- Network System Mode: "), String(imode) + F(" => ") + String(status));
 
-    smode = LTEmodem->getPreferredModes();
-    imode = LTEmodem->getPreferredMode();
-    debug_outln_verbose("Availlable Preferred Modes: " + smode + ".\n\t\tCurrent Preferred Mode = " + String(imode));
+    if (LTEmodem->Sim_Type() != SIMTYPE::SIM7600E)
+    {
+        smode = LTEmodem->getPreferredModes();
+        imode = LTEmodem->getPreferredMode();
+        debug_outln_verbose("Availlable Preferred Modes: " + smode + ".\n\t\tCurrent Preferred Mode = " + String(imode));
+    }
 
     char ccid[64];
     LTEmodem->getSIMCCID(ccid);
-    debug_outln_verbose(F("CCID: "), String(ccid));
+    debug_outln_verbose(F("- CCID: "), String(ccid));
 
     LTEmodem->getIMEI(m_imei);
-    debug_outln_verbose(F("IMEI: "), String(m_imei));
+    debug_outln_verbose(F("- IMEI: "), String(m_imei));
 
     smode.clear();
     smode = LTEmodem->getOperator();
-    debug_outln_verbose(F("Operator: "), smode);
+    debug_outln_verbose(F("- Operator: "), smode);
 
     smode.clear();
     smode = LTEmodem->getSIMCOMATI();
-    debug_outln_verbose(F("SIMCOMATI:\n"), smode);
+    smode.replace("\n","\n\t");
+    debug_outln_verbose(F("- SIMCOMATI:\n\t"), smode);
     
     last_signal_strength = GetWiFi_RSSI();
 
     // Get connection type and band.
     smode.clear();
     LTEmodem->getNetworkInfo(smode);
-    debug_outln_verbose(F("The current network parameters: "), smode);
+    debug_outln_verbose(F("The current network parameters:\n\t"), smode);
 
     debug_outln_verbose(F("--- End GPRS Display Information ---\n"));
 }
@@ -367,13 +371,13 @@ inline boolean GPRSConnect()
         }
 
         debug_outln_verbose( F("GPRS-IP address: ") + LTEmodem->getGPRSIP());
-
         debug_outln_info(F("GPRS connection Enabled."));
 
         wdt_reset();        // watchdog timer reset => nodemcu ESP8266 still alive.
     }
     else
     {
+        debug_outln_verbose( F("GPRS-IP address: ") + LTEmodem->getGPRSIP());
         debug_outln_info(F("GPRS connection already enabled."));
     }
 
@@ -471,7 +475,10 @@ bool Sim7000_setup( int state)
             tx = SIM_PIN_STX;
 
         exit_7080:
+#if Skip_SIM7080
             LTEmodem = new BK_modem_7080(); // create LTEmodem 7080 instance.
+#endif
+            LTEmodem = new BK_modem_7600(); // create LTEmodem 7600 instance.
             break;
         }
     }
@@ -512,7 +519,8 @@ bool Sim7000_setup( int state)
     debug_outln_info(F("Modem Name: "), name);
 
     String modemInfo = LTEmodem->getModemInfo();
-    debug_outln_info(F("LTE Modem Info: "), modemInfo);
+    modemInfo.replace("\n", "\n\t");
+    debug_outln_info(F("LTE Modem Info:\n\t"), modemInfo);
 
     // Unlock your SIM card with a PIN if needed
     int8_t stat = LTEmodem->getPINStatus();
@@ -562,26 +570,33 @@ bool Sim7000_setup( int state)
         LTEmodem->setNetworkSettings(FPSTR(cfg7::gprsapn));
     }
 
-    LTEmodem->setPreferredMode(cfg7::mode_selection );                      // 38 = LTE only.
-    LTEmodem->setPreferredLTEMode(cfg7::communication_type );               // 1 = LTE CAT-M, not NB-IoT
-    //LTEmodem->setOperatingBand("CAT-M", 12);                              // ex. AT&T uses band 12.
+    LTEmodem->setPreferredMode(cfg7::mode_selection );                          // 38 = LTE only.
+
+    if (LTEmodem->Sim_Type() != SIMTYPE::SIM7600E)
+    {
+        LTEmodem->setPreferredLTEMode(cfg7::communication_type);                // 1 = LTE CAT-M, not NB-IoT
+        // LTEmodem->setOperatingBand("CAT-M", 12);                             // ex. AT&T uses band 12.
+    }
 
     if (cfg7::s7000_has_gps)
     { // Perform first-time GPS/data setup if the shield is going to remain on,
-      // otherwise these won't be enabled in loop() and it won't work!
-      // Enable GPS, first time take some time to start GPS process in sim70xx module.
-      // max 60 sec.
+        // otherwise these won't be enabled in loop() and it won't work!
+        // Enable GPS, first time take some time to start GPS process in sim70xx module.
+        // max 60 sec.
 
-        for(int reply = 30; reply > 0; reply--)
+        for (int reply = 30; reply > 0; reply--)
         {
-            if( LTEmodem->enableGPS() )
+            if (LTEmodem->enableGPS())
             {
-                debug_outln_info(F("GPS is Turned on."));
+                uint16_t voltage_mv;
+                LTEmodem->getGPSAntennaVoltage( &voltage_mv );
+                debug_outln_info(F("GPS is Turned on. Antenne Voltage = ") + String(voltage_mv) + F("mV"));
+                
                 break;
             }
-            
+
             debug_outln_info(F("Failed to turn-on GPS, retrying..."));
-            delay(2000);                        // Retry every 2sec.
+            delay(2000); // Retry every 2sec.
         }
     }
 
@@ -661,6 +676,7 @@ boolean GetGPSLocation(float *latitude, float *longitude, float *altitude, Strin
 
     if(reply == 0)
     {
+        LTEmodem->disableGPS();
         return false;
     }
 
@@ -678,7 +694,7 @@ boolean GetGPSLocation(float *latitude, float *longitude, float *altitude, Strin
     for (int cnt = 10; cnt > 0; cnt--)
     {
         if (LTEmodem->getGPS(latitude, longitude, &speed, &heading, altitude,
-                            &year, &month, &day, &hour, &min, &sec))
+                             &year, &month, &day, &hour, &min, &sec))
         {
             char gps_timestamp[25] = {0};
             sprintf_P(gps_timestamp, PSTR("%04d-%02d-%02dT%02d:%02d:%02d.000"),year, month, day, hour, min, sec);
@@ -765,11 +781,56 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
         return false;
     }
 
-    // If not already connected, connect to MQTT.
-    if (!LTEmodem->MQTT_connectionStatus())
-    {
-        uint32_t keepAlive = 60;
+    uint16_t keepAlive = 90;
 
+    if(LTEmodem->Sim_Type() == SIMTYPE::SIM7600E)
+    {
+        int8_t _res = 1;
+
+        // cast Base ("BK_modem" class) pointer to Derived ("BK_modem_7600" class) pointer.
+        BK_modem_7600* ptrSim7600 = static_cast<BK_modem_7600*>(LTEmodem);
+
+        //if (!ptrSim7600->MQTT_connectionStatus())
+        if( LTEmodem->wirelessConnStatus())
+        {
+            for(int reply = 2; reply > 0;reply--)
+            {
+                _res = 1;
+
+                if(ptrSim7600->MQTT_connect(cfg::mqtt_server, cfg::mqtt_port, cfg::mqtt_user, cfg::mqtt_pwd, keepAlive, (uint16_t)120000))
+                {
+                    if( (_res = ptrSim7600->MQTT_publish(topic, payload)) == 2)
+                    {// client disconnect passively, connect MQTT server again.
+                        debug_outln_info(F("Retry to send Data to MQTT Broker."));
+                        LTE_GSM_YIELD();
+                        continue;
+                    }
+
+                    // ptrSim7600->MQTT_disconnect();
+                    LTEmodem->MQTT_disconnect();
+                }
+                
+                break;
+            }
+
+            if(_res == 0)
+            {
+                debug_outln_info(F("End sending Data to MQTT Broker."));
+            }
+            else
+            {
+                debug_outln_info(F("Could not setup connection to MQTT Broker."));
+            }
+        }
+        else
+        {
+            debug_outln_info(F("Failed to publish Data to MQTT Broker!")); // Send GPS location
+        }
+
+        return _res == 0;
+    }
+    else if (!LTEmodem->MQTT_connectionStatus())
+    {// If not already connected, connect to MQTT.
         // Set up MQTT parameters (see MQTT app note for explanation of parameter values)
 
         LTEmodem->MQTT_setParameter("CLIENTID", "airRohr_001"); // Client connection id.
@@ -798,7 +859,7 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
 
         //uint16_t timeOut = cfg7::sim_type[0] == '2' ? 35000 : 15000;
 
-        if (!LTEmodem->MQTT_connect(true))
+        if (!LTEmodem->MQTT_connect())
         {
             debug_outln_info(F("Failed to connect to MQTT broker!"));
 
@@ -807,7 +868,7 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
             if (error != 3)
             { // MQTT broker could not made connection.
                 
-                LTEmodem->MQTT_connect(false);
+                LTEmodem->MQTT_disconnect();
 
                 m_statusSend = true;             //Restart sending MQTT data
                 return false;
@@ -829,7 +890,7 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
         debug_outln_info(F("Failed to publish!")); // Send GPS location
     }
 
-    LTEmodem->MQTT_connect(false);
+    LTEmodem->MQTT_disconnect();
 
     debug_outln_info(F("End sending Data to MQTT Broker."));
 
@@ -976,7 +1037,7 @@ void setNTPTimeSync(void)
     }
 
      // enable NTP time sync. + time zone.
-     // NTP servers operate always in UTC time.(ipv4)
+     // NTP servers operate always in UTC time. (ipv4)
     if ( !LTEmodem->enableNTPTimeSync(true, FPSTR((String(NTP_SERVER_2)).c_str()), 1) )
     {
         debug_outln_info(F("--- Failed to enable NTP. ---"));

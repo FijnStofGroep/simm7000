@@ -141,11 +141,11 @@
  * RAM:     [=====     ]  46.9% (used 38400 bytes from 81920 bytes)     *
  * PROGRAM: [=======   ]  65.7% (used 686393 bytes from 1044464 bytes)  *
  *                                                                      *
- * latest build 2025-11-03											    *
+ * latest build 2025-11-135											    *
  * PLATFORM: Espressif 8266 (3.0.1) > NodeMCU 1.0 (ESP-12E Module)		*
  * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
- * RAM:     [=====     ]  47.0% (used 38468 bytes from 81920 bytes)		*
- * PROGRAM: [======    ]  66.2% (used 691229 bytes from 1044464 bytes)	*
+ * RAM:     [=====     ]  47.0% (used 38492 bytes from 81920 bytes)		*
+ * PROGRAM: [======    ]  66.7% (used 696449 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -157,10 +157,10 @@
 // increment on change.
 #if defined(VS_DEBUG)
 // Debug / Beta version:
- #define SOFTWARE_VERSION_STR "FWL-2025-01-B6_5"
+ #define SOFTWARE_VERSION_STR "FWL-2025-01-B7_1"
 #else
 // Production version:
- #define SOFTWARE_VERSION_STR "FWL-2025-01-P9"
+ #define SOFTWARE_VERSION_STR "FWL-2025-01-P10"
 #endif
 
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
@@ -6632,7 +6632,7 @@ static __noinline void fetchSensorGPS(String &s)
 	{
 		debug_outln_info(F("Lat: "), String(last_value_GPS_lat, 6));
 		debug_outln_info(F("Lng: "), String(last_value_GPS_lon, 6));
-		debug_outln_info(F("DateTime: "), last_value_GPS_timestamp);
+		debug_outln_info(F("DateTime (UTC): "), last_value_GPS_timestamp);
 
 		add_Value2Json(s, F("GPS_lat"), String(last_value_GPS_lat, 6));
 		add_Value2Json(s, F("GPS_lon"), String(last_value_GPS_lon, 6));

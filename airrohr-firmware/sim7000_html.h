@@ -61,8 +61,12 @@ String form_select_type7()		// mode SIM7000
 				 "<select id='sim_type' name='sim_type'>"
 				 "<option value=1>SIM7000_RXD5_TXD6</option>"
 				 "<option value=2>SIM7000_RXD6_TXD5</option>"
+#if Skip_SIM7080
 				 "<option value=3>SIM7080_RXD5_TXD6</option>"
 				 "<option value=4>SIM7080_RXD6_TXD5</option>"
+#endif
+				 "<option value=3>SIM7600_RXD5_TXD6</option>"
+				 "<option value=4>SIM7600_RXD6_TXD5</option>"
 				 "</select>"
 				 "</td>"
 				 "</tr>");
