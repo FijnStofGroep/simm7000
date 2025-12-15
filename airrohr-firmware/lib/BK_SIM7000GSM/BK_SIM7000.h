@@ -155,7 +155,7 @@ public:
     void modemPowerRestart();
     
     boolean getADCVoltage(uint16_t *v);
-    boolean getBattPercent(uint16_t *p);
+    //boolean getBattPercent(uint16_t *p);
     boolean getBattVoltage(uint16_t *v);
 
     // Functionality and operation mode settings
@@ -223,6 +223,7 @@ public:
 
     boolean enableGPSNMEA(uint8_t nmea);
     virtual void getGPSAntennaVoltage(uint16_t* voltage_mv);
+    virtual uint16_t getModuleTemperature(void);
 
     // UDP raw connections
     boolean UDPconnect(char *server, uint16_t port);
@@ -542,6 +543,7 @@ public:
                              uint16_t *year, uint8_t *month, uint8_t *day, uint8_t *hour, uint8_t *min, uint8_t *sec) override;
 
     void getGPSAntennaVoltage(uint16_t * voltage_mv) override;
+    uint16_t getModuleTemperature(void) override;
 
 protected:
     uint8_t mux;                        // Set TCP/UDP Identifier (Range is 0-12)
