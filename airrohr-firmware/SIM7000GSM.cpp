@@ -214,6 +214,12 @@ void Display_GPRSModemInfo()
     
     last_signal_strength = GetWiFi_RSSI();
 
+	// uint16_t moduleTemp = LTEmodem->getModuleTemperature();
+	// if (moduleTemp > 0)
+    // {
+    //     debug_outln_verbose(F("Temperature SIM-module: "), String(moduleTemp, 10) + F("°C"));
+    // }
+
     // Get connection type and band.
     smode.clear();
     LTEmodem->getNetworkInfo(smode);
@@ -274,6 +280,13 @@ u_int32_t GetLTE_RestartCounter(void)
     return m_cnt_LTE_Restarts;
 }
 
+/// @brief Read the temperature of the SIM-module
+/// @param  
+/// @return temperature in C. (0 if function not exist)
+uint16_t GetModuleTemperature(void)
+{
+    return LTEmodem->getModuleTemperature();
+}
 
 /// @brief BK-SIM70XX PCB Power OFF.
 void modemPowerOff()

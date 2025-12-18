@@ -296,7 +296,7 @@ boolean BK_modem::setBaudrate(uint32_t baud)
 /// @return value in mV (uint16_t)
 boolean BK_modem::getBattVoltage(uint16_t *_value)
 {
-    return sendParseReply(F("AT+CBC"), F("+CBC: "), _value, ',', 2);
+    return sendParseReply(F("AT+CBC"), F("+CBC: "), _value, ',', 0);        // 2 --> 0
 }
 
 /*****************************************************************
@@ -343,10 +343,10 @@ void BK_modem::AT_powerDown(void)
 /// @brief returns the percentage charge of battery.
 /// @param pValue 
 /// @return 
-boolean BK_modem::getBattPercent(uint16_t *pValue)
-{
-    return sendParseReply(F("AT+CBC"), F("+CBC: "), pValue, ',', 1);
-}
+// boolean BK_modem::getBattPercent(uint16_t *pValue)
+// {
+//     return sendParseReply(F("AT+CBC"), F("+CBC: "), pValue, ',', 1);
+// }
 
 /// @brief
 /// @param adcValue
@@ -1572,6 +1572,13 @@ void BK_modem::getGPSAntennaVoltage(uint16_t* voltage_mv)
 }
 
 /********* GPRS **********************************************************/
+
+/// @brief Read the temperature of the module
+/// @return default 0C.
+uint16_t BK_modem::getModuleTemperature()
+{ 
+    return  0;
+}
 
 /// @brief : Request Manufacturer Identification
 /// @return
@@ -6231,6 +6238,15 @@ void BK_modem_7600::getGPSAntennaVoltage(uint16_t * voltage_mv)
     //readline();             // eat OK
 }
 /********* END-GPS **********************************************************/
+
+/// @brief Read the temperature of the module.
+/// @return temperature in C.
+uint16_t BK_modem_7600::getModuleTemperature(void)
+{ // get temperature in degree celsius
+    uint16_t temperature = 0;
+    sendParseReply(F("+CPMUTEMP"), F("+CPMUTEMP:"), &temperature, ',', 0, true); // include wait for "OK"
+    return temperature;                                                          //
+}
 
 /// @brief 
 /// @param onoff 

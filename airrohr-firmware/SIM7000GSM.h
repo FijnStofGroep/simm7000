@@ -138,4 +138,9 @@ String GetSimDriverName(void);
 /// @return 
 u_int32_t GetLTE_RestartCounter(void);
 
+/// @brief Get temperature of the SIM-module.
+/// @param  
+/// @return temperature in C.
+uint16_t GetModuleTemperature(void);
+
 #endif // _SIM7000GSM_H
