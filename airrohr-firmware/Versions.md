@@ -1,5 +1,6 @@
 FWL-2025-01-P10  (Fijnstof Werkgroep Leusden)
 * Add BK-SIM7600 PCB LTE module.
+
 FWL-2025-01-P7  (Fijnstof Werkgroep Leusden)
 * Add BK-SIM7080 PCB LTE module.
 *   - SIM7080G supports **NB-IoT** and **Cat-M** in global frequency bands, but does **not support 2G/3G/4G**. 
