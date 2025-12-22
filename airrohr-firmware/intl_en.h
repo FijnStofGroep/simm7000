@@ -92,6 +92,7 @@ const char INTL_PORT[] PROGMEM = "Port";
 const char INTL_MOTION_WAIT_TIME[] PROGMEM = "Motion wait time";
 const char INTL_USER[] PROGMEM = "User";
 const char INTL_PASSWORD[] PROGMEM = "Password";
+const char INTL_MASK[] PROGMEM = "Filter";
 const char INTL_MEASUREMENT[] PROGMEM = "Measurement";
 const char INTL_SEND_TO[] PROGMEM = "Send to {v}";
 const char INTL_READ_FROM[] PROGMEM = "Read from {v}";

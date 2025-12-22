@@ -59,6 +59,9 @@ const char WEB_PAGE_HEADER[] PROGMEM = "<!DOCTYPE html><html lang='" INTL_LANG "
 <meta charset='utf-8'/>	\
 <title>{t}</title>";
 
+const char INTL_MASK_INFO[] PROGMEM = "<tr><td>&nbsp;</td><td style='font-size:13px'>MQTT filter LTE - No filter = 0 - LTE 7936(default)  <a href='https://github.com/FijnStofGroep/simm7000/tree/master' target='_blank' rel='noreferrer' style='color:#000'>" \
+" See instruction from Github </a></td></tr>";
+
 const char WEB_PAGE_STATIC_CSS[] PROGMEM = "	\
 body{font-family:Arial,sans-serif;margin:0}	\
 .content{margin:10px}	\
@@ -114,7 +117,7 @@ const char EMPTY_ROW[] PROGMEM = "<tr><td colspan='3'>&nbsp;</td></tr>";
 const char WEB_PAGE_FOOTER[] PROGMEM = "<br/><br/>"
 									   "<a class='b' href='/' style='display:inline;'>" INTL_BACK_TO_HOME "</a><br/><br/><br/>"
 									   "</div><footer class='footer'><div style='padding:16px'>"
-									   "<a href='https://github.com/FijnStofGroep/sensors-software-Leusden/tree/master' target='_blank' rel='noreferrer' style='color:#000'>"
+									   "<a href='https://github.com/FijnStofGroep/simm7000/tree/master' target='_blank' rel='noreferrer' style='color:#000'>"
 									   "Code from Github </a>&nbsp;&nbsp("
 									   "<a href='https://forum.sensor.community/' target='_blank' rel='noreferrer'>" INTL_FORUM "</a>"
 									   ")</div></footer></body></html>\r\n";

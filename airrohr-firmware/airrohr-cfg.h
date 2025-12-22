@@ -122,6 +122,7 @@ enum ConfigShapeId {
 	Config_mqtt_user,
 	Config_mqtt_pwd,
 	Config_mqtt_topic,
+	Config_mqtt_mask,
 	Config_measurement_name_influx,
 	Config_ssl_influx,
 	Config_has_fix_ip,
@@ -216,6 +217,7 @@ static constexpr char CFG_KEY_MQTT_PORT[] PROGMEM = "mqtt_port";
 static constexpr char CFG_KEY_MQTT_USER[] PROGMEM = "mqtt_user";
 static constexpr char CFG_KEY_MQTT_PWD[] PROGMEM = "mqtt_pwd";
 static constexpr char CFG_KEY_MQTT_TOPIC[] PROGMEM = "mqtt_topic";
+static constexpr char CFG_KEY_MQTT_MASK[] PROGMEM = "mqtt_mask";
 static constexpr char CFG_KEY_MEASUREMENT_NAME_INFLUX[] PROGMEM = "measurement_name_influx";
 static constexpr char CFG_KEY_SSL_INFLUX[] PROGMEM = "ssl_influx";
 static constexpr char CFG_KEY_HAS_FIX_IP[] PROGMEM = "has_fix_ip";
@@ -310,6 +312,7 @@ static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_String, sizeof(cfg::mqtt_user)-1, CFG_KEY_MQTT_USER, cfg::mqtt_user },
 	{ Config_Type_Password, sizeof(cfg::mqtt_pwd)-1, CFG_KEY_MQTT_PWD, cfg::mqtt_pwd },
 	{ Config_Type_String, sizeof(cfg::mqtt_topic)-1, CFG_KEY_MQTT_TOPIC, cfg::mqtt_topic },
+	{ Config_Type_String, sizeof(cfg::mqtt_mask)-1, CFG_KEY_MQTT_MASK, cfg::mqtt_mask },
 	{ Config_Type_String, sizeof(cfg::measurement_name_influx)-1, CFG_KEY_MEASUREMENT_NAME_INFLUX, cfg::measurement_name_influx },
 	{ Config_Type_Bool, 0, CFG_KEY_SSL_INFLUX, &cfg::ssl_influx },
 	{ Config_Type_Bool, 0, CFG_KEY_HAS_FIX_IP, &cfg::has_fix_ip },
