@@ -157,10 +157,10 @@
 // increment on change.
 #if defined(VS_DEBUG)
 // Debug / Beta version:
- #define SOFTWARE_VERSION_STR "FWL-2025-01-B7_1"
+ #define SOFTWARE_VERSION_STR "FWL-2025-01-B11"
 #else
 // Production version:
- #define SOFTWARE_VERSION_STR "FWL-2025-01-B11"
+ #define SOFTWARE_VERSION_STR "FWL-2025-01-P11"
 #endif
 
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
@@ -384,7 +384,7 @@ namespace cfg
 	char mqtt_user[LEN_USER_INFLUX] = MQTT_USER;
 	char mqtt_pwd[LEN_PASS_INFLUX] = MQTT_PWD;
 	char mqtt_topic[LEN_MQTT_HEADER] = MQTT_TOPIC;
-	char mqtt_mask[10] = MQTT_MASK;
+	char mqtt_mask[LEN_MQTT_MASK] = MQTT_MASK;
 
 #endif
 
@@ -2553,10 +2553,10 @@ static void webserver_config_send_body_get(String &page_content)
 	add_form_input(page_content, Config_mqtt_pwd, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
 	//page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	//page_content += FPSTR(TABLE_TAG_OPEN);
-	add_form_input(page_content, Config_mqtt_mask, FPSTR(INTL_MASK), LEN_CFG_PASSWORD - 1);
+	add_form_input(page_content, Config_mqtt_mask, FPSTR(INTL_MASK), LEN_MQTT_MASK - 1);
 	server.sendContent(page_content);
 	// page_content = F("<tr><td>&nbsp;</td><td style='font-size:13px'>MQTT filter LTE - No filter = 0 - LTE 7936(default)  <a href='https://github.com/FijnStofGroep/simm7000/tree/master' target='_blank' rel='noreferrer' style='color:#000'>"
-	//								   " See instruction from Github </a></td></tr>");
+	//					" See instruction from Github </a></td></tr>");
 	page_content = FPSTR(INTL_MASK_INFO);
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	page_content += FPSTR(BR_TAG);
