@@ -50,7 +50,7 @@
 
 #define LEN_MQTT_LARGE_HEADER 90 
 #define LEN_MQTT_HEADER 30
-#define LEN_MQTT_MASK 12
+#define LEN_MQTT_MASK 8             // filter (bit_array[24]) => select sensor value send Yes/No.
 
 #define LEN_HOST_CUSTOM 100
 #define LEN_URL_CUSTOM 100
