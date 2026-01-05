@@ -603,7 +603,7 @@ bool Sim7000_setup( int state)
             {
                 uint16_t voltage_mv;
                 LTEmodem->getGPSAntennaVoltage( &voltage_mv );
-                debug_outln_info(F("GPS is Turned on. Antenne Voltage = ") + String(voltage_mv) + F("mV"));
+                debug_outln_info(F("GPS is Turned on, antenne Voltage = ") + String(voltage_mv) + F("mV"));
                 
                 break;
             }
