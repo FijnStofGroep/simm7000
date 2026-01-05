@@ -6464,8 +6464,8 @@ int8_t BK_modem_7600::MQTT_publish(const char *topic, const char *payload)
 
     delay(20);
 
-                                   //[client_index],<qos>,<pub_timeout>[, <ratained>
-    sprintf(cmdStr, PSTR("AT+CMQTTPUB=%d,1,120"), client_index);                 //
+                                   //<client_index>,<qos>,<pub_timeout>[,<retained>[,<dup>]]
+    sprintf(cmdStr, PSTR("AT+CMQTTPUB=%d,1,120,1,1"), client_index);               //
     if (sendCheckReply(cmdStr, m_ok_reply, (uint16_t)BK_SIM7000_TIMEOUT_1500MS)) // Publish to the MQTT Broker server
     {
         readline((uint16_t)120500U);                                             // wait on response msg.
