@@ -590,20 +590,20 @@ SCD30 scd30;
  *****************************************************************/
 TinyGPSPlus gps;
 
-/*****************************************************************
- * BitArray declaration:   LTE communication                     *
- *---------------------------------------------------------------*
- * Bitarray format:  bit23 ---> bit0                             *
- *---------------------------------------------------------------*
- *Bit: | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |  *
- *Flag:|N05|NC1|N25|NC4|N10|TPS|NOX|VOC|lon|lat|hght|time|Wifi|  *
- *                                       |---- GPS ----|         *
- *---------------------------------------------------------------*
- *Bit: | 13| 14| 15| 16| 17| 18 | 19 | 20 | 21 | 22 | 23 |       *
- *Flag:|   |   |*1 |PM0|PM4|    |    |    |    |    |    |       *
- *---------------------------------------------------------------*
- * Note: *1: min_micro,max_micro,interval,samples,etc..          *
- *****************************************************************/
+/**********************************************************************
+ * BitArray declaration:   LTE communication                 		  *
+ *--------------------------------------------------------------------*
+ * Bitarray format:  bit23 ---> bit0                                  *
+ *--------------------------------------------------------------------*
+ * Bit: | 0  | 1  | 2  | 3  | 4  | 5  | 6  | 7  | 8  | 9  | 10 | 11 | *
+ * Flag:| N05| NC1| N25| NC4| N10| TPS| NOX| VOC| lon| lat|hght|time| *
+ *                                                 |---- GPS -----|   *
+ *--------------------------------------------------------------------*
+ * Bit: | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | *
+ * Flag:|Wifi|  0 |  0 | *1 | PM0| PM4|  0 |  0 |  0 |  0 |  0 |  0 | *
+ *--------------------------------------------------------------------*
+ * Note: *1: min_micro,max_micro,interval,samples,etc..               *
+ **********************************************************************/
 #define BITS	24				// create a bitArray[3] => 24-bits lenght.
 BitArray m_sendSensorValue;		// bit23 ---> bit0
  
@@ -8842,14 +8842,14 @@ void setup(void)
 			debug_outln_info(F("** BK-") + GetSimDriverName() + F(" PCB connected. **"));
 
 			// create a bitArray[24] => byteArray[3] of 24-bits lenght.
-			int x = m_sendSensorValue.begin(1, BITS);
-			if (x == BA_NO_MEMORY_ERR)
+			int res = m_sendSensorValue.begin(1, BITS);
+			if (res == BA_NO_MEMORY_ERR)
 			{
 				debug_outln_info(F("BitArray: no memory."));
 			}
 			else
 			{
-				m_sendSensorValue.setAll(1); // set all bits.
+				m_sendSensorValue.setAll(1); 			// set all bits.
 
 				uint32_t number = ((uint32)readCorrectionOffset(cfg::mqtt_mask)); 
 
@@ -8863,17 +8863,14 @@ void setup(void)
 						if (bitIdx < BITS && ((number & 1) > 0))
 						{
 							// debug_outln_info(F("bitIdx = ") + String(bitIdx));
-							m_sendSensorValue.set(bitIdx, 0); // reset bitx
+							// m_sendSensorValue.set(11, 0);		// reset bit11
+							m_sendSensorValue.set(bitIdx, 0);		// reset bitx
 						}
 
 						bitIdx++;				// next pos.
 						number = (number >> 1); // next bit.
 					}
 				}
-				
-				// m_sendSensorValue.set(0, 0);		// reset bit0
-				// m_sendSensorValue.set(11, 0);	// reset bit11
-				// m_sendSensorValue.set(23, 0);	// reset bit23
 				
 #if VS_DEBUG
 				debug_outln_info(F("ByteArray[") + String(m_sendSensorValue.memory()) + F("] ,Bits: ") + String(m_sendSensorValue.bits()));

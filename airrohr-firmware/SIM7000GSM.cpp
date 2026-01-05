@@ -350,7 +350,7 @@ inline boolean GPRSConnect()
         delay(2000);
     }
 
-    debug_outln_verbose(F("Connected to LTE network!"));
+    debug_outln_verbose(F("Connected to LTE network."));
 
     // Disable data just to make sure it was actually off so that we can turn it on
     // LTEmodem.openWirelessConnection(false);

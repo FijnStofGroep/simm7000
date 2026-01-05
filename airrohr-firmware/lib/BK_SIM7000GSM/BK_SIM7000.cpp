@@ -1902,7 +1902,7 @@ void BK_modem::setNetworkSettings(FStringPtr apn, FStringPtr username, FStringPt
     this->m_apnusername = username;
     this->m_apnpassword = password;
 
-    // Define the PDP context (PDP Packet Data Protocol)
+    // Define external PDP context 1 (PDP = Packet Data Protocol)
     sendCheckReplyQuoted(F("AT+CGDCONT=1,\"IP\","), apn, m_ok_reply, 10000);
 }
 
@@ -5859,6 +5859,17 @@ SIMTYPE BK_modem_7600::Sim_Type()
 /// @return
 boolean BK_modem_7600::enableGPRS(boolean onoff)
 {
+    if (onoff)
+    {
+        // Set authentication if needed.
+        if (m_apnusername && m_apnpassword)
+        {
+            char _sendbuffer[128] = {0};
+            sprintf(_sendbuffer, PSTR("AT+CGAUTH=%d,1,\"%s\",\"%s\""), client_index, m_apnpassword, m_apnusername);
+            sendCheckReply(_sendbuffer, m_ok_reply, (uint16_t)BK_SIM7000_TIMEOUT_1500MS);
+        }
+    }
+
     return true;
 }
 
