@@ -141,11 +141,11 @@
  * RAM:     [=====     ]  46.9% (used 38400 bytes from 81920 bytes)     *
  * PROGRAM: [=======   ]  65.7% (used 686393 bytes from 1044464 bytes)  *
  *                                                                      *
- * latest build 2025-11-135											    *
+ * latest build 2026-01-P11											    *
  * PLATFORM: Espressif 8266 (3.0.1) > NodeMCU 1.0 (ESP-12E Module)		*
  * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
- * RAM:     [=====     ]  47.0% (used 38492 bytes from 81920 bytes)		*
- * PROGRAM: [======    ]  66.7% (used 696449 bytes from 1044464 bytes)	*
+ * RAM:     [=====     ]  47.0% (used 38500 bytes from 81920 bytes)		*
+ * PROGRAM: [======    ]  66.7% (used 697001 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -160,7 +160,7 @@
  #define SOFTWARE_VERSION_STR "FWL-2025-01-B11"
 #else
 // Production version:
- #define SOFTWARE_VERSION_STR "FWL-2025-01-P11"
+ #define SOFTWARE_VERSION_STR "FWL-2026-01-P11"
 #endif
 
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
