@@ -4709,7 +4709,7 @@ static void sendmqtt(const String &data)
 			payload.remove(payload.length() - 1, 1);	// delete last char ','.
 			payload += "}";								// set end char. Json format.
 
-			debug_outln_info(F("\npublish a message To MQTT Broker = ... "));
+			debug_outln_info(F("publish a message To MQTT Broker = ... "));
 			debug_outln_info(F("- topic = "), (String &)header);
 			debug_outln_verbose(F("- payload = "), (String &)payload);
 
