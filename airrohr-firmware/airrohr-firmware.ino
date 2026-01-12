@@ -4843,27 +4843,42 @@ static void sendmqtt(const String &data)
 }
 
 /// @brief IsSensorSendDataType
-/// @param key => SEN55_P0,....
+/// @param key => SEN55_P2, SDS_P1, ....
 ///
 /// @return  true => bit = 1
 ///         false => bit = 0
 static bool IsSensorSendDataType(String key)
 {
 	if( !(m_sendSensorValue.memory() > 0))
-	{// No memory allocated.
+	{// No "BitArray" memory allocated.
 		return true;
 	}
 	
 	uint16_t index;
 
-	//debug_outln_info(F("Input key = "), key);
+#if VS_DEBUG
+	debug_outln_info(F("Input key = "), key);
+#endif
 
 	int idx = key.indexOf("_");
-	key = key.substring( idx + 1, key.length());
+	key = key.substring( idx + 1, key.length());	// Remove sensorType. (SEN55_,...)
 
-	//debug_outln_info(F("New key = "), key);
+#if VS_DEBUG
+	debug_outln_info(F("search key = "), key);
+#endif
 
-	if (key.startsWith(F("N05")))
+	if (key.startsWith(F("P2")) || 		// PM2.5
+		key.startsWith(F("P1")) || 		// PM10
+		key.startsWith(F("temp")) ||	// temperature
+		key.startsWith(F("humi")) ||	// humidity
+		key.startsWith(F("pres"))) 		// pressure
+	{
+#if VS_DEBUG
+		debug_outln_info(F("Sensor-Value key = "), key);
+#endif
+		return true; 					// always send sensor-value to Server.
+	}
+	else if (key.startsWith(F("N05")))
 		index = 0;
 	else if (key.startsWith(F("N1")))
 		index = 1;
@@ -4879,31 +4894,20 @@ static bool IsSensorSendDataType(String key)
 		index = 6;
 	else if (key.startsWith(F("VOC")))
 		index = 7;
-	else if (key.startsWith(F("lon"))) 			// GPS
+	else if (key.startsWith(F("lon"))) 			// GPS.
 		index = 8;
-	else if (key.startsWith(F("lat"))) 			// GPS
+	else if (key.startsWith(F("lat"))) 			// GPS.
 		index = 9;
-	else if (key.startsWith(F("height")))		// GPS
+	else if (key.startsWith(F("height")))		// GPS.
 		index = 10;
-	else if (key.startsWith(F("timestamp")))	// GPS
+	else if (key.startsWith(F("timestamp")))	// GPS.
 		index = 11;
 	else if (key.startsWith(F("signal")))		// Wifi signal.
 		index = 12;
-	else if (key.startsWith(F("P0")))
+	else if (key.startsWith(F("P0"))) 			// PM0.5
 		index = 16;
-	else if (key.startsWith(F("P4")))
+	else if (key.startsWith(F("P4"))) 			// PM4
 		index = 17;
-	else if (key.startsWith(F("P2"))   || 		// PM2.5
-			 key.startsWith(F("P1"))   || 		// PM10
-			 key.startsWith(F("temp")) ||
-			 key.startsWith(F("hum"))  ||
-			 key.startsWith(F("pres"))) 		// pressure
-			 {
-#if VS_DEBUG
-				 debug_outln_info(F("Input key = "), key);
-#endif
-				 return true; // always send to data server
-			 }
 	else
 	{// samples, micro, interval, etc..
 		index = 15;
@@ -4912,6 +4916,7 @@ static bool IsSensorSendDataType(String key)
 #if VS_DEBUG
 	debug_outln_info(key + F(" => Flag ") + String(index) + F(" => ") + String(m_sendSensorValue.get(index)));
 #endif
+
 	return m_sendSensorValue.get(index) == 1;
 }
 
@@ -8700,7 +8705,7 @@ static unsigned long sendDataToOptionalApis(const String &data)
 	{ // MQTT send process.
 		unsigned long  starttime_MQTT = millis();
 
-		debug_out(String(DBG_TXT_SENDING_TO) + String("mqtt: "), DEBUG_MAX_INFO);
+		debug_out(String(DBG_TXT_SENDING_TO) + String("mqtt:\n"), DEBUG_MAX_INFO);
 
 		data_sensemap.clear();
 		data_sensemap = data;
