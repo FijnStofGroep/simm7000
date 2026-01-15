@@ -370,23 +370,25 @@ boolean BK_modem::setFunctionality(uint8_t option)
     return sendCheckReply(F("AT+CFUN="), option, m_ok_reply);
 }
 
-/// @brief Sleep mode reduces power consumption significantly while remaining registered to the network
-/// Disable or enable slow clock
-///                 0 Disable slow clock, module will not enter sleep mode. 
-///                 1 Enable slow clock, it is controlled by DTR. 
-///                         When DTR is high, module can enter sleep mode. 
-///                         When DTR changes to low level, module can quit sleep mode.
-/// @param onoff 
-/// @return 
+///
+/// @brief : Sleep mode reduces power consumption significantly while remaining registered to the network
+///
+///    This command is used to enable UART Sleep or always work,
+///            set to 0, UART always work
+///            set to 1, Controlled by DTR: 
+///                            - When DTR is high, module goto sleep mode. 
+///                            - When DTR changes to low level, module can quit sleep mode.
+/// @param : onoff 
+/// @return : true 
 boolean BK_modem::enableSleepMode(int8_t onoff)
 {
-    uint16_t n_value;
-    sendParseReply(F("AT+CSCLK?"), F("+CSCLK: "), &n_value, ',', 1); // Read Configure Slow Clock value
+    // uint16_t n_value;
+    // sendParseReply(F("AT+CSCLK?"), F("+CSCLK: "), &n_value, ',', 1); // Read UART Sleep or always work option.
     
-    if( n_value != onoff)
-    {
-        sendCheckReply(F("AT+CSCLK="), onoff, m_ok_reply);
-    }
+    // if( n_value != onoff)
+    // {
+         sendCheckReply(F("AT+CSCLK="), onoff, m_ok_reply);
+    // }
 
     return true;
 }
@@ -6322,7 +6324,7 @@ boolean BK_modem_7600::MQTT_connect(const char *mqtt_server, uint mqtt_port,
     bool _result = false;
 
     for (int reply = 3; reply > 0; reply--)
-    {
+    { //Establishing MQTT Connection
         sendCheckReply(F("AT+CMQTTSTART"), F("+CMQTTSTART:"), timeout, true);
         char *p = prog_char_strstr(m_replybuffer, PSTR("+CMQTTSTART:"));
         int error_code = atoi((p + 13));
