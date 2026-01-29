@@ -164,8 +164,6 @@ void Display_GPRSModemInfo()
         debug_outln_verbose(F("GPRS status: not connected."));
     }
 
-    debug_outln_verbose(F("Software ") + LTEmodem->getModemSoftware_Revision());
-
     imode = LTEmodem->getNetworkMode();
     debug_outln_verbose(F("Network Modes: \"2 Automatic , 13 GSM only , 38 LTE only , 51 GSM and LTE only\".\n\t- Network Mode => "), String(imode));
 
@@ -198,7 +196,7 @@ void Display_GPRSModemInfo()
 
     char ccid[64];
     LTEmodem->getSIMCCID(ccid);
-    debug_outln_verbose(F("- CCID: "), String(ccid));
+    debug_outln_verbose(F("- ICCID: "), String(ccid));
 
     LTEmodem->getIMEI(m_imei);
     debug_outln_verbose(F("- IMEI: "), String(m_imei));
@@ -212,6 +210,8 @@ void Display_GPRSModemInfo()
     smode.replace("\n","\n\t");
     debug_outln_verbose(F("- SIMCOMATI:\n\t"), smode);
     
+//  debug_outln_verbose(F("Software Revision: ") + LTEmodem->getModemSoftware_Revision());
+
     last_signal_strength = GetWiFi_RSSI();
 
 	// uint16_t moduleTemp = LTEmodem->getModuleTemperature();
@@ -642,7 +642,7 @@ bool Sim7000_setup( int state)
     }
 
     wait_NTP_sync_time = 15000;                       // wait 15 sec. before the first call to "setNTPTimeSync();""
-    m_starttime = millis();                           // set the start time for get new NTP time.
+    m_starttime = millis();                           // set the start time for get NTP time.
 
     return true;
 

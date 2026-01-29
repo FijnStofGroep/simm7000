@@ -630,28 +630,31 @@ uint8_t BK_modem::unlockSIM(const char *pin)
 }
 
 /// @brief  : get ICCID
-/// @param  : ccid[]
+/// @param  : pointer to ccid[64] arrary.
 /// @return : lenght
 uint8_t BK_modem::getSIMCCID(char *ccid)
 {
     getReply(F("AT+CCID"), uint16_t(2000));
 
+    size_t len = strlen(m_replybuffer);
+
     // up to 28 chars for reply, 20 char total CCID
-    // Response:  Ccid data [898600810906F8048812]
+    // Response:  Ccid data [898600810906F8048812] // +CCID: 8931082923036051326
     if (m_replybuffer[0] == '+')
     {
-        strncpy(ccid, m_replybuffer + 8, 20);
+        strncpy(ccid, m_replybuffer + 7, len);
+        len-=7;
     }
     else
     {
-        strncpy(ccid, m_replybuffer, 20);
+        strncpy(ccid, m_replybuffer, len);
     }
 
-    ccid[20] = 0;
+    ccid[len+1] = 0;
 
     readline(); // eat 'OK'
 
-    return strlen(ccid);
+    return len;
 }
 
 /********* IMEI **********************************************************/
@@ -1663,6 +1666,16 @@ String BK_modem::getModemInfo()
 String BK_modem::getModemSoftware_Revision()
 {
     sendCheckReply(F("AT+GMR"), m_ok_reply);
+
+    size_t len = strlen(m_replybuffer);
+
+    // up to 26 chars for reply
+    // Response:  +GMR: LE20B02SIM7600M11_A_210526
+    if (m_replybuffer[0] == '+')
+    {// remove "+GMR: "
+        strncpy(m_replybuffer, m_replybuffer + 6, len);
+        m_replybuffer[len-6] = 0x00;
+    }
 
     //BK_DEBUG_PRINTLN(m_replybuffer);
 
@@ -5116,6 +5129,7 @@ boolean BK_modem::HTTP_POST(const char *URI, const char *body, uint8_t bodylen, 
 
 /*-------------------------------- SIM7000E ---------------------------------------------------------------------*/
 #pragma region "SIM7000E"
+
 /*
   Destructor: clean-up all resource of this class.
 */
@@ -6148,30 +6162,31 @@ boolean BK_modem_7600::getGPS(float *latitude, float *longitude,
         *day = atoi(ptr);
 
         // Time value : 191237.0
+        *sec = 0;
+        *min = 0;
+        *hour = 0;
         dateTime = strtok(NULL, ",");
-        if (!dateTime)
+        if (dateTime > 0)
         {
-            return false;
+            // BK_DEBUG_PRINTLN(F("Time: ") + String(dateTime));
+
+            // Seconds
+            ptr = dateTime + 4;
+            ptr[2] = 0;
+            *sec = atof(ptr);
+
+            // Minutes
+            ptr[0] = 0;
+            ptr = dateTime + 2;
+            *min = atoi(ptr);
+
+            // Hours
+            ptr[0] = 0;
+            ptr = dateTime;
+            *hour = atoi(ptr);
+
+            // BK_DEBUG_PRINTLN(F("*** END DateTime set ****"));
         }
-
-        //BK_DEBUG_PRINTLN(F("Time: ") + String(dateTime));
-
-        // Seconds
-        ptr = dateTime + 4;
-        ptr[2] = 0;
-        *sec = atof(ptr);
-
-        // Minutes
-        ptr[0] = 0;
-        ptr = dateTime + 2;
-        *min = atoi(ptr);
-
-        // Hours
-        ptr[0] = 0;
-        ptr = dateTime;
-        *hour = atoi(ptr);
-
-        //BK_DEBUG_PRINTLN(F("*** END DateTime set ****")); 
     }
     else
     {
@@ -6248,7 +6263,6 @@ void BK_modem_7600::getGPSAntennaVoltage(uint16_t * voltage_mv)
 {
     *voltage_mv = 0;
     sendParseReply(F("AT+CVAUXV?"), F("+CVAUXV:"), voltage_mv, ',', 0, true);   // include wait for "OK"
-    //readline();             // eat OK
 }
 /********* END-GPS **********************************************************/
 
