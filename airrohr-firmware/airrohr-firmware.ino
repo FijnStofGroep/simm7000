@@ -8549,6 +8549,9 @@ static void logEnabledDisplays()
 }
 
 /// @brief : setUpdate NTP server(s) for dateTime synchronisation.
+///			 The time is in UTC (Universal Time Coordinated) that's correct. 
+///			 This time is only used by the sensor to check the validity of certificates for secure connections where a worldwide
+///			 standardized time is needed.
 ///
 static void setupNetworkTime()
 {
