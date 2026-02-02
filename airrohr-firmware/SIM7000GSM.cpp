@@ -445,9 +445,9 @@ bool Sim7000_setup( int state)
 #if defined(ESP8266)
 
 #ifndef BK_MODEM_DEBUG
-    debug_outln_info(F("BK_Sim7000 Modem connect start process:"));
+    debug_outln_info(F("BK-SIM70XX Modem Initialize Process:"));
 #else
-    debug_outln_info(F("Start SIM-Modem connect process: type = ") + String(cfg7::sim_type));
+    debug_outln_info(F("BK-SIM-Modem Initialize Process: Type = ") + String(cfg7::sim_type));
 #endif
 
     if(LTEmodem != NULL )
