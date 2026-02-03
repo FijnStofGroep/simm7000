@@ -351,8 +351,8 @@ protected:
     uint8_t m_https_SSL;
     uint8_t m_PIN_PWR;
 
-    char m_replybuffer[RECEIVE_BUFFER_LENGHT_MAX];
-    char m_responcebuffer[RECEIVE_BUFFER_LENGHT_MAX];
+    char m_replybuffer[RECEIVE_BUFFER_LENGHT_MAX];          // UART-232 replybuffe[].
+    char m_responcebuffer[RECEIVE_BUFFER_LENGHT_MAX];       // HTTP responcebuffer[].
 
     FStringPtr m_apn;
     FStringPtr m_apnusername;

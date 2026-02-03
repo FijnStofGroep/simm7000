@@ -3849,7 +3849,7 @@ uint16_t BK_modem::readline(uint16_t timeout, boolean multiline)
 
     while (timeout--)
     {
-        if (index >= RECEIVE_BUFFER_LENGHT_MAX - 1)
+        if (index >= RECEIVE_BUFFER_LENGHT_MAX - 2)
         {
             // BK_DEBUG_PRINTLN(F("SPACE"));
             ready = true;
@@ -3908,13 +3908,13 @@ uint16_t BK_modem::readline(uint16_t timeout, boolean multiline)
                 }
             }
 
-            m_replybuffer[index] = chr;
+            m_replybuffer[index++] = chr;   // store char in buffer + increment "index".
+
             // BK_DEBUG_PRINT(chr, HEX);
             // BK_DEBUG_PRINT(" => #");
             // BK_DEBUG_PRINTLN(chr);
 
-            // increment "index" ctr.
-            if (++index >= RECEIVE_BUFFER_LENGHT_MAX - 1)
+            if (index >= RECEIVE_BUFFER_LENGHT_MAX - 2)
             {
                 break;
             }
