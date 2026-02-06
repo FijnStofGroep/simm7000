@@ -302,7 +302,8 @@ boolean BK_modem::getBattVoltage(uint16_t *_value)
 /*****************************************************************
     BK-Sim7000 By restart firmware Power Off/On.
 ******************************************************************/
-/// @brief Hardware PCB:  Power-Off / Power-ON
+/// @brief Hardware: 
+///     PCB:  Power-Off / Power-ON => This command is used to reset the module, it also initializes the LTE firmware.
 /// @attention: DON'T change the delay() timer values.
 void BK_modem::LTE_modem_PowerUp()
 {
@@ -1557,7 +1558,7 @@ boolean BK_modem::getGPS(float *lat, float *lon,
 boolean BK_modem::enableGPSNMEA(uint8_t input)
 {
     if( input )
-    {                                                   // AT+CGPSNMEA? => 7600
+    {                                                           // AT+CGPSNMEA? => 7600
         sendCheckReply(F("AT+CGNSCFG=1"), m_ok_reply);          // Turn on GNSS NMEA Data Output to USB port.
         sendCheckReply(F("AT+CGNSTST=1"), m_ok_reply);          // Turn on GNSS NMEA Data Output to AT port.
 
@@ -2026,7 +2027,9 @@ boolean BK_modem::postData(const char *request_type, const char *URL, const char
     sprintf(urlBuff, "AT+HTTPPARA=\"URL\",\"%s\"", URL);
 
     if (!sendCheckReply(urlBuff, m_ok_reply, 10000))
+    {
         return false;
+    }
 
     // Perform request based on specified request Type
     if (strlen(body) > 0)
@@ -2069,7 +2072,7 @@ boolean BK_modem::postData(const char *request_type, const char *URL, const char
             return false;
         }
 
-        delay(100); // Needed for fast baud rates (ex: 115200 baud with SAMD21 hardware serial)
+        //delay(100); // Needed for fast baud rates (ex: 115200 baud with SAMD21 hardware serial)
 
         if (!sendCheckReply(body, m_ok_reply, 10000))
         {
@@ -5828,6 +5831,10 @@ boolean BK_modem_7600::begin()
 {
     BK_DEBUG_PRINTLN(F("BK_modem_7600::Begin() start..."));
 
+    //TODO: TEST TRST
+    //This command is used to reset the module, it also initializes the LTE firmware.
+    //sendCheckReply(F("AT+CRESET"), m_ok_reply, (uint16_t)10000);
+
     bool result = BK_modem::begin();        //call base class.
 
     if(result)
@@ -5975,8 +5982,10 @@ void BK_modem_7600::stop()
 }
 
 /********* GPS **********************************************************/
-/// @brief 
+/// @brief This command is used to start or stop GPS session.
 /// @param onoff 
+///             0 – stop GPS session
+///             1 – start GPS session
 /// @return 
 boolean BK_modem_7600::enableGPS(boolean onoff)
 {
@@ -6001,6 +6010,10 @@ boolean BK_modem_7600::enableGPS(boolean onoff)
         {
             return false;
         }
+
+        //This command is used to delete the GPS information.
+        //After executing the command, GPS start is cold start.
+        sendCheckReply(F("AT+CGPSDEL"), m_ok_reply, true);
     }
 
     return true;

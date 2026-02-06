@@ -145,7 +145,7 @@
  * PLATFORM: Espressif 8266 (3.0.1) > NodeMCU 1.0 (ESP-12E Module)		*
  * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
  * RAM:     [=====     ]  47.0% (used 38500 bytes from 81920 bytes)		*
- * PROGRAM: [======    ]  66.7% (used 697001 bytes from 1044464 bytes)	*
+ * PROGRAM: [======    ]  66.7% (used 696905 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -4490,6 +4490,8 @@ static WiFiClient *getNewLoggerWiFiClient(const LoggerEntry logger)
 		_client = new WiFiClientSecure;
 
 #if defined(ESP8266)
+		// The following line creates a new WiFiClientSecure instance called _client.
+		// In case you don’t want to verify the server certificate, use the setInsecure() method on the client.
 		static_cast<WiFiClientSecure *>(_client)->setSession(loggerConfigs[logger].session);
 		static_cast<WiFiClientSecure *>(_client)->setBufferSizes(1024, TCP_MSS > 1024 ? 2048 : 1024);
 		static_cast<WiFiClientSecure *>(_client)->setSSLVersion(BR_TLS12, BR_TLS12);
@@ -4500,7 +4502,7 @@ static WiFiClient *getNewLoggerWiFiClient(const LoggerEntry logger)
 			case LoggerInflux:
 			case LoggerCustom:
 			case LoggerFSapp:
-				static_cast<WiFiClientSecure *>(_client)->setInsecure();
+				static_cast<WiFiClientSecure *>(_client)->setInsecure();		// Ignore SSL certificate validation
 				break;
 
 			default:

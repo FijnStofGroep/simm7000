@@ -929,16 +929,19 @@ int32_t sendDataByLTE(const LoggerEntry logger, const String &str_JsonData, cons
 
     unsigned long start_send = millis();
 
-    debug_outln_info(F("-------- HTTP START -------------"));
+    debug_outln_info(F("-------- HTTP(S) START -------------"));
 
     if (!OpenGPRSNetwork())
     {
-        debug_outln_info(F("-------- HTTP connection ERROR (EINDE) -------------"));
+        debug_outln_info(F("-------- HTTP(S) connection ERROR (EINDE) -------------"));
         return 0;
     }
 
-    debug_outln_info(F("-------- HTTP process under construction -------------"));
-    return millis() - start_send;
+    //if (LTEmodem->Sim_Type() != SIMTYPE::SIM7600E)
+    //{
+        debug_outln_info(F("-------- HTTP(S) process under construction -------------"));
+        return millis() - start_send;
+    //}
 
     uint16_t statuscode = -1;
     int16_t respLength;
@@ -987,11 +990,11 @@ int32_t sendDataByLTE(const LoggerEntry logger, const String &str_JsonData, cons
     // Post data to website.
     if (portnr == 80)
     {
-        sprintf(s_url, "http://%s:%d%s", host, portnr, url);                   // HTTP Format URI
+        sprintf(s_url, "http://%s:%d %s", host, portnr, url);                   // HTTP Format URI
     }
     else
     {
-        sprintf(s_url, "https://%s:%d%s", host, portnr, url);                  // HTTPS Format URI
+        sprintf(s_url, "https://%s:%d %s", host, portnr, url);                  // HTTPS Format URI
     }
 
     debug_outln_info(F("**** URL: "), s_url);
@@ -1003,10 +1006,11 @@ int32_t sendDataByLTE(const LoggerEntry logger, const String &str_JsonData, cons
     //String contentTmp = String(contentType) + String("\r\n") + addUserHeader + String("\r\n");
 
     // POST sensor data to ex. sensor.community server.
-    if ( !LTEmodem->HTTP_POST_start(s_url, contentType,                  // FPSTR(contentTmp.c_str()),
-                                   addUserHeader, 
-                                   (uint8_t *)str_JsonData.c_str(), str_JsonData.length(), 
-                                   &statuscode, (uint16_t *)&respLength) )
+    if ( !LTEmodem->HTTP_POST_start(s_url, 
+                                    contentType,                  // FPSTR(contentTmp.c_str()),
+                                    addUserHeader, 
+                                    (uint8_t *)str_JsonData.c_str(), str_JsonData.length(), 
+                                    &statuscode, (uint16_t *)&respLength) )
     {
         debug_outln_info("POST Failed!");
         //return 0;
@@ -1034,7 +1038,7 @@ int32_t sendDataByLTE(const LoggerEntry logger, const String &str_JsonData, cons
 		last_sendData_returncode = statuscode;
 	}
 
-    debug_outln_info(F("-------- HTTP EINDE -------------"));
+    debug_outln_info(F("-------- HTTP(S) EINDE -------------"));
 
     return millis() - start_send;
 }
