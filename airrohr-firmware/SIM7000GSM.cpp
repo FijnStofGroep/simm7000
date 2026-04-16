@@ -9,6 +9,7 @@
  * Copyright (C) 2024 ~ 2025
  * 
  * GPRS stands for General Packet Radio Service:
+ * LTE stands for Long Term Evolution. LTE is a wireless communication standard, commonly referred to as 4G.
  *  - is a technology that enables mobile devices to access data services over a cellular network.
  *  - It is the modified version of GSM architecture. GPRS is a packet-oriented mobile data mechanism, 
  *    that can carry data packets as well.
@@ -21,7 +22,7 @@
  * including commercial applications, and to alter it and redistribute it
  * freely, subject to the following restrictions:
  *
- * a small BK_SIM7000 library for GPRS modules, that just works.
+ * a small BK_SIM7000 library for LTE modules, that just works.
  * Support SIM7000E/G GSM, LTE, and WiFi modules with AT command interfaces.
  * based on Adafruit_FONA
  *
@@ -89,11 +90,11 @@ namespace cfg7
 {
     bool s7000_has_gps = HAS_GPS;
 
-    char gprsapn[LEN_SIMM7000];
-    char gprsUser[LEN_SIMM7000];
-    char gprsPass[LEN_SIMM7000];
+    char lteapn[LEN_SIMM7000];
+    char lteUser[LEN_SIMM7000];
+    char ltePass[LEN_SIMM7000];
     // set GSM PIN, if any (#define GSM_PIN "")
-    char gprsPIN[LEN_SEN5X_SYM];
+    char ltePIN[LEN_SEN5X_SYM];
 
     // 1 = SIM7000_RXD5_TXD6    (default)
 	// 2 = SIM7000_RXD6_TXD5
@@ -115,11 +116,11 @@ namespace cfg7
     // init: set default values to options.
 	void initNonTrivials()
     {
-        strcpy_P(gprsapn, GPRSAPNCODE);
-        strcpy_P(gprsUser, WWW_USERNAME);
-        strcpy_P(gprsPass, WWW_PASSWORD);
+        strcpy_P(lteapn, LTEAPNCODE);
+        strcpy_P(lteUser, WWW_USERNAME);
+        strcpy_P(ltePass, WWW_PASSWORD);
         
-        strcpy_P(gprsPIN, SIM7_PIN);
+        strcpy_P(ltePIN, SIM7_PIN);
     }
 }
 
@@ -133,13 +134,13 @@ BK_modem * LTEmodem = NULL;
 //***************************************************************************************************************************************************
 
 /*****************************************************************
- *   GPRS Modem Info()                                           *
+ *   LTE Modem Info()                                           *
 ******************************************************************/
-void Display_GPRSModemInfo()
+void Display_GPRS_LTEModemInfo()
 {
     // if (cfg::debug < DEBUG_MAX_INFO)
     // {
-    //     // String local = LTEmodem.getGPRSIP();
+    //     // String local = LTEmodem.getGPRS_LTEIP();
     //     // debug_outln_verbose(F("Local IP: "), local);
 
     //     String oper = LTEmodem->getOperator();
@@ -153,15 +154,15 @@ void Display_GPRSModemInfo()
     int16_t imode;
     RESERVE_STRING(smode, MED_STR);
 
-    debug_outln_verbose(F("\n--- Display GPRS Information ---"));
+    debug_outln_verbose(F("\n--- Display LTE Information ---"));
 
-    if (LTEmodem->isGprsConnected())
+    if (LTEmodem->isLTEConnected())
     {
-        debug_outln_verbose(F("GPRS status: connected."));
+        debug_outln_verbose(F("LTE status: connected."));
     }
     else
     {
-        debug_outln_verbose(F("GPRS status: not connected."));
+        debug_outln_verbose(F("LTE status: not connected."));
     }
 
     imode = LTEmodem->getNetworkMode();
@@ -225,7 +226,7 @@ void Display_GPRSModemInfo()
     LTEmodem->getNetworkInfo(smode);
     debug_outln_verbose(F("The current network parameters:\n\t"), smode);
 
-    debug_outln_verbose(F("--- End GPRS Display Information ---\n"));
+    debug_outln_verbose(F("--- End LTE Display Information ---\n"));
 }
 
 /// @brief 
@@ -238,7 +239,7 @@ int32_t GetWiFi_RSSI( void)
 {
     if (lte_init_failed)
     {
-        debug_outln_verbose(F("RSSI: LTE module (GPRS) \"NOT\" connected.."));
+        debug_outln_verbose(F("RSSI: LTE module \"NOT\" connected.."));
         return 0;
     }
 
@@ -257,11 +258,11 @@ String GetLTELocalIP(void)
 {
     if (lte_init_failed)
     {
-        debug_outln_info(F("IP: LTE module (GPRS) \"NOT\" connected.."));
+        debug_outln_info(F("IP: LTE module \"NOT\" connected.."));
         return String("0.0.0.0");
     }
 
-    return LTEmodem->getGPRSIP();
+    return LTEmodem->getGPRS_LTEIP();
 }
 
 /// @brief 
@@ -319,9 +320,9 @@ bool RestartLTEModem()
 
 /// @brief 
 /// @return
-inline boolean GPRSConnect()
+inline boolean LTEConnect()
 {
-    debug_outln_info(F("GPRS Wait for network connection..."));
+    debug_outln_info(F("LTE Wait for network connection..."));
 
     // Connect to cell network and verify connection
     // If unsuccessful, retrying max 3 times with 2 sec. delay, to a connection is made.
@@ -383,28 +384,28 @@ inline boolean GPRSConnect()
             return false;
         }
 
-        debug_outln_verbose( F("GPRS-IP address: ") + LTEmodem->getGPRSIP());
-        debug_outln_info(F("GPRS connection Enabled."));
+        debug_outln_verbose( F("LTE-IP address: ") + LTEmodem->getGPRS_LTEIP());
+        debug_outln_info(F("LTE connection Enabled."));
 
         wdt_reset();        // watchdog timer reset => nodemcu ESP8266 still alive.
     }
     else
     {
-        debug_outln_verbose( F("GPRS-IP address: ") + LTEmodem->getGPRSIP());
-        debug_outln_info(F("GPRS connection already enabled."));
+        debug_outln_verbose( F("LTE-IP address: ") + LTEmodem->getGPRS_LTEIP());
+        debug_outln_info(F("LTE connection already enabled."));
     }
 
     return true;
 }
 
-/// @brief : Open GPRS / LTE Network.
+/// @brief : Open LTE Network.
 /// @param  
 /// @return : true = connected, false = NOT connected.
-boolean OpenGPRSNetwork(void)
+boolean OpenLTENetwork(void)
 {
-    if (!GPRSConnect())
+    if (!LTEConnect())
     {
-        debug_outln_info(F("--- GPRS connection ERROR ---"));
+        debug_outln_info(F("--- LTE connection ERROR ---"));
         return false;
     }
 
@@ -418,9 +419,9 @@ boolean OpenGPRSNetwork(void)
 
         // Bearer is closed.
         // enable data
-        if (!LTEmodem->enableGPRS(true))
+        if (!LTEmodem->enableGPRS_LTE(true))
         {
-            debug_outln_info(F("--- GPRS Failed to turn on ---"));
+            debug_outln_info(F("--- LTE Failed to turn on ---"));
         }
     }
 
@@ -538,11 +539,11 @@ bool Sim7000_setup( int state)
     // Unlock your SIM card with a PIN if needed
     int8_t stat = LTEmodem->getPINStatus();
     debug_outln_info(F("PIN Status: "), String(stat));
-    // debug_outln_info(F("GPRS PIN: "), String(strlen(cfg7::gprsPIN)));
+    // debug_outln_info(F("LTE PIN: "), String(strlen(cfg7::ltePIN)));
 
-    if ( strlen(cfg7::gprsPIN) > 0 && stat != 3)
+    if ( strlen(cfg7::ltePIN) > 0 && stat != 3)
     {
-        LTEmodem->unlockSIM(cfg7::gprsPIN);
+        LTEmodem->unlockSIM(cfg7::ltePIN);
     }
 
     if( stat < PinStatus::SIM_READY)    
@@ -570,17 +571,17 @@ bool Sim7000_setup( int state)
 
     debug_outln_info(F(" Success."));
 
-    // GPRS connection parameters are usually set after network registration
-    debug_outln_info(F("GPRS \"APN\" config parameter: "), cfg7::gprsapn);
-    //debug_out(F("gprsConnect => set APN, User, Password value to open GPRS network connection to provider "), DEBUG_MIN_INFO);
+    // LTE connection parameters are usually set after network registration
+    debug_outln_info(F("LTE \"APN\" config parameter: "), cfg7::lteapn);
+    //debug_out(F("lteConnect => set APN, User, Password value to open LTE network connection to provider "), DEBUG_MIN_INFO);
 
-    if( strlen(cfg7::gprsUser) > 0)
+    if( strlen(cfg7::lteUser) > 0)
     {
-        LTEmodem->setNetworkSettings(FPSTR(cfg7::gprsapn), FPSTR(cfg7::gprsUser), FPSTR(cfg7::gprsPass));
+        LTEmodem->setNetworkSettings(FPSTR(cfg7::lteapn), FPSTR(cfg7::lteUser), FPSTR(cfg7::ltePass));
     }
     else
-    {   //LTEmodem.setNetworkSettings(F(GPRSAPNCODE));
-        LTEmodem->setNetworkSettings(FPSTR(cfg7::gprsapn));
+    {   //LTEmodem.setNetworkSettings(F(LTEAPNCODE));
+        LTEmodem->setNetworkSettings(FPSTR(cfg7::lteapn));
     }
 
     LTEmodem->setPreferredMode(cfg7::mode_selection );                          // 38 = LTE only.
@@ -638,7 +639,7 @@ bool Sim7000_setup( int state)
 
     if( state == SETUP_STATE::INIT)
     {
-        Display_GPRSModemInfo();
+        Display_GPRS_LTEModemInfo();
     }
 
     wait_NTP_sync_time = 15000;                       // wait 15 sec. before the first call to "setNTPTimeSync();""
@@ -753,7 +754,7 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
 {
     if (lte_init_failed)
     {
-        debug_outln_info(F("MQTT: LTE module (GPRS) \"NOT\" connected.. "));
+        debug_outln_info(F("MQTT: LTE module \"NOT\" connected.. "));
         return false;
     }
 
@@ -786,7 +787,7 @@ boolean sendDataByMQTT(const char *topic, const char *payload)
 
     debug_outln_info(F("Start send Data By MQTT process."));
 
-    if (!OpenGPRSNetwork())
+    if (!OpenLTENetwork())
     {
         debug_outln_info(F("--- MQTT connection ERROR (EINDE) ---"));
 
@@ -923,7 +924,7 @@ int32_t sendDataByLTE(const LoggerEntry logger, const String &str_JsonData, cons
 {
     if (lte_init_failed)
     {
-        debug_outln_info(F("API's: LTE module (GPRS) \"NOT\" connected.. "));
+        debug_outln_info(F("API's: LTE module \"NOT\" connected.. "));
         return 0;
     }
 
@@ -931,7 +932,7 @@ int32_t sendDataByLTE(const LoggerEntry logger, const String &str_JsonData, cons
 
     debug_outln_info(F("-------- HTTP(S) START -------------"));
 
-    if (!OpenGPRSNetwork())
+    if (!OpenLTENetwork())
     {
         debug_outln_info(F("-------- HTTP(S) connection ERROR (EINDE) -------------"));
         return 0;
@@ -1047,7 +1048,7 @@ int32_t sendDataByLTE(const LoggerEntry logger, const String &str_JsonData, cons
 /// @param  : NTP server : 2.pool.ntp.org
 void setNTPTimeSync(void)
 {
-    if ( lte_init_failed || !OpenGPRSNetwork())
+    if ( lte_init_failed || !OpenLTENetwork())
     {
         debug_outln_info(F("--- NTP network \"NOT\" connected ---"));
         return;

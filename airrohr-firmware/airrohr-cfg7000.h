@@ -33,9 +33,9 @@ struct Config7000ShapeEntry
 /// @brief sequence for configShape7[] table.
 enum ConfigShape7Id 
 {
-    Config7000_gprsapn = 0,
-    Config7000_gprsUser,
-    Config7000_gprsPass,
+    Config7000_lteapn = 0,
+    Config7000_lteUser,
+    Config7000_ltePass,
 
 	Config7000_type,
 	Config7000_mode_selection,
@@ -57,9 +57,9 @@ static constexpr char CFG_KEY_HAS_GPS[] PROGMEM = "has_gps";
 
 static constexpr Config7000ShapeEntry configShape7[] PROGMEM = 
 {
-    { Config7_Type_String, sizeof(cfg7::gprsapn)-1, CFG_KEY_APN, cfg7::gprsapn },
-    { Config7_Type_String, sizeof(cfg7::gprsUser)-1, CFG_KEY_USER, cfg7::gprsUser },
-    { Config7_Type_String, sizeof(cfg7::gprsPass)-1, CFG_KEY_PASS, cfg7::gprsPass },
+    { Config7_Type_String, sizeof(cfg7::lteapn)-1, CFG_KEY_APN, cfg7::lteapn },
+    { Config7_Type_String, sizeof(cfg7::lteUser)-1, CFG_KEY_USER, cfg7::lteUser },
+    { Config7_Type_String, sizeof(cfg7::ltePass)-1, CFG_KEY_PASS, cfg7::ltePass },
 
 	{ Config7_Type_UInt, 0, CFG_KEY_TYPE, &cfg7::sim_type },
 	{ Config7_Type_UInt, 0, CFG_KEY_MODE_TYPE, &cfg7::mode_selection },

@@ -107,7 +107,7 @@ enum SIMTYPE
 #ifndef LTE_GSM_YIELD
     #define LTE_GSM_YIELD_MS 0
     #define LTE_GSM_YIELD() \
-            { delay(LTE_GSM_YIELD_MS); }      // #define GPRS_YIELD_MS 0
+            { delay(LTE_GSM_YIELD_MS); }      // #define LTE_YIELD_MS 0
 #endif
 
 #define RESERVE_STRING(name, size) String name((const char*)nullptr); name.reserve(size)
@@ -199,9 +199,9 @@ public:
     boolean enableRTC(uint8_t i);
     boolean readRTC(uint8_t *year, uint8_t *month, uint8_t *date, uint8_t *hr, uint8_t *min, uint8_t *sec, int8_t *tz);
 
-    // GPRS handling
-    int8_t GPRSstate(void);
-    bool isGprsConnected();
+    // GPS_LTE handling
+    int8_t LTEstate(void);
+    bool isLTEConnected();
     boolean getGSMLoc(uint16_t *replycode, char *buff, uint16_t maxlen);
     boolean getGSMLoc(float *lat, float *lon);
     void setNetworkSettings(FStringPtr apn, FStringPtr username = 0, FStringPtr password = 0);
@@ -332,7 +332,7 @@ public:
 
 
     // define: BK_modem abstract functions().
-    virtual boolean enableGPRS( boolean flag) = 0;
+    virtual boolean enableGPRS_LTE( boolean flag) = 0;
     virtual boolean openWirelessConnection( boolean flag) = 0;
     virtual String Name() = 0;
     virtual SIMTYPE Sim_Type() = 0;
@@ -342,7 +342,7 @@ public:
     // define: BK_modem override functions().
     virtual boolean wirelessConnStatus(void);   // Check for Network connection status
     virtual int8_t  getBearerStatus(void);
-    virtual String  getGPRSIP(void);
+    virtual String  getGPRS_LTEIP(void);
     virtual void    AT_powerDown(void);
 
 protected:
@@ -444,7 +444,7 @@ public:
 
     // These are abstract functions() see base class "BK_modem"
     // Interface function defines
-    boolean enableGPRS(boolean onoff);
+    boolean enableGPRS_LTE(boolean onoff);
     boolean openWirelessConnection(bool onoff);
     String Name();
     SIMTYPE Sim_Type()  { return SIMTYPE::SIM7000E; }
@@ -479,7 +479,7 @@ public:
  
     // These are abstract functions() see Base class "BK_modem"
     // Interface function defines
-    boolean enableGPRS(boolean onoff);
+    boolean enableGPRS_LTE(boolean onoff);
     boolean openWirelessConnection(bool onoff);
     String Name();
     SIMTYPE Sim_Type()  { return SIMTYPE::SIM7080E; }
@@ -489,7 +489,7 @@ public:
     boolean wirelessConnStatus(void) override;
     //int8_t getBearerStatus(void) override;
     void stop() override;
-    String  getGPRSIP(void) override;
+    String  getGPRS_LTEIP(void) override;
     void AT_powerDown(void) override;
 
 protected:
@@ -527,7 +527,7 @@ public:
     
     // These are abstract functions() see base class "BK_modem"
     // Interface function defines.
-    boolean enableGPRS(boolean onoff);
+    boolean enableGPRS_LTE(boolean onoff);
     boolean openWirelessConnection(bool onoff);
     String Name();
     SIMTYPE Sim_Type();
@@ -537,7 +537,7 @@ public:
     // Override functions() from functions in the base class "BK_modem"
     boolean begin() override;
     boolean wirelessConnStatus(void) override;
-    String  getGPRSIP(void) override;
+    String  getGPRS_LTEIP(void) override;
     void  MQTT_disconnect(void) override;
     boolean getGPS(float *lat, float *lon, float *speed_kph, float *heading, float *altitude,
                              uint16_t *year, uint8_t *month, uint8_t *day, uint8_t *hour, uint8_t *min, uint8_t *sec) override;

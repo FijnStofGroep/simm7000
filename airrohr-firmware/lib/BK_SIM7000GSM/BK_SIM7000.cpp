@@ -17,11 +17,12 @@
  * including commercial applications, and to alter it and redistribute it
  * freely, subject to the following restrictions:
  *
- * BK_SIM7000 library for GPRS/GSM modules, that just works.
- * GPRS stands for "General Packet Radio Service". 
- * It’s a mobile data standard that enhances the existing GSM (Global System for Mobile Communications) network. 
+ * BK_SIM7000 library for GPRS/LTE/GSM modules, that just works.
+ *  - GPRS stands for "General Packet Radio Service".
+ *  - LTE stands for Long Term Evolution. LTE is a wireless communication standard, commonly referred to as 4G.
+ *      It’s a mobile data standard that enhances the existing GSM (Global System for Mobile Communications) network. 
  * 
- * Support SIM7000E/G GSM, LTE, and WiFi modules with AT command interfaces.
+ * Support SIM7000E/G GSM, GPRS, LTE, and WiFi modules with AT command interfaces.
  * based on Adafruit_FONA.
  *
  *  AND Technologies Co., ltd, Breakout SIM7000 PCB board
@@ -277,7 +278,7 @@ void BK_modem::base_stop()
 {
     BK_DEBUG_PRINTLN(F("BK_modem => base_stop()"));
 
-    // disconnect all sockets and close bearer and detach from GPRS Service.
+    // disconnect all sockets and close bearer and detach from LTE Service.
     sendCheckReply(F("AT+CIPSHUT"), F("SHUT OK"), 8000);
 }
 
@@ -333,7 +334,7 @@ void BK_modem::LTE_modem_PowerOff()
 /// @param  
 void BK_modem::AT_powerDown(void)
 {
-    // disconnect all sockets and close bearer and detach from GPRS Service.
+    // disconnect all sockets and close bearer and detach from LTE Service.
     stop();
 
     delay(1);                           // to reset Soft WDT
@@ -478,7 +479,7 @@ boolean BK_modem::setNetLED(bool onoff, uint8_t mode, uint16_t timer_on, uint16_
 {
     if (onoff)
     {
-        getReply(F("AT+CSGS?"));    // Netlight Indication of GPRS Status.
+        getReply(F("AT+CSGS?"));    // Netlight Indication of LTE Status.
 
         uint16_t stsMode;
         parseReply(F("+CSGS:"), &stsMode);
@@ -486,9 +487,9 @@ boolean BK_modem::setNetLED(bool onoff, uint8_t mode, uint16_t timer_on, uint16_
             <stsMode>
                 0 Disable
                 1 Enable, the netlight will be forced to enter into 64ms on/300ms off
-                  blinking state in GPRS data transmission service.
+                  blinking state in LTE data transmission service.
                   Otherwise, the netlight state is not restricted.
-                2 Enable, the netlight will blink according to "AT+SLEDS" in GPRS data transmission service.
+                2 Enable, the netlight will blink according to "AT+SLEDS" in LTE data transmission service.
         */
 
         if (mode == 0 )
@@ -707,7 +708,7 @@ uint8_t BK_modem::getNetworkStatus(void)
 //           0 Disable network registration unsolicited result code.
 //           1 Enable network registration unsolicited, result code +CGREG: <stat>
 //           2 Enable network registration and location information unsolicited, result code +CGREG: <stat>[,<lac>,<ci>,<netact>]
-//           4 Enable display gprs time and periodic RAU.
+//           4 Enable display lte time and periodic RAU.
 /// @return true = OK, false = Error
 bool BK_modem::setNetworkStatus(uint8_t option)
 {
@@ -1170,7 +1171,7 @@ boolean BK_modem::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, uint16 
         char _sendbuffer[64] = {0};
         if (cid == 7000)
         {// SIM7000
-            // Set GPRS bearer = 1 profile to associate with NTP sync.
+            // Set GPRS/LTE bearer = 1 profile to associate with NTP sync.
             if (!sendCheckReply(F("AT+CNTPCID=1"), m_ok_reply))
             {
                 return false;
@@ -1181,7 +1182,7 @@ boolean BK_modem::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, uint16 
         }
         else
         {
-            // Set GPRS bearer = 0..3 profile to associate with NTP sync.
+            // Set GPRS/LTE bearer = 0..3 profile to associate with NTP sync.
             if (!sendCheckReply(F("AT+CNTPCID="), cid, m_ok_reply))
             {
                 return false;
@@ -1577,7 +1578,7 @@ void BK_modem::getGPSAntennaVoltage(uint16_t* voltage_mv)
     *voltage_mv = 2800;
 }
 
-/********* GPRS **********************************************************/
+/********* LTE module **********************************************************/
 
 /// @brief Read the temperature of the module
 /// @return default 0C.
@@ -1738,7 +1739,7 @@ uint8_t BK_modem::getNetworkSystemMode(char *typeStringBuffer)
 }
 
 // Bearer Settings for Applications Based on IP
-//   Query the GPRS bearer context status
+//   Query the GPRS/LTE bearer context status
 // cid = 1  => Bearer profile identifier:
 // Returns bearer status: 
 //                       1 Bearer is connected
@@ -1874,10 +1875,10 @@ String BK_modem::getResponseMessage(void)
     }
 }
 
-/// @brief: Attach or Detach to GPRS/EPS service.
+/// @brief: Attach or Detach to GPRS/LTE/EPS service.
 /// @param
 /// @return: 0 = Detached, 1 = Attached
-int8_t BK_modem::GPRSstate(void)
+int8_t BK_modem::LTEstate(void)
 {
     uint16_t state;
 
@@ -1894,11 +1895,11 @@ int8_t BK_modem::GPRSstate(void)
     return state;
 }
 
-/// @brief Checks if current attached to GPRS/EPS service
+/// @brief Checks if current attached to GPRS/LTE/EPS service
 /// @return
-bool BK_modem::isGprsConnected()
+bool BK_modem::isLTEConnected()
 {
-    int8_t state = GPRSstate();
+    int8_t state = LTEstate();
 
     if (state != 0)
     {
@@ -2004,7 +2005,7 @@ boolean BK_modem::wirelessConnStatus(void)
 */
 boolean BK_modem::postData(const char *request_type, const char *URL, const char *body, const char *token, uint32_t bodylen)
 {
-    // NOTE: Need to open socket/enable GPRS before using this function
+    // NOTE: Need to open socket/enable LTE before using this function
     // char auxStr[64];
 
     // Make sure HTTP service is terminated so initialization will run.
@@ -4569,8 +4570,8 @@ boolean BK_modem::setPreferredLTEMode(uint8_t mode)
 
 /// @brief  Get Local IP Address extend.
 /// @param
-/// @return <IP address> A string parameter which indicates the IP address assigned from GPRS.
-String BK_modem::getGPRSIP(void)
+/// @return <IP address> A string parameter which indicates the IP address assigned from LTE.
+String BK_modem::getGPRS_LTEIP(void)
 {
     // if (!getReply(F("AT+CIFSR")))        // 2 commands: "CIFSR".
     // {
@@ -5187,7 +5188,7 @@ void BK_modem_7000::stop()
 }
 
 // Bearer Settings for Applications Based on IP
-//   Query the GPRS bearer context status
+//   Query the GPRS/LTE bearer context status
 // cid = 1  => Bearer profile identifier:
 // Returns bearer status
 //                       -1 Command returned with an error
@@ -5211,15 +5212,15 @@ int8_t BK_modem_7000::getBearerStatus(void)
 /// @brief
 /// @param onoff
 /// @return
-boolean BK_modem_7000::enableGPRS(boolean onoff)
+boolean BK_modem_7000::enableGPRS_LTE(boolean onoff)
 {
     if (onoff)
     {
-        // disconnect all sockets and close bearer and detach from GPRS Service.
+        // disconnect all sockets and close bearer and detach from LTE Service.
         stop();
         delay(100);
 
-        // set bearer profile! connection type GPRS
+        // set bearer profile! connection type GPRS/LTE
         if (!sendCheckReply(F("AT+SAPBR=3,1,\"CONTYPE\",\"GPRS\""), m_ok_reply, (uint16_t)10000))
         {
             return false;
@@ -5301,30 +5302,30 @@ boolean BK_modem_7000::enableGPRS(boolean onoff)
             }
         }
 
-        // Attach to GPRS service.
+        // Attach to GPRS/LTE service.
         if (!sendCheckReply(F("AT+CGATT=1"), m_ok_reply, (uint16_t)75000))
         {
             return false;
         }
 
-        // Query the GPRS bearer context status
+        // Query the GPRS/LTE bearer context status
         int8_t status = getBearerStatus();
         BK_DEBUG_PRINTLN(F("Bearer Status: ") + String(status));
 
-        // Open the definied GPRS bearer context.
+        // Open the definied GPRS/LTE bearer context.
         if (status > 1 && !sendCheckReply(F("AT+SAPBR=1,1"), m_ok_reply, uint16_t(85000)))
         {
             return false;
         }
 
-        // Query the GPRS bearer context status
+        // Query the GPRS/LTE bearer context status
         status = getBearerStatus();
         // if(status != 1)
         // {
         //      return false;
         // }
 
-        // Bring up the TCP application toolkit wireless connection with GPRS or CSD.
+        // Bring up the TCP application toolkit wireless connection with GPRS/LTE or CSD.
         if (!sendCheckReply(F("AT+CIICR"), m_ok_reply, (uint16_t)10000))
         {
             return false;
@@ -5352,7 +5353,7 @@ boolean BK_modem_7000::enableGPRS(boolean onoff)
 
         delay(200);
  
-        //Detach from GPRS Service
+        //Detach from GPRS/LTE Service
         if (!sendCheckReply(F("AT+CGATT=0"), m_ok_reply, (uint16_t)10000))
         {
             return false;
@@ -5503,7 +5504,7 @@ void BK_modem_7080::stop()
 /// @param  
 void BK_modem_7080::AT_powerDown(void)
 {
-    // disconnect all sockets and close bearer and detach from GPRS Service.
+    // disconnect all sockets and close bearer and detach from GPRS/LTE Service.
     stop(9000L);
 }
 
@@ -5566,7 +5567,7 @@ boolean BK_modem_7080::wirelessConnStatus(void)
 /// @brief 
 /// @param  
 /// @return : IP address
-String BK_modem_7080::getGPRSIP(void)
+String BK_modem_7080::getGPRS_LTEIP(void)
 {
     if (!getReply(F("AT+CNACT?")))
     {
@@ -5583,16 +5584,16 @@ String BK_modem_7080::getGPRSIP(void)
 /// @brief
 /// @param onoff
 /// @return
-boolean BK_modem_7080::enableGPRS(boolean onoff)
+boolean BK_modem_7080::enableGPRS_LTE(boolean onoff)
 {
     if (onoff)
     {
-        // disconnect all sockets and close bearer and detach from GPRS Service.
+        // disconnect all sockets and close bearer and detach from GPRS/LTE Service.
         // Shut down the general application TCP/IP connection
         // CNACT will close *all* open application TCP/UDP connections
         sendCheckReply(F("AT+CNACT=0,0"), m_ok_reply, (uint16_t)60000);
 
-        // Detach from GPRS Service
+        // Detach from GPRS/LTE Service
         if (!sendCheckReply(F("AT+CGATT=0"), m_ok_reply, (uint16_t)60000))
         {
             return false;
@@ -5607,14 +5608,14 @@ boolean BK_modem_7080::enableGPRS(boolean onoff)
             return false;
         }
 
-        // Attach to GPRS Service
+        // Attach to GPRS/LTE Service
         if (!sendCheckReply(F("AT+CGATT=1"), m_ok_reply, (uint16_t)60000))
         {
             return false;
         }
 
         // test
-        GPRSstate();
+        LTEstate();
 
         // NOTE:  **DO NOT** activate the PDP context
         // For who only knows what reason, doing so screws up the rest of the process
@@ -5689,7 +5690,7 @@ boolean BK_modem_7080::enableGPRS(boolean onoff)
             delay(200);
         }
 
-        // Detach from GPRS Service
+        // Detach from LTE Service
         if (!sendCheckReply(F("AT+CGATT=0"), m_ok_reply, (uint16_t)10000))
         {
             return false;
@@ -5719,7 +5720,7 @@ inline boolean BK_modem_7080::openWirelessConnection(bool onoff)
         bool res = false;
         int ntries = 5;
 
-        enableGPRS(true);
+        enableGPRS_LTE(true);
 
         while (!res && ntries > 0)
         {
@@ -5880,7 +5881,7 @@ SIMTYPE BK_modem_7600::Sim_Type()
 /// @brief
 /// @param onoff
 /// @return
-boolean BK_modem_7600::enableGPRS(boolean onoff)
+boolean BK_modem_7600::enableGPRS_LTE(boolean onoff)
 {
     if (onoff)
     {
@@ -6314,7 +6315,7 @@ boolean BK_modem_7600::enableNTPTimeSync(boolean onoff, FStringPtr ntpserver, ui
 /// @brief Get IP address of LTE module
 /// @param  
 /// @return IP address
-String BK_modem_7600::getGPRSIP(void)
+String BK_modem_7600::getGPRS_LTEIP(void)
 {
     if (!getReply(F("AT+CNETIPADDR?"))) 
     {   // or "AT+IPADDR?" Get IP address of PDP context

@@ -47,10 +47,10 @@ namespace cfg7
 {
     extern bool s7000_has_gps;
 
-    extern char gprsapn[LEN_SIMM7000];
-    extern char gprsUser[LEN_SIMM7000];
-    extern char gprsPass[LEN_SIMM7000];
-    extern char gprsPIN[LEN_SEN5X_SYM];
+    extern char lteapn[LEN_SIMM7000];
+    extern char lteUser[LEN_SIMM7000];
+    extern char ltePass[LEN_SIMM7000];
+    extern char ltePIN[LEN_SEN5X_SYM];
 
     extern unsigned sim_type;
     extern unsigned mode_selection;

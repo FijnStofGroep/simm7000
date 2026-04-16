@@ -157,10 +157,10 @@
 // increment on change.
 #if defined(VS_DEBUG)
 // Debug / Beta version:
- #define SOFTWARE_VERSION_STR "FWL-2025-01-B11"
+ #define SOFTWARE_VERSION_STR "FWL-2026-01-B12"
 #else
 // Production version:
- #define SOFTWARE_VERSION_STR "FWL-2026-01-P11"
+ #define SOFTWARE_VERSION_STR "FWL-2026-02-P1"
 #endif
 
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
@@ -2670,9 +2670,9 @@ static void webserver_config_send_body_get7(String &page_content)
 
     page_content += FPSTR(TABLE_TAG_OPEN);
 
-	add_form_input7(page_content, Config7000_gprsapn, FPSTR(INTL_SIM_APN), LEN_SIMM7000 - 1);
-    add_form_input7(page_content, Config7000_gprsUser, FPSTR(INTL_SIM_USER), LEN_SIMM7000 - 1);
-    add_form_input7(page_content, Config7000_gprsPass, FPSTR(INTL_SIM_PASS), LEN_SIMM7000 - 1);
+	add_form_input7(page_content, Config7000_lteapn, FPSTR(INTL_SIM_APN), LEN_SIMM7000 - 1);
+    add_form_input7(page_content, Config7000_lteUser, FPSTR(INTL_SIM_USER), LEN_SIMM7000 - 1);
+    add_form_input7(page_content, Config7000_ltePass, FPSTR(INTL_SIM_PASS), LEN_SIMM7000 - 1);
 
     page_content += form_select_type7();
 	page_content += form_select_mode7();
