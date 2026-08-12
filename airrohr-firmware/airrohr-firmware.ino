@@ -100,7 +100,17 @@
  * - Add: Heater is enabled higher than 65%RH threshold and the heat    *
  *    generated is dependent on the "measured Relative Humidity".       *
  *    Heater is disabled below 60%RH.                                   *
+ * 																		*
+ *  2026-08-12															*
+ * - Add:																*
+ *	  - MQTT Token in status message									*
+ *	  - New Opensensemap (“new OSEM”)									*
+ *		 • the new box / device ID										*
+ *		 • the box / device API key and									*
+ *		 • an alternative upload URL (upload.staging.opensensemap.org)	*
+ * 	  - Manual Firmware download vanaf je Laptop. 						*
  *                                                                      *
+ *----------------------------------------------------------------------*
  * Soft WDT exception:                                                  *
  * By Wifi connection or LTE modem connection to a provider             *
  * The ESP8266 the watchdog (WDT) turned on by default.                 *
@@ -141,11 +151,11 @@
  * RAM:     [=====     ]  46.9% (used 38400 bytes from 81920 bytes)     *
  * PROGRAM: [=======   ]  65.7% (used 686393 bytes from 1044464 bytes)  *
  *                                                                      *
- * latest build 2026-01-P11											    *
+ * latest build 2026-08-12											    *
  * PLATFORM: Espressif 8266 (3.0.1) > NodeMCU 1.0 (ESP-12E Module)		*
  * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
- * RAM:     [=====     ]  47.0% (used 38500 bytes from 81920 bytes)		*
- * PROGRAM: [======    ]  66.7% (used 696905 bytes from 1044464 bytes)	*
+ * RAM:     [=====     ]  48.8% (used 40012 bytes from 81920 bytes)		*
+ * PROGRAM: [======    ]  67.2% (used 702053 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -8870,7 +8880,8 @@ void setup(void)
 #if defined(ESP32)
 		serialSDS.begin(9600, SERIAL_8N1, PM_SERIAL_RX, PM_SERIAL_TX);
 #endif
-		Debug.println("No Next PM... serialSDS 9600 8N1");
+
+		Debug.println("Read SDS... serialSDS 9600 8N1");
 		serialSDS.setTimeout((4 * 12 * 1000) / 9600);
 	}
 
