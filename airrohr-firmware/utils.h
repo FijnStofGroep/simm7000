@@ -80,6 +80,12 @@ extern float readCorrectionOffset(const char* correction);
 
 extern String getDateTime(bool localTime = true, uint8 type = 0);
 
+/// @brief : Format a string with variable arguments
+/// @param format : The format string
+/// @param  : Variable arguments to be formatted according to the format string
+/// @return : A formatted String object
+extern String StringFormat(const String& format, ...);
+
 // external define cfg::member type.
 namespace cfg 
 {

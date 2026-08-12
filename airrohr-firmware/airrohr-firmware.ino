@@ -160,7 +160,7 @@
  #define SOFTWARE_VERSION_STR "FWL-2026-01-B12"
 #else
 // Production version:
- #define SOFTWARE_VERSION_STR "FWL-2026-02-P1"
+ #define SOFTWARE_VERSION_STR "FWL-2026-08-P3"
 #endif
 
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
@@ -358,7 +358,10 @@ namespace cfg
 	// API settings
 	bool ssl_madavi = SSL_MADAVI;
 	bool ssl_dusti = SSL_SENSORCOMMUNITY;
+
 	char senseboxid[LEN_SENSEBOXID] = SENSEBOXID;
+	char osem_device_api_key[LEN_OSEM_DEVICE_API_KEY] = OSEM_DEVICE_API_KEY;
+	char osem_alternate_host[LEN_OSEM_ALTERNATE_HOST] = OSEM_ALTERNATE_HOST;
 
 	char host_influx[LEN_HOST_INFLUX];
 	char url_influx[LEN_URL_INFLUX];
@@ -385,6 +388,7 @@ namespace cfg
 	char mqtt_pwd[LEN_PASS_INFLUX] = MQTT_PWD;
 	char mqtt_topic[LEN_MQTT_HEADER] = MQTT_TOPIC;
 	char mqtt_mask[LEN_MQTT_MASK] = MQTT_MASK;
+	char mqtt_token[LEN_MQTT_TOKEN] = MQTT_TOKEN;
 
 #endif
 
@@ -445,7 +449,8 @@ bool airrohr_selftest_failed = false;
 bool npm_init_failed = false;
 
 #if defined(ESP8266)
-ESP8266WebServer server(80);
+ESP8266WebServer server(WEBSERVER_PORT);	// WEBSERVER_PORT is port for webserver.
+DNSServer dnsServer;						// 53 is port for DNS server.
 
 // MQTT
 #define MAX_MQTT_BUFFER_SIZE	512
@@ -462,7 +467,7 @@ PubSubClient mqtt_client(mqtt_wifi);
 #endif
 
 #if defined(ESP32)
-WebServer server(80);
+WebServer server(WEBSERVER_PORT);
 #endif
 
 #if defined(CLIENTSECURE)
@@ -477,6 +482,7 @@ const uint8_t default_ip_fourth_octet = 1;
 
 #include "./sen5x_html.h"
 #include "./airrohr-cfg.h"
+#include "./OTALocal.h"
 
 
 /*****************************************************************
@@ -897,7 +903,7 @@ unsigned long count_sends = 0;
 unsigned long last_display_millis = 0;
 uint8_t next_display_count = 0;
 
-volatile bool flg_OTAStartbyWebCall = false;
+volatile int flg_OTAStartbyWebCall = 0;
 
 struct struct_wifiInfo
 {
@@ -1672,8 +1678,9 @@ static void init_config()
 			debug_outln_info(fileName);
 		}
 
-		// debug_outln_info(F("Total Free Sketch/Program Space = "), String(ESP.getSketchSize() + ESP.getFreeSketchSpace()));
-		Debug.printf( "Sketch Size = %u + Free Sketch Size = %u = Total Sketch Space = %u\r\n", ESP.getSketchSize(), ESP.getFreeSketchSpace(), (ESP.getSketchSize() + ESP.getFreeSketchSpace()));
+		debug_outln_info(F("\nESP8266 Flash memory use size:"));
+		//debug_outln_info(F("Total Free Sketch/Program Space = "), String(ESP.getSketchSize() + ESP.getFreeSketchSpace()));
+		debug_outln_info( StringFormat( F("\t\tSketch Size = %u + Free Sketch Size = %u = Total Sketch Space = %u\r\n"), ESP.getSketchSize(), ESP.getFreeSketchSpace(), (ESP.getSketchSize() + ESP.getFreeSketchSpace())));
 	}
 
 #pragma GCC diagnostic pop
@@ -2198,7 +2205,7 @@ static void sendHttpRedirect()
 							 );
 
 	String defaultAddress = F("http://") + defaultIP.toString() + F("/config");
-    debug_outln_info(F("--- void sendHttpRedirect ---"));
+    debug_outln_info(F("--- void sendHttpRedirect --- IP = "), defaultAddress);
 
 	server.sendHeader(F("Location"), defaultAddress);
 	server.send(302, FPSTR(TXT_CONTENT_TYPE_TEXT_HTML), emptyString);
@@ -2226,6 +2233,8 @@ static void webserver_root()
     if (cfg::has_s7000)
     {
         page_content += FPSTR(WEB_ROOT_PAGE_CONTENT_S7000);
+
+		flg_OTAStartbyWebCall = 0;	 // Reset OTA flag after update is complete/cancel. 
     }
     else
     {
@@ -2414,6 +2423,8 @@ static void webserver_config_send_body_get(String &page_content)
 	add_form_input(page_content, Config_debug, FPSTR(INTL_DEBUG_LEVEL), 1);
 	add_form_input(page_content, Config_sending_intervall_ms, FPSTR(INTL_MEASUREMENT_INTERVAL), 5);
 	add_form_input(page_content, Config_time_for_wifi_config, FPSTR(INTL_DURATION_ROUTER_MODE), 5);
+
+	add_form_input(page_content, Config_mqtt_token, FPSTR(INTL_MQTT_TOKEN), LEN_MQTT_TOKEN - 1);
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 
 	server.sendContent(page_content);
@@ -2515,6 +2526,8 @@ static void webserver_config_send_body_get(String &page_content)
         add_form_checkbox(Config_send2sensemap, FPSTR(WEB_OPENSENSEMAP));
         page_content += FPSTR(TABLE_TAG_OPEN);
         add_form_input(page_content, Config_senseboxid, F("senseBox&nbsp;ID"), LEN_SENSEBOXID - 1);
+		add_form_input(page_content, Config_osem_device_api_key, F("openSenseMap&nbsp;device&nbsp;API&nbsp;key"), LEN_OSEM_DEVICE_API_KEY - 1);
+		add_form_input(page_content, Config_osem_alternate_host, F("openSenseMap&nbsp;alternative&nbsp;host&nbsp;url"), LEN_OSEM_ALTERNATE_HOST - 1);
 
         server.sendContent(page_content);
         page_content = FPSTR(TABLE_TAG_CLOSE_BR);
@@ -2925,6 +2938,15 @@ static void webserver_firmware_update()
 		return;
 	}
 
+	if ( cfg::has_s7000 )
+	{// Only for S7000: Show OTA Root Page with Update Button.
+		debug_outln_info(F("ws: firmware Update page S7000..."));
+		Send_OTA_RootPage();
+
+ 		flg_OTAStartbyWebCall = 2;
+		return;
+	}
+
 	//String page_content;
 	//page_content.reserve(512);
 	// same result
@@ -2946,7 +2968,7 @@ static void webserver_firmware_update()
 		debug_outln_verbose(F("webserver_firmware_update(): HTTP POST: "), F("start OTA process on main loop()."));
 
 		// start OTA process on main loop().
-		flg_OTAStartbyWebCall = true;
+		flg_OTAStartbyWebCall = 1;
 	}
 
 	end_html_page(page_content);
@@ -3961,8 +3983,9 @@ static void setup_webserver()
 	server.on(F("/metrics"), webserver_metrics_endpoint);
 	server.on(F("/favicon.ico"), webserver_favicon);
 	server.on(F(STATIC_PREFIX), webserver_static);
-
 	server.onNotFound(webserver_not_found);
+
+	if (cfg::has_s7000)	Set_OTA_UpdateHandlers();
 
 	debug_outln_info(F("Station (STA) Mode: Start Web-server... "), WiFi.localIP().toString());
 	debug_outln_info(F("Access Point (AP) Mode: Starting Webserver... "), WiFi.softAPIP().toString());
@@ -4162,11 +4185,11 @@ static void wifi_AP_Config()
         return;
     }
 
-	DNSServer dnsServer;
+	//DNSServer dnsServer;				// move to global scope, otherwise it will be destroyed when this function ends.
 	// Ensure we don't poison the client DNS cache
 	dnsServer.setTTL(0);
 	dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-	dnsServer.start(53, "*", apIP); 					// 53 is port for DNS server
+	dnsServer.start(DNS_PORT, "*", apIP); 					// 53 is port for DNS server
 
     // Webserver setup menu function table list.
     setup_webserver();
@@ -4472,7 +4495,7 @@ static void connectWifi()
 
 	if (MDNS.begin(cfg::fs_ssid))
 	{// setUp Configuration Server.
-		MDNS.addService("http", "tcp", 80);
+		MDNS.addService("http", "tcp", WEBSERVER_PORT);
 		MDNS.addServiceTxt("http", "tcp", "PATH", "/config");
 	}
 }
@@ -4576,6 +4599,11 @@ static unsigned long sendDataByWifi(const LoggerEntry logger, const String &data
 		if (pin)
 		{
 			http.addHeader(F("X-PIN"), String(pin));
+		}
+
+		if (logger == LoggerEntry::LoggerSensemap && cfg::send2sensemap && (*cfg::osem_device_api_key))
+		{// OpenSenseMap API key in header => required for sending data to Alternate "opensensemap.org" Host.
+			http.addHeader(F("x-osem-device-api-key"), String(cfg::osem_device_api_key));
 		}
 
 		// POST sensor data to ex. sensor.community server.
@@ -4743,6 +4771,13 @@ static void sendmqtt(const String &data)
 			status_header += "/status";
 
 			payload_status = "{\"";
+			if( *cfg::mqtt_token )
+			{// token is set => send token to server.
+				payload_status += FPSTR(INTL_TOKEN);
+				payload_status += "\":\"";
+				payload_status += cfg::mqtt_token;
+				payload_status += "\",\"";
+			}
 			payload_status += FPSTR(INTL_STATIC_IP);
 			payload_status += "\":\"";
 			payload_status += !cfg::has_s7000 ? WiFi.localIP().toString() : GetLTELocalIP();
@@ -4757,7 +4792,7 @@ static void sendmqtt(const String &data)
 			payload_status += "\",\"";
 	        payload_status += FPSTR(INTL_TIME_GMT);
             payload_status += "\":\"";
-            payload_status += getDateTime(true, 3);
+            payload_status += getDateTime(false, 3);
             payload_status += "\",\"";
             payload_status += F("Uptime");
             payload_status += "\":\"";
@@ -7110,7 +7145,7 @@ static void twoStageOTAUpdate()
 	}
 
 	// start OTA process on main loop().
-	flg_OTAStartbyWebCall = true;
+	flg_OTAStartbyWebCall = 1;
 	//StartTwoStageOTAUpdate();
 }
 
@@ -8508,6 +8543,11 @@ static void logEnabledAPIs()
 	if (cfg::send2sensemap)
 	{
 		debug_outln_info(F("\tOpenSenseMap.org"));
+
+		if ( (*cfg::osem_alternate_host) )
+		{
+			debug_outln_info(F("\tAlternate Upload Host: "), String(cfg::osem_alternate_host));
+		}
 	}
 
 	if (cfg::send2mqtt)
@@ -8628,13 +8668,29 @@ static unsigned long sendDataToOptionalApis(const String &data)
 			data_2_sensemap = data_sensemap;
 			data_2_sensemap.replace("signal", "wifi_signal");	// replace Wifi signal ID.
 
-			sum_send_time += sendData(LoggerSensemap, data_2_sensemap, 0, HOST_SENSEMAP, sensemap_path.c_str());
+			if ( (*cfg::osem_alternate_host) && (*cfg::osem_device_api_key) )
+			{
+				sum_send_time += sendData(LoggerSensemap, data_2_sensemap, 0, cfg::osem_alternate_host, sensemap_path.c_str());
+			}
+			else
+			{
+				sum_send_time += sendData(LoggerSensemap, data_2_sensemap, 0, HOST_SENSEMAP, sensemap_path.c_str());
+			}
 
 			debug_outln_verbose(F("opensensemap data: "), data_2_sensemap);
 		}
 		else
 		{
-			sum_send_time += sendData(LoggerSensemap, data, 0, HOST_SENSEMAP, sensemap_path.c_str());
+			if ( (*cfg::osem_alternate_host) && (*cfg::osem_device_api_key) )
+			{
+				sum_send_time += sendData(LoggerSensemap, data, 0, cfg::osem_alternate_host, sensemap_path.c_str());
+			}
+			else
+			{
+				sum_send_time += sendData(LoggerSensemap, data, 0, HOST_SENSEMAP, sensemap_path.c_str());
+			}
+
+			//debug_outln_verbose(F("opensensemap data: "), data);
 		}
 	}
 
@@ -8955,6 +9011,12 @@ void setup(void)
  *****************************************************************/
 void loop(void)
 {
+	if (flg_OTAStartbyWebCall == 2 && cfg::has_s7000)
+	{
+		OTA_UpdateLoop();		// call OTA process for Sim7000 PCB.
+		return;
+	}
+
 	unsigned long sleep = SLEEPTIME_MS;
 	String result_PPD, result_SDS, result_PMS, result_HPM, result_NPM, result_IPS;
 	String result_GPS, result_DNMS;
@@ -9116,6 +9178,8 @@ void loop(void)
 		last_display_millis = act_milli;
 	}
 
+	// TEST  TEST TEST 2026-08-02 dnsServer
+	dnsServer.processNextRequest();
 	server.handleClient();				// when a connection is make by iphone/tablet/... to the home webpage of sensor app.
 
 	yield();							// give waiting thread(s) CPU time.
@@ -9422,13 +9486,16 @@ void loop(void)
 	}
 	else
 	{
-		// time for a OTA attempt?
-		if (flg_OTAStartbyWebCall && sntp_time_set > 0)
-		{
+		// Check for OTA process attempt?
+		if (flg_OTAStartbyWebCall == 1 && sntp_time_set > 0)
+		{// OTA started by Timer or by Web call.
 			debug_outln_info(F("Start OTA in LOOP()"));
 
-			StartTwoStageOTAUpdate();
-			flg_OTAStartbyWebCall = false;
+			StartTwoStageOTAUpdate();	// DownLoad firmware bin files.
+
+			// Only return to normal loop() if OTA process is Broken/Aborted/ExceptionError 
+			// or NO newer firmwareversion available.
+			flg_OTAStartbyWebCall = 0;
 		}
 	}
 
@@ -9456,14 +9523,28 @@ void loop(void)
     // The chip can then enter a lower power mode.
 	if (cfg::powersave)
 	{
-        // need to TEST before release.
-        // Deep-sleep for 35 seconds, and then wake up. 
-        //sleep = 35000 * 1000;         // time in usec.
-        //system_deep_sleep_instant(sleep);
+        /* 
+			function so that the chip will not perform RF calibration after waking up
+        	from Deep-sleep to reduce the initialization time and current consumption. 
+		
+			system_deep_sleep_set_option(mode):
+				mode = 0 → RF_CAL after wake (default, higher power use)
+				mode = 1 → No RF_CAL after wake (faster, lower power)
+				mode = 2 → RF disabled after wake
+				mode = 4 → RF_CAL after wake, but keep RF disabled until wifi is started manually
+		*/
+        //system_deep_sleep_set_option(1);
 
-        // function so that the chip will not perform RF calibration after waking up
-        // from Deep-sleep to reduce the initialization time and current consumption. 
-        //system_deep_sleep_set_option(2);
+        // need to TEST before release.
+		// Schedules deep sleep after the current Wi-Fi and system tasks finish.
+		// Deep sleep time is in microseconds
+  		//system_deep_sleep(10 * 1000000ULL);
+
+		// Forces immediate deep sleep without waiting for pending tasks.
+		// maximale sleep time => opstarten sensoren
+        // Deep-sleep for 35 seconds, and then wake up. 
+        // uint64 sleep = 35000 * 1000;         // time in usec.
+        // system_deep_sleep_instant(sleep);
 
 		delay(sleep);
 	}

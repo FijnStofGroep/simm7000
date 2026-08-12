@@ -68,6 +68,8 @@ Time		sending_intervall_ms
 Time		time_for_wifi_config
 Bool		powersave
 String		senseboxid
+String		osem_device_api_key
+String		osem_alternate_host
 Bool		send2custom
 String		host_custom
 String		url_custom
@@ -88,6 +90,7 @@ String		mqtt_user
 Password	mqtt_pwd
 String		mqtt_topic
 String		mqtt_mask
+String		mqtt_token
 String		measurement_name_influx
 Bool		ssl_influx
 Bool		has_fix_ip

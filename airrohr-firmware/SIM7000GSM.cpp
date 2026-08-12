@@ -74,7 +74,7 @@ extern const char TXT_CONTENT_TYPE_TEXT_PLAIN[] PROGMEM = "text/plain";
 
 // internal defines.
 unsigned long m_starttime;
-boolean m_statusSend = true;     // force to send status message to MQTT broker.
+boolean m_statusSend = true;                  // force to send status message to MQTT broker.
 
 unsigned long last_status_attempt = 0;
 unsigned long wait_NTP_sync_time = ONE_DAY_IN_MS;
@@ -1045,6 +1045,13 @@ int32_t sendDataByLTE(const LoggerEntry logger, const String &str_JsonData, cons
 }
 
 /// @brief : sec = 1724850620 => Wed Aug 28 15:10:20 2024
+///
+/// LTE router => NPM time: 24/08/28,11:21:26+04
+///       - Modem lokale tijd = 11:21:26
+///       - Offset = +04
+///       - GMT = UTC (UTC+0) = 07:21:26        (11 - 4 = 7)
+///       - Amsterdam (CEST (UTC+2)) = 09:21:26 (07 + 2 = 9)
+///
 /// @param  : NTP server : 2.pool.ntp.org
 void setNTPTimeSync(void)
 {
@@ -1056,14 +1063,14 @@ void setNTPTimeSync(void)
 
      // enable NTP time sync. + time zone.
      // NTP servers operate always in UTC time. (ipv4)
-    if ( !LTEmodem->enableNTPTimeSync(true, FPSTR((String(NTP_SERVER_2)).c_str()), 1) )
+    if ( !LTEmodem->enableNTPTimeSync(true, FPSTR((String(NTP_SERVER_1)).c_str()), 1)) 
     {
         debug_outln_info(F("--- Failed to enable NTP. ---"));
         return;
     }
 
     char timeBuffer[25];
-    LTEmodem->getTime(timeBuffer, 24); // "24/08/28,11:21:26+04"
+    LTEmodem->getTime(timeBuffer, 24); 				// " 24/08/28,11:21:26+04"
 
     debug_outln_info(F("Raw NTP Date_Time value: ") + String(timeBuffer));
 
@@ -1074,6 +1081,9 @@ void setNTPTimeSync(void)
         return;                        // NTP server timed out.
     }
 
+    //int tz_offset = atoi(&timeBuffer[19]);  // +04
+    //debug_outln_info(F("NTP timezone offset: ") + String(tz_offset));
+
     // set terminator char. for each field.
     //timeBuffer[3] = 0x00;
     timeBuffer[6] = 0x00;
@@ -1082,42 +1092,34 @@ void setNTPTimeSync(void)
     timeBuffer[15] = 0x00;
     timeBuffer[18] = 0x00;
 
-    struct tm tmStruct;
+    struct tm tmStruct = {0};
     tmStruct.tm_year = atoi(&timeBuffer[1]) + 100; // = year 2024  (base 1900)
     tmStruct.tm_mon = atoi(&timeBuffer[4]);        // = month
     tmStruct.tm_mday = atoi(&timeBuffer[7]);       // = 28th day
-    tmStruct.tm_hour = atoi(&timeBuffer[10]);      // = 11 hours
+    tmStruct.tm_hour = atoi(&timeBuffer[10]);      // = 11 hours - tz_offset;       // lokale modemtijd → GMT = UTC
     tmStruct.tm_min = atoi(&timeBuffer[13]);       // = 21 minutes
     tmStruct.tm_sec = atoi(&timeBuffer[16]);       // = 26 secs
-
-    if (tmStruct.tm_mon > 2 && tmStruct.tm_mon < 11)
-    {// Day light Saving Time On, from April till October
-        tmStruct.tm_isdst = 1;                     // Tells mktime() the input date is in day light saving time.
-    }
-    else
-    {// Day light Saving Time Off, January, February, March and November, December are out.
-        tmStruct.tm_isdst = 0;                     // Tells mktime() the input date is NOT in day light saving time.
-    }
-
-    setTZ(MY_TZ);                                  // set Timezone: Europe/Amsterdam.
+    tmStruct.tm_isdst = 0;                         // GMT = UTC don't have DST
 
 #if defined(VS_DEBUG)
     char tmBuffer[90];
-    sprintf_P(tmBuffer, PSTR("%d-%d-%d %d:%d:%d+dl%d"), 
+    sprintf_P(tmBuffer, PSTR("%d-%d-%d %d:%d:%d"),
                                                     tmStruct.tm_year - 100,
                                                     tmStruct.tm_mon,
                                                     tmStruct.tm_mday,
                                                     tmStruct.tm_hour,
                                                     tmStruct.tm_min,
-                                                    tmStruct.tm_sec,
-                                                    tmStruct.tm_isdst);
+                                                    tmStruct.tm_sec);
     debug_outln_info(F("tmStruct: ") + String(tmBuffer));
  #endif
 
     // function to parse a datetime to ticker value. (1724850620 => Wed Aug 28 15:10:20 2024)
     tmStruct.tm_mon -= 1;                           // = month-1 (jan = 0)
-    time_t parsedTime = mktime(&tmStruct);
+    time_t epochTime = mktime(&tmStruct);           // Epoch time is an integer that's the same everywhere, no matter the time zoneConvert
+                                                    // create GMT = UTC timestamp.
     
+    setTZ(MY_TZ);                                   // set Timezone: Europe/Amsterdam.
+
     //debug_outln_info(F("NTP ticker value: ") + String(parsedTime));
 
     // struct tm* timeinfo = localtime(&parsedTime);
@@ -1126,15 +1128,14 @@ void setNTPTimeSync(void)
     // debug_outln_info(F("NTP format value: ") + String(buffer));
 
     struct timeval tv;
-    tv.tv_sec = parsedTime;
+    tv.tv_sec = epochTime;                          // Convert UTC → Amsterdam local time
     tv.tv_usec = 0;
 
     // Set internal timer value.
-    settimeofday(&tv,NULL);
+    settimeofday(&tv,NULL);                         // this call callback to settimeofday_cb([]() function.
 
     wait_NTP_sync_time = ONE_DAY_IN_MS;
-
-    m_statusSend = true;                     // Resend MQTT date/time status payload message.
+    m_statusSend = true;                            // Resend MQTT date/time status payload message.
 }
 
 /// @brief : sync NTP time one time a day.

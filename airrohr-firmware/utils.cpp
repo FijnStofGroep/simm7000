@@ -752,6 +752,35 @@ bool isNumeric(const String &str)
     return true;
 }
 
+/// @brief : Format a string with variable arguments: use: StringFormat( F("Status: %s | Voltage: %.2f V"), status, voltage );
+/// @param format : The format string, similar to printf
+/// @param  : Variable arguments to be formatted according to the format string
+/// @return : A formatted String object
+String StringFormat(const String& format, ...)
+{
+    va_list args;
+    va_start(args, format);
+
+    int len = vsnprintf(nullptr, 0, format.c_str(), args);
+    va_end(args);
+
+    if (len < 0) 
+	{
+        return "";
+    }
+
+    char* buffer = new char[len + 1];
+
+    va_start(args, format);
+    vsnprintf(buffer, len + 1, format.c_str(), args);
+    va_end(args);
+
+    String result(buffer);
+    delete[] buffer;
+	
+    return result;
+}
+
 /// @brief : get current DateTime string.
 /// @param : localTime :   true = Local (default)
 ///                       false = UTC
@@ -773,11 +802,11 @@ String getDateTime(bool _localTime, uint8 type)
     time(&now); // Get the current time
 
     if (_localTime)
-    { // Local time.
+    { // Local time => include summer or winter time.
         timeinfo = localtime(&now);
     }
     else
-    { // Convert to UTC.
+    { // Convert to UTC (Greenwich Mean Time), de timezone always UTC+0, without summer or winter time.
         timeinfo = gmtime(&now);
     }
 
