@@ -220,7 +220,7 @@ bool launchUpdateLoader(const String& md5)
 	}
 
 	if (!Update.begin(loaderFile.size(), U_FLASH)) 
-	{
+	{// No free sketch memory for loading Loader.bin
 		return false;
 	}
 

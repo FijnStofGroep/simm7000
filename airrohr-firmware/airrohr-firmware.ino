@@ -495,7 +495,6 @@ const uint8_t default_ip_fourth_octet = 1;
 
 #include "./sen5x_html.h"
 #include "./airrohr-cfg.h"
-#include "./OTALocal.h"
 
 
 /*****************************************************************
@@ -2953,15 +2952,6 @@ static void webserver_firmware_update()
 		return;
 	}
 
-	if ( cfg::has_s7000 )
-	{// Only for S7000: Show OTA Root Page with Update Button.
-		debug_outln_info(F("ws: firmware Update page S7000..."));
-		Send_OTA_RootPage();
-
- 		flg_OTAStartbyWebCall = 2;
-		return;
-	}
-
 	//String page_content;
 	//page_content.reserve(512);
 	// same result
@@ -4002,8 +3992,6 @@ static void setup_webserver()
 	server.on(F("/favicon.ico"), webserver_favicon);
 	server.on(F(STATIC_PREFIX), webserver_static);
 	server.onNotFound(webserver_not_found);
-
-	if (cfg::has_s7000)	Set_OTA_UpdateHandlers();
 
 	debug_outln_info(F("Station (STA) Mode: Start Web-server... "), WiFi.localIP().toString());
 	debug_outln_info(F("Access Point (AP) Mode: Starting Webserver... "), WiFi.softAPIP().toString());
@@ -7166,8 +7154,18 @@ static void twoStageOTAUpdate()
 	A transitional firmware which will look for a firmware file stored on SPIFFS to replace itself with for next reboot 
 	or do an endless loop of panic LED blinking if this fails.
 
-	This allows to do an Over-the-air (OTA) procedure on setups that have a 1M/3M split layout (rather the more modern 2M/2M) 
-	for firmwares larger than 512k (up to ~ 740k).
+	Note:
+		This allows to do an Over-the-air (OTA) procedure (ESP8266 4m3m) on setups (rather the more modern 2M/2M) 
+	for SC firmware/sketch size max ~710k.
+	sketch Loader size = 280k
+
+	 ESP8266 flash type 4m3m => Flash Split for 4M chips.
+	 	sketch @0x40200000 (~1019KB) (1044464B)
+	 	empty  @0x402FEFF0 (~4KB) (4112B)
+	 	spiffs @0x40300000 (~3048KB) (3121152B)
+	 	eeprom @0x405FB000 (4KB)
+	 	rfcal  @0x405FC000 (4KB)
+	 	wifi   @0x405FD000 (12KB)
 
 */
 static void StartTwoStageOTAUpdate()
@@ -9052,12 +9050,6 @@ void setup(void)
  *****************************************************************/
 void loop(void)
 {
-	if (flg_OTAStartbyWebCall == 2 && cfg::has_s7000)
-	{
-		OTA_UpdateLoop();		// call OTA process for Sim7000 PCB.
-		return;
-	}
-
 	unsigned long sleep = SLEEPTIME_MS;
 	String result_PPD, result_SDS, result_PMS, result_HPM, result_NPM, result_IPS;
 	String result_GPS, result_DNMS;
