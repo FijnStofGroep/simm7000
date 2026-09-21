@@ -123,8 +123,16 @@
  *        call delay(0)                                                 *
  *        call yield()                                                  *
  *                                                                      *
- * documentation Exception error list                                   *
+ * Documentation "Exception error" list:                                *
  *https://arduino-esp8266.readthedocs.io/en/latest/exception_causes.html*
+ *																		*
+ *----------------------------------------------------------------------*
+ * Note: 	 															*
+ *  - max. Flash Memory size is set to 1MB (1048576 bytes) for ESP8266.	*
+ *    set in platformio.ini file: eagle.flash.4m3m.ld					*
+ *  - Firmware size could NOT be larger than 722kB (722000 bytes) 		*
+ *    for OTA update.													*
+ *  - 722kB till 1000kB used for "loader.bin" => installer new firmware.*
  ************************************************************************
  * 																		*
  * build using lib 3.1.0												*
@@ -156,8 +164,8 @@
  * latest build 2026-08-12											    *
  * PLATFORM: Espressif 8266 (3.0.1) > NodeMCU 1.0 (ESP-12E Module)		*
  * HARDWARE: ESP8266 160MHz, 80KB RAM, 4MB Flash						*
- * RAM:     [=====     ]  48.8% (used 40012 bytes from 81920 bytes)		*
- * PROGRAM: [======    ]  67.2% (used 702053 bytes from 1044464 bytes)	*
+ * RAM:     [=====     ]  47.2% (used 38628 bytes from 81920 bytes)		*
+ * PROGRAM: [======    ]  66.8% (used 69807 bytes from 1044464 bytes)	*
  ************************************************************************/
 
 // VS: Convert Arduino file to C++ manually.
@@ -8650,12 +8658,12 @@ static unsigned long sendDataToOptionalApis(const String &data)
 		data_sensemap.replace("SEN55", cfg::sen5x_sym_pm);	 	// replace PM Sensor Type Name.
 		data_sensemap.replace("SEN5X", cfg::sen5x_sym_th);		// replace temp/hummidity/NOx Sensor Type Name.
 
-		debug_outln_verbose(F("\nSEN5x: sendDataToOptionalApis data:\n"), data_sensemap);
+		debug_outln_verbose(F("SEN5x: sendDataToOptionalApis data:\n"), data_sensemap);
 	}
 
 	if (cfg::send2madavi)
 	{
-		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("madavi.de: "));
+		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("madavi: "));
 
 		if (cfg::sen5x_read && (!is_Sen5x_init_failed))
 		{
