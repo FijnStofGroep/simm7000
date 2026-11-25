@@ -40,9 +40,10 @@
 #define LEN_TEMP_CORRECTION 8
 #define LEN_HEIGHT_ABOVE_SEALEVEL 8
 
-#define LEN_SENSEBOXID 30
-#define LEN_OSEM_DEVICE_API_KEY 50
-#define LEN_OSEM_ALTERNATE_HOST 50
+#define LEN_SENSEBOXID 31
+#define LEN_OSEM_SENSEBOXID 51
+#define LEN_OSEM_DEVICE_API_KEY 51
+#define LEN_OSEM_ALTERNATE_HOST 101 // include terminator char.
 
 #define LEN_HOST_INFLUX 100         
 #define LEN_URL_INFLUX 100
@@ -50,16 +51,16 @@
 #define LEN_PASS_INFLUX 90
 #define LEN_MEASUREMENT_NAME_INFLUX 100
 
-#define LEN_MQTT_LARGE_HEADER 90 
-#define LEN_MQTT_HEADER 30
-#define LEN_MQTT_MASK 8             // filter (bit_array[24]) => select sensor value send Yes/No.
+#define LEN_MQTT_LARGE_HEADER 91 
+#define LEN_MQTT_HEADER 31
+#define LEN_MQTT_MASK 9             // filter (bit_array[24]) => select sensor value send Yes/No.
 
-#define LEN_MQTT_TOKEN 8
+#define LEN_MQTT_TOKEN 17           // max. 16 char.
 
 #define LEN_HOST_CUSTOM 100
 #define LEN_URL_CUSTOM 100
 #define LEN_USER_CUSTOM 65
-#define MAX_PORT_DIGITS 5
+#define MAX_PORT_DIGITS 7
 
 #define LEN_STATIC_ADRESS  16
 #define LEN_SIMM7000 30
@@ -75,8 +76,6 @@
 #define DEBUG_MAX_INFO 5
 #define DEBUG_ENGINEER_INFO 88
 
-//#define SENSOR_SEN50   "SEN50"        // remove 2024-03-20
-//#define SENSOR_SEN54   "SEN54"        // remove 2024-03-20
 #define SENSOR_SEN55   "SEN55"
   
 #define SENSOR_SCD30   "SCD30"

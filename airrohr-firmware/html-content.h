@@ -14,7 +14,7 @@ const char DBG_TXT_TEMPERATURE[] PROGMEM = "Temperature (°C): ";
 const char DBG_TXT_HUMIDITY[] PROGMEM = "Humidity (%): ";
 const char DBG_TXT_PRESSURE[] PROGMEM = "Pressure (Pa): ";
 const char DBG_TXT_CO2PPM[] PROGMEM = "CO₂ (ppm): ";
-const char DBG_TXT_VOCINDEX[] PROGMEM = "VOC index: ";
+const char DBG_TXT_VOC[] PROGMEM = "VOC index: ";
 const char DBG_TXT_NOX[] PROGMEM = "NOx index: ";
 const char DBG_TXT_START_READING[] PROGMEM = "R/ ";
 const char DBG_TXT_END_READING[] PROGMEM = "/R ";
@@ -40,8 +40,6 @@ const char SENSORS_NPM[] PROGMEM = "Tera Sensor NextPM";
 const char SENSORS_IPS[] PROGMEM = "Piera Systems IPS-7100";
 const char MANUFACTURER[] PROGMEM = "Sensirion ";
 const char SENSORS_SPS30[] PROGMEM = "SPS30";
-const char SENSORS_SEN50[] PROGMEM = "SEN50";
-const char SENSORS_SEN54[] PROGMEM = "SEN54";
 const char SENSORS_SEN55[] PROGMEM = "SEN55";
 const char SENSORS_SEN5X_TH[] PROGMEM = "SEN5X TH";
 const char SENSORS_DHT22[] PROGMEM = "DHT22";
@@ -59,7 +57,8 @@ const char WEB_PAGE_HEADER[] PROGMEM = "<!DOCTYPE html><html lang='" INTL_LANG "
 <meta charset='utf-8'/>	\
 <title>{t}</title>";
 
-const char INTL_MASK_INFO[] PROGMEM = "<tr><td>&nbsp;</td><td style='font-size:13px'>MQTT filter LTE - No filter = 0 - LTE 7936(default)  <a href='https://github.com/FijnStofGroep/simm7000/tree/master' target='_blank' rel='noreferrer' style='color:#000'>" \
+const char INTL_MASK_INFO[] PROGMEM = "<tr><td>&nbsp;</td><td style='font-size:13px'>MQTT filter LTE: 0 = No filter, 7922(default) \
+<a href='https://github.com/FijnStofGroep/simm7000/tree/master' target='_blank' rel='noreferrer' style='color:#000'>" \
 " See instruction from Github </a></td></tr>";
 
 const char WEB_PAGE_STATIC_CSS[] PROGMEM = "	\
