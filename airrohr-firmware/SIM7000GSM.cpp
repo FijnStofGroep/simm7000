@@ -945,7 +945,7 @@ int32_t sendDataByLTE(const LoggerEntry logger, const String &str_JsonData, cons
     //}
 
     uint16_t statuscode = -1;
-    int16_t respLength;
+    uint16_t respLength;
     bool send_success = false;
     const __FlashStringHelper *contentType;
 
@@ -1010,8 +1010,8 @@ int32_t sendDataByLTE(const LoggerEntry logger, const String &str_JsonData, cons
     if ( !LTEmodem->HTTP_POST_start(s_url, 
                                     contentType,                  // FPSTR(contentTmp.c_str()),
                                     addUserHeader, 
-                                    (uint8_t *)str_JsonData.c_str(), str_JsonData.length(), 
-                                    &statuscode, (uint16_t *)&respLength) )
+                                    (uint8_t *)str_JsonData.c_str(), (uint16_t)str_JsonData.length(), 
+                                    &statuscode, &respLength) )
     {
         debug_outln_info("POST Failed!");
         //return 0;
