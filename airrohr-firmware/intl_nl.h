@@ -160,6 +160,7 @@ const char INTL_SENSORCOMMUNITY[] PROGMEM = "Sensor Community:";
 #define INTL_ENABLE_MOREWIFI      "meer Wifi SSID router (actief na reboot)"
 #define INTL_MORE_TEMP_SENSORS    "Temperatuur Sensors"
 #define INTL_UPDATE_FIRMWARE      "Update Firmware"
+#define INTL_SENSIRION_MODEL      "Sensirion Model  "
 #define INTL_SEN5X_EMP_PM         "Emulate PM SEN5X"
 #define INTL_SEN5X_EMP_TH         "Emulate TH SEN5X"
 #define INTL_SEN5X_NOT_CONNECTED  "Sensor Hardware NIET aangesloten...Check connecties."
